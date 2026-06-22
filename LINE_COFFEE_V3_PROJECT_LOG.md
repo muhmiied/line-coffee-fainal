@@ -2,33 +2,167 @@
 
 Every AI agent or developer who works on this project must append a new entry to the Agent Work Log before finishing their session.
 
+This file is the project timeline and current operating reference. It should be read together with `AGENT_WORK_PROTOCOL.md` and `CLAUDE.md` before any new AI/dev session.
+
+---
+
 ## 1. Project Overview
 
-Line Coffee V3 is the current clean foundation for the future Line Coffee public website and ecommerce platform. The current repository is a Next.js App Router project using React, TypeScript, Tailwind CSS, local Playfair Display fonts, Cairo/Tajawal Google fonts, bilingual content structures, and mock visual data.
+Line Coffee V3 is the current working foundation for the future Line Coffee ecommerce and operations platform.
 
-The current phase is still homepage and visual foundation work. Supabase, dashboard, checkout, cart, orders, auth, and database logic are intentionally out of scope unless explicitly requested.
+The project is no longer only a homepage visual foundation. The public website, customer-facing flows, and Admin Dashboard mock UI are now active.
+
+Current status:
+
+- Public homepage visual direction is largely locked.
+- Product catalog and product experience exist or are in active development.
+- Customer-facing account area exists or is planned before final backend binding.
+- Admin Dashboard mock modules are actively being built and reviewed module by module.
+- Supabase/backend integration is deferred until UI/business flows are reviewed.
+- All current admin/dashboard work is mock-only unless explicitly stated otherwise.
+
+Core execution direction:
+
+```text
+Public Website
+→ Customer Account Area
+→ Admin Dashboard Mock UI
+→ Media Studio Architecture
+→ Supabase / Backend Binding
+```
+
+Supabase remains the future source of truth, but current work should stay mock-only until backend integration is explicitly approved.
+
+---
 
 ## 2. Current Visual Direction
 
-The homepage direction is premium dark coffee luxury: deep coffee-black backgrounds, warm beige and gold accents, editorial typography, restrained motion, soft borders, and calm image-led sections.
+The public website direction is premium dark coffee luxury: deep coffee-black backgrounds, warm beige and gold accents, editorial typography, restrained motion, soft borders, and calm image-led sections.
 
-Do not reintroduce trust strip, smoke bridges, gradient bridges, section blend systems, or transitional fog. Keep transitions clean through spacing, background continuity, and refined section structure.
+Do not reintroduce:
+
+- Trust strips
+- Smoke bridges
+- Gradient bridges
+- Section blend systems
+- Transitional fog
+- Random decorative animation
+
+Keep transitions clean through spacing, background continuity, refined stacked sections, and restrained editorial motion.
+
+Admin/dashboard UI should also stay dark, premium, operational, and Line Coffee branded. It should not look like a generic SaaS template, a white ERP, or a copied dashboard kit.
+
+---
 
 ## 3. Current Architecture Direction
 
-- Keep the homepage split into `src/features/website/home` sections.
-- Keep shared layout in `src/components/layout/public`.
+General rules:
+
+- Keep public website sections modular and separated.
+- Keep shared public layout in `src/components/layout/public`.
 - Keep shared UI primitives in `src/components/ui`.
-- Keep mock visual content in `src/lib/mock-data/visual-content.ts` until a future CMS or Media Studio connection is explicitly requested.
-- Preserve bilingual data as `{ en, ar }` localized values.
+- Keep mock data in `src/lib/mock-data` until future CMS/Supabase binding is explicitly approved.
+- Preserve bilingual data as `{ en, ar }` localized values where applicable.
+- Respect Arabic/English and RTL/LTR behavior.
 - Keep client components focused and avoid broad refactors.
+- Do not scan or rewrite the entire repository unless explicitly approved.
+- Identify exact files before editing.
+- Keep patches minimal and scoped.
+
+Current architecture mindset:
+
+- Public website and customer flows are being shaped first.
+- Admin Dashboard is being built as a mock operating system before database binding.
+- Media Studio is the future owner of public visual content and page section control.
+- Supabase/database will later become the source of truth for products, customers, orders, inventory, content, analytics, and settings.
+
+---
 
 ## 4. Current Route Map
 
-- `/` renders `src/app/page.tsx`, which mounts `LineCoffeeHome`.
-- `src/app/(public)` exists as a future public route group placeholder.
-- `src/app/(dashboard)` exists as a future dashboard route group placeholder.
-- Public navigation currently links to future routes such as `/products`, `/about`, `/contact`, `/blog`, `/reviews`, `/privacy-policy`, and `/terms-of-use`, but those routes are not implemented in the current inspected route map.
+### Public Website
+
+- `/` — Homepage
+- `/products` — Product listing / catalog entry
+- `/products/category/[slug]` — Category page
+- `/products/[slug]` — Product detail page
+- `/about` — Brand story page
+- `/blog` — Blog / Journal
+- `/blog/[slug]` — Blog post
+- `/contact` — Contact page
+- `/privacy` — Privacy Policy
+- `/terms` — Terms & Conditions
+- `/shipping` — Shipping Policy
+- `/returns` — Returns Policy
+
+### Custom Builders
+
+- `/make-your-espresso` — Make Your Espresso builder
+- `/make-your-flavor` — Make Your Flavor builder
+
+Important builder decision:
+
+- Do **not** split Make Your Espresso into Beginner vs Advanced modes.
+- All options should be available together.
+- Use a selector/box style with tabs such as Quick Select and Custom Ratios.
+- Suggested blend direction cards/chips should include options such as Balanced, Crema Focused, Strong, Smooth Aroma, and Chocolatey.
+
+### Cart / Checkout / Order Flow
+
+- `/cart`
+- `/checkout`
+- `/order-success`
+- `/order-tracking/[id]` — planned/deferred unless explicitly built
+
+### Auth
+
+- `/auth/login`
+- `/auth/signup`
+- `/auth/forgot-password`
+- `/auth/reset-password`
+
+### Customer Account Area
+
+Customer-facing account area should exist before final dashboard/backend binding.
+
+- `/account/profile`
+- `/account/orders`
+- `/account/orders/[id]`
+- `/account/addresses`
+- `/account/wishlist`
+- `/account/notifications`
+- `/account/settings`
+
+Customer profile requirements:
+
+- View previous orders.
+- Track current order.
+- Edit name, email, phone, address.
+- Manage profile picture.
+- If no uploaded profile picture, show generated avatar or allow preset avatar selection.
+- Customer notifications are required.
+
+### Admin Dashboard
+
+Admin routes live under `/admin/*`.
+
+Current dashboard module list:
+
+- `/admin/dashboard`
+- `/admin/orders`
+- `/admin/products`
+- `/admin/inventory`
+- `/admin/customers`
+- `/admin/marketing`
+- `/admin/accounting`
+- `/admin/analytics`
+- `/admin/cms`
+- `/admin/espresso-manager`
+- `/admin/flavor-manager`
+
+Media Studio is separate from the regular Admin Dashboard and should not be treated as just another basic sidebar module unless explicitly approved.
+
+---
 
 ## 5. Current Homepage Structure
 
@@ -44,31 +178,55 @@ Do not reintroduce trust strip, smoke bridges, gradient bridges, section blend s
 8. `SocialGallerySection`
 9. `ContactSection`
 
-The page is wrapped by `PublicHeader` and `PublicFooter` from `src/app/layout.tsx`.
+The page is wrapped by `PublicHeader` and `PublicFooter` from the root layout.
 
-## 6. Current Component Map
+Homepage visual direction is considered locked. Do not redesign homepage structure unless explicitly requested.
 
-- `src/app/page.tsx`: homepage entry.
-- `src/app/layout.tsx`: root layout, fonts, language provider, public header/footer.
-- `src/app/globals.css`: global tokens, nav styling, hero animation helpers, section system, cards, buttons, marquee behavior, reveal behavior, and responsive rules.
-- `src/features/website/home/LineCoffeeHome.tsx`: homepage section composition and scroll reveal hook.
-- `src/features/website/home/sections/HeroSection.tsx`: hero carousel, copy, actions, stats, slide controls, dots, scroll cue.
-- `src/features/website/home/sections/CategoriesSection.tsx`: category marquee immediately after the hero.
-- `src/features/website/home/sections/FeaturesSection.tsx`: value proposition cards.
-- `src/features/website/home/sections/StorySection.tsx`: story copy, value cards, image, and stats panel.
-- `src/features/website/home/sections/BestSellersSection.tsx`: product marquee.
-- `src/features/website/home/sections/JournalSection.tsx`: blog preview cards.
-- `src/features/website/home/sections/TestimonialsSection.tsx`: customer note cards.
-- `src/features/website/home/sections/SocialGallerySection.tsx`: Instagram-style visual marquee.
-- `src/features/website/home/sections/ContactSection.tsx`: contact info and local-only form state.
-- `src/features/website/home/hooks/useLuxuryScrollReveal.ts`: viewport reveal helper.
-- `src/components/ui/SectionHeading.tsx`: shared section heading.
-- `src/components/product/ProductCard.tsx`: product card used by best sellers.
-- `src/lib/context/language.tsx`: English/Arabic language and direction context.
-- `src/lib/mock-data/visual-content.ts`: current homepage visual content and asset map.
-- `src/types/homepage.ts`: homepage content types.
+---
 
-## 7. Current Completed Work
+## 6. Current Component / Data Map
+
+### Public Website Core
+
+- `src/app/page.tsx` — homepage entry.
+- `src/app/layout.tsx` — root layout, fonts, language provider, public header/footer.
+- `src/app/globals.css` — global tokens, typography, nav styling, hero animation helpers, section system, cards, buttons, marquee behavior, reveal behavior, admin CSS, and responsive rules.
+- `src/features/website/home/LineCoffeeHome.tsx` — homepage section composition and scroll reveal hook.
+- `src/features/website/home/sections/*` — homepage sections.
+- `src/features/website/home/hooks/useLuxuryScrollReveal.ts` — viewport reveal helper.
+- `src/components/layout/public/PublicHeader.tsx` — public header, announcement bar, navigation, language, cart/wishlist/user controls.
+- `src/components/layout/public/PublicFooter.tsx` — public footer.
+- `src/components/ui/SectionHeading.tsx` — shared section heading.
+- `src/components/product/ProductCard.tsx` — public product card used by public surfaces.
+- `src/lib/context/language.tsx` — English/Arabic language and direction context.
+- `src/lib/mock-data/visual-content.ts` — homepage visual content and assets.
+- `src/lib/mock-data/product-catalog.ts` — product catalog/pricing source used by product/admin flows.
+
+### Admin Dashboard Core
+
+- `src/app/admin/layout.tsx` — admin layout shell entry.
+- `src/components/admin/layout/AdminShell.tsx` — fixed admin overlay shell.
+- `src/components/admin/layout/AdminSidebar.tsx` — admin sidebar navigation.
+- `src/components/admin/layout/AdminTopBar.tsx` — admin top bar/profile/workspace controls.
+- `src/lib/mock-data/admin/*` — admin mock data per module.
+
+### Current Admin Module Data Files
+
+- `dashboard-mock.ts`
+- `orders-mock.ts`
+- `products-admin-mock.ts`
+- `inventory-mock.ts`
+- `customers-mock.ts`
+- `marketing-mock.ts`
+- `accounting-mock.ts`
+- `analytics-mock.ts`
+- `cms-mock.ts`
+
+---
+
+## 7. Current Completed / Approved Work
+
+### Public Website / Customer Flows
 
 - Next.js App Router foundation exists.
 - Public header and footer exist.
@@ -76,63 +234,119 @@ The page is wrapped by `PublicHeader` and `PublicFooter` from `src/app/layout.ts
 - Language context supports English and Arabic direction switching.
 - Shared visual tokens and section/card/button systems exist in global CSS.
 - Hero carousel, stats count-up, category/product/social marquees, and scroll reveal are implemented.
-- Current session cleaned the hero-to-categories transition and balanced the hero stat layout.
-- Current session added this project log and `AGENT_WORK_PROTOCOL.md`.
+- Product catalog source exists with the real Line Coffee category/product pricing direction.
+- Product category and detail pages have been built in mock/UI-only form.
+- About page has been built in premium editorial style.
+- Auth/login/signup flows have mock local auth behavior.
+- Account guard and profile real-user read were added.
 
-## 8. Current Known Issues
+### Admin Dashboard Mock UI
 
-- Arabic copy appears mojibake in the inspected source and should be audited separately before production localization work.
-- Future public routes linked by the header/footer are not implemented in the current route map.
-- Homepage content is still mock data and not CMS-backed.
-- Commerce controls in the header are visual placeholders only.
+Completed/approved mock modules include:
+
+- Admin Shell / Sidebar / Topbar
+- Main Dashboard
+- Orders
+- Products
+- Make Your Espresso / Espresso Manager
+- Make Your Flavor / Flavor Manager
+- Inventory
+- Customers
+- Marketing & Promotions initial rebuild
+
+Marketing is currently being restructured again based on the latest business workflow.
+
+---
+
+## 8. Current Known Issues / Active Risks
+
+- Documentation is partially stale because the project moved faster than the docs.
+- Some older planning/audit files may contain superseded decisions and should not be treated as current source of truth without review.
+- Marketing & Promotions module is mid-restructure and may be incomplete if an AI session stopped due to usage limit.
+- Backend/Supabase is not connected yet; all admin/dashboard changes are mock-only unless explicitly stated.
+- Admin local state changes reset on refresh.
+- Announcement bar management in Marketing is mock-only and should not touch the public header until approved.
+- Cart and Wishlist drawers were previously noted as only working on homepage and should later be global public overlays via PublicHeader/PublicLayout.
+- Sitemap issue was previously deferred: live sitemap may still show only `/lander` instead of the correct route set.
+
+---
 
 ## 9. Current Deferred Items
 
 - Supabase/database connection.
-- Dashboard implementation.
-- Checkout, cart, orders, and auth flows.
-- Product listing and product detail pages.
-- CMS and Media Studio ownership of homepage content/assets.
-- Full Arabic copy cleanup/localization pass.
-- Accessibility and keyboard audit beyond the current homepage visual scope.
+- Real authentication and role-based access.
+- Real order persistence and transactional checkout.
+- Real inventory deduction and purchase order integration.
+- Media Studio full architecture and live public section control.
+- Marketing automation / real WhatsApp/email sending.
+- Payment gateway integration.
+- Analytics real tracking.
+- PDF invoice / print invoice system.
+- Order tracking public page unless explicitly built.
+- Full accessibility and keyboard audit.
+- Production SEO/sitemap cleanup.
+- Final image/media replacement and optimization.
+
+---
 
 ## 10. Current Next Steps
 
-Recommended next task: perform a focused Arabic localization encoding/content cleanup for homepage-facing copy only, then validate English and Arabic layout in desktop and mobile viewports.
+Immediate current priority:
 
-## Temporary Arabic Font Comparison Note
+1. Finish **Marketing & Promotions restructure**.
+2. Visually review Marketing screens.
+3. Commit and push checkpoint.
+4. Continue module-by-module:
+   - Accounting
+   - Analytics
+   - CMS
+5. After admin mock modules are reviewed, prepare backend/Supabase binding plan.
 
-The temporary multi-font comparison was replaced on 2026-06-16 with a homepage-only final typography preview.
+Latest approved Marketing structure:
 
-Selected Arabic typography preview:
+- Offers
+- Promo Codes
+- Announcement Bar
+- Performance
 
-- Arabic display font: `ArabicTestAligarh`.
-- Arabic body/card/small-copy font: `ArabicTestTinta`.
-- Arabic numbers: `ArabicTestAligarh` through `.arabic-number`.
-- Numeric symbols, units, currency marks, Latin technical text: safe system stack through `.numeric-symbol`.
-- Large heading light-sweep/shimmer animation is removed; heading styling remains static.
+Removed from Marketing as separate tabs:
 
-Historical comparison mapping:
+- Customer Targeting
+- Website Banners broad management
+- Hero banner management
+- Section banner management
 
-- `HeroSection` uses `arabic-font-test-1` / `ArabicTestAligarh`.
-- `CategoriesSection` uses `arabic-font-test-2` / `ArabicTestFunPlay`.
-- `FeaturesSection` uses `arabic-font-test-3` / `ArabicTestInkBrush`.
-- `StorySection` uses `arabic-font-test-4` / `ArabicTestLutfey`.
-- `BestSellersSection` uses `arabic-font-test-5` / `ArabicTestNaveid`.
-- `JournalSection`, `TestimonialsSection`, `SocialGallerySection`, and `ContactSection` use `arabic-font-test-6` / `ArabicTestTinta`.
+Important Marketing decisions:
 
-To remove/revert this test, delete the temporary `@font-face` declarations and `.arabic-font-test-*` rules from `src/app/globals.css`, then remove the temporary `arabic-font-test-*` classes and nearby TEMP comments from homepage section components.
+- Targeting happens inside Offer/Promo builders.
+- Announcement Bar controls only the small rotating bar above the public site header.
+- Hero/section/page banners belong later to Media Studio.
+- Active offers/codes without announcement messages must show a warning.
+- Performance must show original order value, discount given, and paid revenue after discount.
+- Usage details should show customers/orders who used each offer/code.
+- New offers/codes/messages must be added to local page state immediately, not just show a success flash.
 
-If the user chooses one font, keep that font's `@font-face`, remove the section-level test classes, and update the Arabic global font variables/rules in `src/app/globals.css` to use the selected family instead of the previous Arabic display/body font.
+---
 
-Temporary font testing safeguards added on 2026-06-16:
+## Temporary Arabic Font / Typography Note
 
-- Superseded by the final preview classes `.arabic-display`, `.arabic-body`, `.arabic-number`, and `.numeric-symbol`.
+Earlier temporary Arabic font comparison work is historical and should not drive new implementation decisions unless explicitly reopened.
+
+Current practical rule:
+
+- Arabic typography must remain premium, readable, and consistent.
+- Do not reintroduce temporary section-by-section font experiments.
+- Do not add new font files unless explicitly approved.
+- Never expose or share font files.
+
+---
 
 ## 11. Agent Work Log
 
 | Date | Agent | Task | Files Changed | What Changed | What Was Not Touched | Validation | Notes / Next Step |
 | ---- | ----- | ---- | ------------- | ------------ | -------------------- | ---------- | ----------------- |
+| 2026-06-22 | Codex GPT-5 | Documentation Source-of-Truth Cleanup | `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` (new); `AGENT_WORK_PROTOCOL.md`; `README.md`; `CLAUDE.md`; `LINE_COFFEE_V3_PUBLIC_WEBSITE_MASTER_VISUAL_PLAN.md`; `LINE_COFFEE_V3_CUSTOM_BUILDERS_REVIEW_AND_ENHANCEMENTS.md`; `LINE_COFFEE_V3_PROJECT_LOG.md`; `docs/archive/LINE_COFFEE_V3_PRODUCTS_PHASE_READINESS_AUDIT.md` (archived from root) | Created the current source-of-truth handoff file; tightened agent reading and work rules; updated README from foundation-only to active mock UI phase; added CLAUDE current-state notice and Change Log entry; marked older planning docs as historical; moved the outdated Products Phase Readiness Audit to `docs/archive/` with an archive notice | Source code, `src/`, public UI, admin modules, backend/API/Supabase, package files, build config, and `docs/AI_HANDOFF_MARKETING.md` | Documentation-only update; no code validation run; `git status --short -- src` confirmed no `src/` changes; git diff summary reviewed | Future sessions should read `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` first, then `AGENT_WORK_PROTOCOL.md`, then this project log |
+| 2026-06-22 | ChatGPT GPT-5.5 Thinking | Project Log Current-State Sync | `LINE_COFFEE_V3_PROJECT_LOG.md` | Updated top-level project state from homepage-only foundation to active public website + customer account + admin dashboard mock phase; documented current route map, admin modules, current Marketing restructure decisions, deferred backend/Supabase status, and current next steps | Source code, public UI, admin modules, Supabase/backend, Media Studio implementation | Documentation-only update | Next: add/update `LINE_COFFEE_V3_CURRENT_STATE.md`, then continue Marketing restructure handoff |
 | 2026-06-17 | Codex GPT-5 | Phase 2A Product Experience Pages | `src/components/product/CatalogProductCard.tsx` (new); `src/app/(public)/products/category/[slug]/page.tsx` (new); `src/app/(public)/products/[slug]/page.tsx` (new); `LINE_COFFEE_V3_PROJECT_LOG.md` | Added UI-only category pages with premium image hero, breadcrumb, category story, search, price filters, sort, local catalog-card variant, empty state, and related categories; added UI-only product detail pages with gallery, bilingual title/description, price/weight/quantity selectors, derived taste bars, blend composition when present, product story, related products, reviews placeholder, FAQ placeholder, and mock CTA only; used `product-catalog.ts` as the source of truth without changing `/products` | Homepage, `/products` redesign, existing `ProductCard`, Make Your Espresso, Make Your Flavor, Supabase, Dashboard, Cart integration, Checkout, Orders, Auth, DB/migrations, backend assumptions | `npm run lint` passed; `npx tsc --noEmit` passed; `npm run build` passed with non-fatal Next SWC native-binding warnings and generated `/products/[slug]` plus `/products/category/[slug]`; browser QA passed on `/products/category/espresso-blends` and `/products/heavy-crema` for desktop, mobile, RTL, no horizontal overflow, no console errors, and mock CTA state change | Next: detailed visual review across more categories/products |
 | 2026-06-16 | Codex GPT-5 | Homepage cleanup, hero transition/stat layout, project docs | `src/features/website/home/sections/HeroSection.tsx`; `src/features/website/home/sections/CategoriesSection.tsx`; `src/app/globals.css`; `AGENT_WORK_PROTOCOL.md`; `LINE_COFFEE_V3_PROJECT_LOG.md`; `README.md` | Balanced hero stats in a responsive grid; removed the raised card treatment between hero and categories; hid the decorative hero watermark on small screens to prevent stat overlap; added persistent agent protocol and project log; linked docs from README | Supabase, Dashboard, Checkout, Cart, Orders, Auth, database logic, and new pages | `npm run lint` passed; `npm run build` passed with non-fatal Next SWC native-binding warnings; desktop/mobile visual QA completed on `localhost:3001` | Next: focused Arabic localization encoding/content cleanup for homepage-facing copy |
 | 2026-06-16 | Codex GPT-5 | Spread hero stats across full hero width | `src/features/website/home/sections/HeroSection.tsx`; `LINE_COFFEE_V3_PROJECT_LOG.md` | Expanded the hero copy wrapper so the stats row can use the full hero width; aligned the first, middle, and last stat across the row while keeping mobile stacked | Supabase, Dashboard, Checkout, Cart, Orders, Auth, database logic, new pages, and other homepage sections | `npm run lint` passed; `npm run build` passed with non-fatal Next SWC native-binding warnings; desktop/mobile visual QA completed on `localhost:3001` | Next: focused Arabic localization encoding/content cleanup for homepage-facing copy |

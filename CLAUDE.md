@@ -1,5 +1,15 @@
 # Line Coffee — Project Record
 
+## Current Source Of Truth
+
+- Current state is now in `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+- The Change Log below is historical and should not override current decisions.
+- If old entries conflict with `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`, follow `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+- Marketing is currently being restructured to 4 tabs only: Offers / Promo Codes / Announcement Bar / Performance.
+- The previous 5-tab Marketing implementation is obsolete.
+
+---
+
 > **AGENT RULE:** Any agent that makes a change in this project **must append an entry** to the [Change Log](#change-log) section below before finishing. Include: date, what changed, which files, why. Future agents depend on this record.
 
 ---
@@ -144,6 +154,16 @@ ContactSection       ← cinematic-section, contact form + info
 > Every agent must add an entry here in format: `## [Date] — [Summary]`
 
 ---
+
+### [2026-06-22] - Documentation Source-of-Truth Cleanup
+
+**Goal:** Make `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` the current source of truth and prevent older planning/changelog entries from overriding current decisions.
+
+**Files changed:** `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`, `AGENT_WORK_PROTOCOL.md`, `README.md`, `CLAUDE.md`, `LINE_COFFEE_V3_PUBLIC_WEBSITE_MASTER_VISUAL_PLAN.md`, `LINE_COFFEE_V3_CUSTOM_BUILDERS_REVIEW_AND_ENHANCEMENTS.md`, `LINE_COFFEE_V3_PROJECT_LOG.md`, `docs/archive/LINE_COFFEE_V3_PRODUCTS_PHASE_READINESS_AUDIT.md`
+
+**What changed:** Added current source-of-truth notice, documented the active Marketing restructure as 4 tabs only, tightened agent reading/work rules, refreshed README from foundation-only to active mock UI phase, archived the outdated Products readiness audit, and marked older planning docs as historical.
+
+**Validation:** Documentation-only update. No source code or `src/` files touched.
 
 ### [2026-06-22] — Marketing & Promotions: Full Module Rebuild (5 Tabs)
 

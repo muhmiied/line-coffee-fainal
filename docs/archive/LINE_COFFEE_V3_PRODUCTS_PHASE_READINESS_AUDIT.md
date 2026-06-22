@@ -1,3 +1,6 @@
+> Archived / historical. Current source of truth is `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+> This audit described readiness before the Products phase and must not override current repo state.
+
 # LINE COFFEE V3 — Products Phase Readiness Audit
 
 > **Prepared by:** Claude Sonnet 4.6  

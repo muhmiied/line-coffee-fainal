@@ -1,3 +1,6 @@
+> Historical planning document. Current source of truth is `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+> If this document conflicts with current state, follow `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+
 # LINE COFFEE V3 — Public Website Master Visual Plan
 
 > **Status:** Planning Document — Typography locked. Ready to begin Products Experience phase.

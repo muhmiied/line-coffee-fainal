@@ -1,51 +1,41 @@
-# Line Coffee Final / Visual Lab
+# Line Coffee Final / V3
 
-This is the clean foundation for the future Line Coffee platform.
+This repository is the current working Line Coffee V3 platform surface.
 
-The project starts as a visual and architecture lab. It will grow into the
-future Line Coffee website, premium ecommerce experience, CMS, dashboard,
-Media Studio, custom builders, analytics surface, and mobile-ready content
-source.
+It is no longer foundation-only. The public website, customer-facing ecommerce flow, account/auth UI, and Admin Dashboard mock UI are active in this repo.
+
+Backend, Supabase, real APIs, real payments, and production persistence are still deferred unless explicitly approved.
 
 ## Current Phase
 
-Foundation only.
+Line Coffee V3 is in the mock UI buildout phase.
 
-This phase includes:
+Active areas include:
 
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Line Coffee brand tokens
-- Cairo and Playfair Display font strategy
-- Future-facing folder structure
-- Design system foundation primitives
+- Premium bilingual public website.
+- Product catalog, category pages, and product detail pages.
+- Make Your Espresso and Make Your Flavor builders.
+- Cart, checkout, and order-success mock flow.
+- Auth and customer account mock UI.
+- Admin Dashboard mock modules.
+- Marketing & Promotions restructure in progress.
 
-This phase intentionally does not include:
+## AI Handoff
 
-- Homepage implementation
-- Dashboard implementation
-- Backend implementation
-- Supabase connection
-- Auth
-- Real APIs
-- Production database schema
+Before changing this project, read these in order:
+
+1. [`docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`](docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md)
+2. [`AGENT_WORK_PROTOCOL.md`](AGENT_WORK_PROTOCOL.md)
+3. [`LINE_COFFEE_V3_PROJECT_LOG.md`](LINE_COFFEE_V3_PROJECT_LOG.md)
+
+The current-state file is the main source of truth for future AI sessions. Older planning docs are historical if they conflict with it.
 
 ## Reference Repositories
 
-Reference repositories are read-only sources of context. Do not modify them and
-do not copy code blindly.
+Reference repositories are read-only sources of context. Do not modify them and do not copy code blindly.
 
 - Architecture source of truth: https://github.com/muhmiied/line-coffee-v2
 - Business and customer journey reference: https://github.com/muhmiied/line-coffee
-
-## Visual References
-
-These references define quality and taste direction only. Do not copy branding,
-content, layouts, or UI one-to-one.
-
-- Emotional and editorial reference: https://irishcafe-template.framer.website/
-- Product showcase and footer reference: https://cafenza.framer.website/
 
 ## Brand Foundation
 
@@ -54,29 +44,30 @@ content, layouts, or UI one-to-one.
 - Beige: `#FFDCC2`
 - Black: `#000000`
 - White: `#FFFFFF`
-- Arabic font: Cairo
-- English font: Playfair Display
+- Arabic font direction: Cairo/Tajawal and current project typography rules
+- English font direction: Playfair Display
 
 ## Architecture Guardrails
 
 - Build in this repository only.
-- Keep the old repositories read-only.
-- Keep content structures bilingual from day one.
-- Prepare every public content surface for future CMS control.
-- Prepare every visual asset path for future Media Studio ownership.
-- Keep dashboard, backend, auth, and database work out of this phase.
+- Keep old repositories read-only.
+- Keep content structures bilingual.
+- Keep public website, account, admin, CMS, and Media Studio responsibilities separate.
+- Keep mock data in `src/lib/mock-data` until backend binding is explicitly approved.
+- Do not introduce Supabase, API routes, database migrations, or backend persistence without approval.
+- Do not redesign the homepage unless explicitly requested.
 
 ## Folder Map
 
-- `src/app` - Next.js App Router entry point and future route groups.
-- `src/app/(public)` - Future public website routes.
-- `src/app/(dashboard)` - Future dashboard routes.
-- `src/components` - Shared UI, layout, and brand components.
-- `src/features/website` - Future public website feature modules.
-- `src/features/dashboard` - Future dashboard feature modules.
+- `src/app` - Next.js App Router entry point and routes.
+- `src/app/(public)` - Public website, ecommerce, auth, and account routes.
+- `src/app/admin` - Admin Dashboard mock routes.
+- `src/components` - Shared UI, layout, product, and admin components.
+- `src/features/website` - Public website feature modules.
+- `src/features/dashboard` - Dashboard feature modules.
 - `src/features/cms` - Future Content Builder and CMS modules.
 - `src/features/media-studio` - Future Media Studio modules.
-- `src/features/builders` - Future custom Espresso and Flavor builders.
+- `src/features/builders` - Custom builder modules.
 - `src/lib/design-tokens` - Brand and design token definitions.
 - `src/lib/mock-data` - Mock data until Supabase is connected later.
 - `src/types` - Shared TypeScript types.
@@ -90,7 +81,7 @@ Run the development server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## Validation
 
@@ -99,23 +90,8 @@ npm run lint
 npm run build
 ```
 
-## Agent Handoff
-
-Before changing this project, read [`AGENT_WORK_PROTOCOL.md`](AGENT_WORK_PROTOCOL.md)
-and [`LINE_COFFEE_V3_PROJECT_LOG.md`](LINE_COFFEE_V3_PROJECT_LOG.md).
+For documentation-only work, code validation is usually not required.
 
 ## Design System
 
-The current design foundation is documented in
-[`docs/DESIGN_SYSTEM_FOUNDATION.md`](docs/DESIGN_SYSTEM_FOUNDATION.md).
-
-## Next Recommended Phase
-
-Build the first public website skeleton using the design system primitives:
-announcement bar, public shell, section composition, and mock-data wiring only.
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The design foundation is documented in [`docs/DESIGN_SYSTEM_FOUNDATION.md`](docs/DESIGN_SYSTEM_FOUNDATION.md).

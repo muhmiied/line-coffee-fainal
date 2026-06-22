@@ -1,3 +1,6 @@
+> Historical planning/review document. Current source of truth is `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+> If this document conflicts with current state, follow `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+
 # LINE COFFEE V3 — Custom Builders: Deep Review & Enhancements
 
 > **Role:** Senior UX Designer · E-commerce Product Designer · Coffee Product Experience Designer
