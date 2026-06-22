@@ -1,1219 +1,2364 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import {
-  Plus, Copy, Check, Tag, Megaphone, BarChart2,
-  ImageIcon, AlertTriangle, Zap, X,
+  AlertTriangle,
+  Archive,
+  BarChart2,
+  Check,
+  ChevronRight,
+  Copy,
+  Edit3,
+  Eye,
+  Gift,
+  Link as LinkIcon,
+  Megaphone,
+  MessageSquare,
+  Pause,
+  Percent,
+  Play,
+  Plus,
+  Send,
+  Sparkles,
+  Tag,
+  Trash2,
+  Truck,
+  Users,
+  X,
 } from "lucide-react";
+import CustomerPickerModal from "@/components/admin/marketing/CustomerPickerModal";
 import {
-  OFFERS, PROMO_CODES, WEBSITE_BANNERS, ANNOUNCEMENT_MESSAGES, MARKETING_SUMMARY,
-  type Offer, type PromoCode, type OfferStatus, type PromoStatus,
-  type TargetSegment, type BannerPosition,
+  ANNOUNCEMENT_MESSAGES,
+  OFFERS,
+  PROMO_CODES,
+  USAGE_RECORDS,
+  type AnnouncementAnimation,
+  type AnnouncementMessage,
+  type AudienceType,
+  type CampaignStatus,
+  type DiscountType,
+  type Offer,
+  type OfferStatus,
+  type OfferType,
+  type PromoCode,
+  type PromoStatus,
+  type UsageRule,
 } from "@/lib/mock-data/admin/marketing-mock";
-import { CUSTOMER_SUMMARY } from "@/lib/mock-data/admin/customers-mock";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+type ActiveTab = "offers" | "promos" | "announcements" | "performance";
+type CampaignKind = "offer" | "promo";
+type OperationalFilter = "Active" | "Paused";
 
-type Tab = "Offers" | "Promo Codes" | "Customer Targeting" | "Website Banners" | "Performance";
-const TABS: Tab[] = ["Offers", "Promo Codes", "Customer Targeting", "Website Banners", "Performance"];
+const TODAY = new Date("2026-06-22T00:00:00");
 
-const OFFER_STATUS_STYLE: Record<OfferStatus, { bg: string; color: string }> = {
-  Active:    { bg: "rgba(74,222,128,0.12)",  color: "#4ade80" },
-  Scheduled: { bg: "rgba(96,165,250,0.12)",  color: "#60a5fa" },
-  Paused:    { bg: "rgba(251,191,36,0.12)",  color: "#fbbf24" },
-  Expired:   { bg: "rgba(156,163,175,0.12)", color: "#9ca3af" },
-};
-
-const PROMO_STATUS_STYLE: Record<PromoStatus, { bg: string; color: string }> = {
-  Active:    { bg: "rgba(74,222,128,0.12)",  color: "#4ade80" },
-  Scheduled: { bg: "rgba(96,165,250,0.12)",  color: "#60a5fa" },
-  Paused:    { bg: "rgba(251,191,36,0.12)",  color: "#fbbf24" },
-  Expired:   { bg: "rgba(156,163,175,0.12)", color: "#9ca3af" },
-};
-
-const OFFER_TYPE_LABEL: Record<string, string> = {
-  percentage:    "% Discount",
-  fixed:         "Fixed EGP",
-  "free-shipping": "Free Shipping",
-  bundle:        "Bundle",
-};
-const OFFER_TYPE_COLOR: Record<string, string> = {
-  percentage:    "#a78bfa",
-  fixed:         "#60a5fa",
-  "free-shipping": "#34d399",
-  bundle:        "#f97316",
-};
-
-const SEGMENT_STYLE: Record<TargetSegment, { color: string; bg: string; label: string }> = {
-  all:                  { color: "var(--cream-dim)", bg: "rgba(255,255,255,0.07)", label: "All Customers" },
-  vip:                  { color: "var(--gold)",       bg: "rgba(182,136,94,0.12)",  label: "VIP" },
-  repeat:               { color: "#4ade80",            bg: "rgba(74,222,128,0.10)",  label: "Repeat" },
-  new:                  { color: "#fbbf24",            bg: "rgba(251,191,36,0.10)",  label: "New" },
-  inactive:             { color: "#f87171",            bg: "rgba(248,113,113,0.10)", label: "Inactive" },
-  "at-risk":            { color: "#fb923c",            bg: "rgba(251,146,60,0.10)",  label: "At Risk" },
-  "wholesale-potential":{ color: "#c084fc",            bg: "rgba(192,132,252,0.10)", label: "Wholesale" },
-};
-
-const BANNER_POSITION_STYLE: Record<BannerPosition, { bg: string; color: string; label: string }> = {
-  hero:         { bg: "rgba(182,136,94,0.12)", color: "var(--gold)",  label: "Hero" },
-  announcement: { bg: "rgba(96,165,250,0.12)", color: "#60a5fa",      label: "Announcement" },
-  section:      { bg: "rgba(167,139,250,0.12)",color: "#a78bfa",      label: "Section" },
-};
-
-const SEGMENT_INFO: { key: TargetSegment; label: string; desc: string; count: number; color: string }[] = [
-  { key: "vip",                   label: "VIP",             desc: "Spent 5000+ EGP or 8+ orders",       count: CUSTOMER_SUMMARY.vip,      color: "var(--gold)"  },
-  { key: "repeat",                label: "Repeat",          desc: "2+ orders, non-VIP",                  count: CUSTOMER_SUMMARY.repeat,   color: "#4ade80"      },
-  { key: "new",                   label: "New",             desc: "1 order or less, joined in 30 days",  count: 3,                          color: "#fbbf24"      },
-  { key: "inactive",              label: "Inactive",        desc: "Last order 90+ days ago",             count: CUSTOMER_SUMMARY.inactive, color: "#f87171"      },
-  { key: "at-risk",               label: "At Risk",         desc: "2+ orders, silent 60–90 days",        count: 2,                          color: "#fb923c"      },
-  { key: "wholesale-potential",   label: "Wholesale",       desc: "Manually tagged wholesale prospects",  count: 1,                          color: "#c084fc"      },
+const TAB_OPTIONS: { key: ActiveTab; label: string }[] = [
+  { key: "offers", label: "Offers" },
+  { key: "promos", label: "Promo Codes" },
+  { key: "announcements", label: "Announcement Bar" },
+  { key: "performance", label: "Performance" },
 ];
 
-// ─── Small shared sub-components ─────────────────────────────────────────────
+const AUDIENCE_OPTIONS: { value: AudienceType; label: string }[] = [
+  { value: "all", label: "All Customers" },
+  { value: "vip", label: "VIP" },
+  { value: "repeat", label: "Repeat Customers" },
+  { value: "new", label: "New Customers" },
+  { value: "inactive", label: "Inactive Customers" },
+  { value: "at-risk", label: "At Risk Customers" },
+  { value: "wholesale-potential", label: "Wholesale Potential" },
+  { value: "specific", label: "Specific Customers" },
+];
 
-function StatusBadge({ status, map }: { status: string; map: Record<string, { bg: string; color: string }> }) {
-  const s = map[status] ?? { bg: "rgba(255,255,255,0.07)", color: "var(--cream-dim)" };
+const OFFER_TYPE_OPTIONS: {
+  value: OfferType;
+  label: string;
+  detail: string;
+  icon: ComponentType<{ size?: number; className?: string }>;
+}[] = [
+  { value: "free-shipping", label: "Free Shipping", detail: "Delivery discount by order value or governorate.", icon: Truck },
+  { value: "percentage", label: "Percentage Discount", detail: "A percentage off products, categories, or orders.", icon: Percent },
+  { value: "fixed", label: "Fixed Amount Discount", detail: "A fixed EGP discount with a minimum order.", icon: Tag },
+  { value: "gift", label: "Gift With Order", detail: "A free gift when the order meets a rule.", icon: Gift },
+  { value: "first-order", label: "First Order Offer", detail: "A first purchase incentive for new customers.", icon: Sparkles },
+];
+
+const ANIMATION_OPTIONS: { value: AnnouncementAnimation; label: string }[] = [
+  { value: "slide", label: "Slide" },
+  { value: "fade", label: "Fade" },
+  { value: "marquee", label: "Marquee" },
+];
+
+const STATUS_TONE: Record<CampaignStatus, string> = {
+  Active: "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#4ade80]",
+  Paused: "border-[#fbbf24]/25 bg-[#fbbf24]/10 text-[#fbbf24]",
+  Archived: "border-[#6b5744]/30 bg-[#2a2018] text-[#8b735b]",
+};
+
+function fmt(value: number) {
+  return new Intl.NumberFormat("en-US").format(Math.round(value));
+}
+
+function money(value: number) {
+  return `${fmt(value)} EGP`;
+}
+
+function normalizePhone(phone: string) {
+  return phone.replace(/\D/g, "");
+}
+
+function numberOrZero(value: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function optionalNumber(value: string) {
+  if (!value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function getAudienceLabel(audience: AudienceType) {
+  return AUDIENCE_OPTIONS.find((option) => option.value === audience)?.label ?? audience;
+}
+
+function getOfferTypeLabel(type: OfferType) {
+  return OFFER_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type;
+}
+
+function getDateBadge(startDate: string, endDate: string, status: CampaignStatus) {
+  if (status === "Archived") return null;
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T23:59:59`);
+  if (start > TODAY) return "Scheduled";
+  if (end < TODAY) return "Expired";
+  return null;
+}
+
+function hasActiveAnnouncementForOffer(offer: Offer, messages: AnnouncementMessage[]) {
+  return messages.some((message) => message.active && (message.relatedOfferId === offer.id || message.id === offer.announcementId));
+}
+
+function hasActiveAnnouncementForPromo(code: PromoCode, messages: AnnouncementMessage[]) {
+  return messages.some((message) => message.active && (message.relatedPromoId === code.id || message.id === code.announcementId));
+}
+
+function buildPromoDiscountLabel(code: PromoCode) {
+  return code.type === "percentage" ? `${code.value}%` : money(code.value);
+}
+
+function buildOfferValueLabel(offer: Offer) {
+  if (offer.offerType === "free-shipping") return "Free shipping";
+  if (offer.offerType === "percentage") return `${offer.discountPct ?? 0}%`;
+  if (offer.offerType === "fixed" || offer.offerType === "first-order") {
+    if (offer.discountPct) return `${offer.discountPct}%`;
+    if (offer.discountAmount) return money(offer.discountAmount);
+  }
+  if (offer.offerType === "gift") return offer.giftName ?? "Gift";
+  return getOfferTypeLabel(offer.offerType);
+}
+
+function suggestedOfferAnnouncement(offer: Offer) {
+  if (offer.offerType === "free-shipping") {
+    const amount = offer.minOrder ?? 0;
+    return {
+      title: `Announcement - ${offer.title.en}`,
+      en: `Free delivery on orders above ${amount} EGP.`,
+      ar: `شحن مجاني للطلبات فوق ${amount} جنيه.`,
+    };
+  }
+
+  if (offer.offerType === "percentage") {
+    return {
+      title: `Announcement - ${offer.title.en}`,
+      en: `Get ${offer.discountPct ?? 0}% off with ${offer.title.en}.`,
+      ar: `احصل على خصم ${offer.discountPct ?? 0}% مع عرض ${offer.title.ar}.`,
+    };
+  }
+
+  if (offer.offerType === "fixed" || offer.offerType === "first-order") {
+    return {
+      title: `Announcement - ${offer.title.en}`,
+      en: `Save ${offer.discountAmount ?? 0} EGP on your next Line Coffee order.`,
+      ar: `وفر ${offer.discountAmount ?? 0} جنيه على طلبك القادم من Line Coffee.`,
+    };
+  }
+
+  return {
+    title: `Announcement - ${offer.title.en}`,
+    en: `${offer.title.en} is now active at Line Coffee.`,
+    ar: `${offer.title.ar} متاح الآن في Line Coffee.`,
+  };
+}
+
+function suggestedPromoAnnouncement(code: PromoCode) {
+  return {
+    title: `Announcement - ${code.code}`,
+    en: `Use code ${code.code} for ${buildPromoDiscountLabel(code)} off your next Line Coffee order.`,
+    ar: `استخدم كود ${code.code} واحصل على خصم ${buildPromoDiscountLabel(code)} على طلبك من Line Coffee.`,
+  };
+}
+
+function getAverage(total: number, count: number) {
+  return count > 0 ? Math.round(total / count) : 0;
+}
+
+function StatusPill({ status }: { status: CampaignStatus }) {
   return (
-    <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold whitespace-nowrap"
-      style={{ background: s.bg, color: s.color }}
-    >
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_TONE[status]}`}>
       {status}
     </span>
   );
 }
 
-function SegmentChips({ segments }: { segments: TargetSegment[] }) {
+function DateStatePill({ startDate, endDate, status }: { startDate: string; endDate: string; status: CampaignStatus }) {
+  const badge = getDateBadge(startDate, endDate, status);
+  if (!badge) return null;
+
   return (
-    <div className="flex flex-wrap gap-1">
-      {segments.map((seg) => {
-        const s = SEGMENT_STYLE[seg];
-        return (
-          <span
-            key={seg}
-            className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
-            style={{ background: s.bg, color: s.color }}
-          >
-            {s.label}
-          </span>
-        );
-      })}
-    </div>
+    <span className="inline-flex items-center rounded-full border border-[#60a5fa]/20 bg-[#60a5fa]/10 px-2 py-0.5 text-[10px] font-semibold text-[#60a5fa]">
+      {badge}
+    </span>
   );
 }
 
-function SectionHeader({ icon: Icon, label }: { icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>; label: string }) {
-  return (
-    <div
-      className="flex items-center gap-2 px-5 py-3.5"
-      style={{ borderBottom: "1px solid rgba(182,136,94,0.08)", background: "rgba(182,136,94,0.02)" }}
-    >
-      <Icon size={13} style={{ color: "var(--gold)", opacity: 0.7 }} />
-      <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
-        {label}
-      </p>
-    </div>
+function AnnouncementPill({ hasAnnouncement }: { hasAnnouncement: boolean }) {
+  return hasAnnouncement ? (
+    <span className="inline-flex items-center rounded-full border border-[#4ade80]/20 bg-[#4ade80]/10 px-2 py-0.5 text-[10px] font-semibold text-[#4ade80]">
+      Has announcement
+    </span>
+  ) : (
+    <span className="inline-flex items-center rounded-full border border-[#fbbf24]/25 bg-[#fbbf24]/10 px-2 py-0.5 text-[10px] font-semibold text-[#fbbf24]">
+      No Bar Message
+    </span>
   );
 }
 
-function InputField({
-  label, value, onChange, placeholder, type = "text",
+function AudiencePill({ audience, count }: { audience: AudienceType; count?: number }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] font-semibold text-[#b79b85]">
+      {audience === "specific" && typeof count === "number" ? `${count} selected customers` : getAudienceLabel(audience)}
+    </span>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  tone = "cream",
+  onClick,
 }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+  label: string;
+  value: ReactNode;
+  sub?: string;
+  icon: ComponentType<{ size?: number; className?: string }>;
+  tone?: "cream" | "gold" | "green" | "red" | "amber";
+  onClick?: () => void;
+}) {
+  const color =
+    tone === "gold" ? "text-[#b6885e]" :
+    tone === "green" ? "text-[#4ade80]" :
+    tone === "red" ? "text-[#f87171]" :
+    tone === "amber" ? "text-[#fbbf24]" :
+    "text-[#f5e6d8]";
+
+  const content = (
+    <>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]/50">{label}</p>
+        <Icon size={14} className={color} />
+      </div>
+      <p className={`text-xl font-bold tabular-nums ${color}`}>{value}</p>
+      {sub && <p className="mt-1 text-[10px] text-[#6b5744]">{sub}</p>}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="admin-kpi-card py-3 text-left transition-colors hover:border-[#b6885e]/30">
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="admin-kpi-card py-3">{content}</div>;
+}
+
+function SectionTitle({
+  icon: Icon,
+  title,
+  right,
+}: {
+  icon: ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  right?: ReactNode;
 }) {
   return (
-    <div>
-      <label className="block text-[10.5px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg text-[13px] outline-none"
-        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(182,136,94,0.15)", color: "var(--cream)" }}
+    <div className="flex items-center justify-between gap-3 border-b border-[#2a2018] px-4 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon size={14} className="flex-shrink-0 text-[#b6885e]" />
+        <p className="truncate text-xs font-semibold uppercase tracking-wider text-[#b79b85]/70">{title}</p>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]/55">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={(event) => onChange(event.target.value)}
+      className="w-full rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs text-[#f5e6d8] outline-none transition-colors placeholder:text-[#4a3828] focus:border-[#b6885e]"
+    />
+  );
+}
+
+function TextArea({
+  value,
+  onChange,
+  placeholder,
+  dir,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  dir?: "rtl" | "ltr";
+}) {
+  return (
+    <textarea
+      value={value}
+      placeholder={placeholder}
+      dir={dir}
+      onChange={(event) => onChange(event.target.value)}
+      rows={3}
+      className="w-full resize-none rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs leading-5 text-[#f5e6d8] outline-none transition-colors placeholder:text-[#4a3828] focus:border-[#b6885e]"
+    />
+  );
+}
+
+function SelectInput({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="w-full rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs text-[#f5e6d8] outline-none transition-colors focus:border-[#b6885e]"
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function FormActions({
+  onClose,
+  submitLabel,
+}: {
+  onClose: () => void;
+  submitLabel: string;
+}) {
+  return (
+    <div className="flex items-center justify-end gap-2 border-t border-[#2a2018] px-4 py-3">
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-lg border border-[#2a2018] px-4 py-2 text-xs font-semibold text-[#b79b85] transition-colors hover:border-[#b6885e]/40"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        className="rounded-lg bg-[#b6885e] px-4 py-2 text-xs font-bold text-[#0b0806] transition-colors hover:bg-[#d6a373]"
+      >
+        {submitLabel}
+      </button>
+    </div>
+  );
+}
+
+function ModalShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[190] flex items-center justify-center px-3"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+      <div
+        className="admin-surface relative z-10 flex max-h-[88vh] w-full max-w-[900px] flex-col overflow-hidden rounded-lg border border-[#2a2018]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#2a2018] px-4 py-3">
+          <div>
+            <h2 className="text-base font-bold text-[#f5e6d8]" style={{ fontFamily: "var(--font-playfair)" }}>
+              {title}
+            </h2>
+            {subtitle && <p className="mt-0.5 text-xs text-[#b79b85]/55">{subtitle}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-lg text-[#b79b85] transition-colors hover:bg-white/5 hover:text-[#f5e6d8]"
+            aria-label="Close modal"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function DrawerShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[180] flex justify-end"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+      <aside
+        className="admin-surface relative z-10 flex h-full w-full max-w-[680px] flex-col overflow-hidden rounded-none border-l border-[#2a2018]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#2a2018] px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold text-[#f5e6d8]" style={{ fontFamily: "var(--font-playfair)" }}>
+              {title}
+            </h2>
+            {subtitle && <p className="mt-0.5 text-xs text-[#b79b85]/55">{subtitle}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg text-[#b79b85] transition-colors hover:bg-white/5 hover:text-[#f5e6d8]"
+            aria-label="Close drawer"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        {children}
+      </aside>
+    </div>
+  );
+}
+
+function MetricStrip({
+  original,
+  discount,
+  paid,
+  used,
+  orders,
+}: {
+  original: number;
+  discount: number;
+  paid: number;
+  used: number;
+  orders: number;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      {[
+        { label: "Used", value: used, tone: "text-[#f5e6d8]" },
+        { label: "Orders", value: orders, tone: "text-[#f5e6d8]" },
+        { label: "Before Discount", value: money(original), tone: "text-[#b79b85]" },
+        { label: "Discount Given", value: money(discount), tone: "text-[#f87171]" },
+        { label: "Paid Revenue", value: money(paid), tone: "text-[#4ade80]" },
+      ].map((item) => (
+        <div key={item.label} className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-3">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">{item.label}</p>
+          <p className={`mt-1 text-sm font-bold tabular-nums ${item.tone}`}>{item.value}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface OfferBuilderModalProps {
+  initialOffer?: Offer;
+  onClose: () => void;
+  onSave: (offer: Offer) => void;
+}
+
+function OfferBuilderModal({ initialOffer, onClose, onSave }: OfferBuilderModalProps) {
+  const [offerType, setOfferType] = useState<OfferType>(initialOffer?.offerType ?? "free-shipping");
+  const [titleEn, setTitleEn] = useState(initialOffer?.title.en ?? "");
+  const [titleAr, setTitleAr] = useState(initialOffer?.title.ar ?? "");
+  const [discountPct, setDiscountPct] = useState(initialOffer?.discountPct?.toString() ?? "");
+  const [discountAmount, setDiscountAmount] = useState(initialOffer?.discountAmount?.toString() ?? "");
+  const [maxDiscount, setMaxDiscount] = useState(initialOffer?.maxDiscount?.toString() ?? "");
+  const [minOrder, setMinOrder] = useState(initialOffer?.minOrder?.toString() ?? "");
+  const [applyTo, setApplyTo] = useState(initialOffer?.applyTo ?? "All products");
+  const [giftName, setGiftName] = useState(initialOffer?.giftName ?? "");
+  const [giftDescription, setGiftDescription] = useState(initialOffer?.giftDescription ?? "");
+  const [governorates, setGovernorates] = useState((initialOffer?.governorates ?? ["All"]).join(", "));
+  const [firstOrderDiscountType, setFirstOrderDiscountType] = useState<DiscountType | "free-shipping">(
+    initialOffer?.discountPct ? "percentage" : initialOffer?.discountAmount ? "fixed" : "free-shipping",
+  );
+  const [audience, setAudience] = useState<AudienceType>(
+    initialOffer?.audience ?? (initialOffer?.offerType === "first-order" ? "new" : "all"),
+  );
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>(initialOffer?.specificCustomerIds ?? []);
+  const [startDate, setStartDate] = useState(initialOffer?.startDate ?? "2026-06-22");
+  const [endDate, setEndDate] = useState(initialOffer?.endDate ?? "2026-12-31");
+  const [status, setStatus] = useState<OfferStatus>(initialOffer?.status === "Archived" ? "Paused" : initialOffer?.status ?? "Active");
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+
+  const handleTypeSelect = (type: OfferType) => {
+    setOfferType(type);
+    if (type === "first-order") setAudience("new");
+  };
+
+  const conditionEn = useMemo(() => {
+    const amount = optionalNumber(minOrder);
+    if (offerType === "free-shipping") {
+      return amount ? `Free shipping on orders above ${amount} EGP.` : "Free shipping on all orders.";
+    }
+    if (offerType === "percentage") {
+      return `${numberOrZero(discountPct)}% off ${applyTo.toLowerCase()}${amount ? ` above ${amount} EGP` : ""}.`;
+    }
+    if (offerType === "fixed") {
+      return `${numberOrZero(discountAmount)} EGP off ${applyTo.toLowerCase()}${amount ? ` above ${amount} EGP` : ""}.`;
+    }
+    if (offerType === "gift") {
+      return `${giftName || "Gift"} with ${applyTo.toLowerCase()}${amount ? ` above ${amount} EGP` : ""}.`;
+    }
+    if (firstOrderDiscountType === "free-shipping") {
+      return amount ? `Free shipping on first order above ${amount} EGP.` : "Free shipping on first order.";
+    }
+    return `${firstOrderDiscountType === "percentage" ? `${numberOrZero(discountPct)}%` : `${numberOrZero(discountAmount)} EGP`} off first order${amount ? ` above ${amount} EGP` : ""}.`;
+  }, [applyTo, discountAmount, discountPct, firstOrderDiscountType, giftName, minOrder, offerType]);
+
+  const conditionAr = useMemo(() => {
+    const amount = optionalNumber(minOrder);
+    if (offerType === "free-shipping") {
+      return amount ? `شحن مجاني للطلبات فوق ${amount} جنيه.` : "شحن مجاني لكل الطلبات.";
+    }
+    if (offerType === "percentage") {
+      return `خصم ${numberOrZero(discountPct)}%${amount ? ` للطلبات فوق ${amount} جنيه` : ""}.`;
+    }
+    if (offerType === "fixed") {
+      return `خصم ${numberOrZero(discountAmount)} جنيه${amount ? ` للطلبات فوق ${amount} جنيه` : ""}.`;
+    }
+    if (offerType === "gift") {
+      return `${giftName || "هدية"} مع الطلب${amount ? ` فوق ${amount} جنيه` : ""}.`;
+    }
+    if (firstOrderDiscountType === "free-shipping") {
+      return amount ? `شحن مجاني لأول طلب فوق ${amount} جنيه.` : "شحن مجاني لأول طلب.";
+    }
+    return firstOrderDiscountType === "percentage"
+      ? `خصم ${numberOrZero(discountPct)}% على أول طلب.`
+      : `خصم ${numberOrZero(discountAmount)} جنيه على أول طلب.`;
+  }, [discountAmount, discountPct, firstOrderDiscountType, giftName, minOrder, offerType]);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextOffer: Offer = {
+      id: initialOffer?.id ?? `offer-${Date.now()}`,
+      title: {
+        en: titleEn.trim() || getOfferTypeLabel(offerType),
+        ar: titleAr.trim() || "عرض جديد",
+      },
+      offerType,
+      conditionEn,
+      conditionAr,
+      discountPct: offerType === "percentage" || firstOrderDiscountType === "percentage" ? optionalNumber(discountPct) : undefined,
+      discountAmount: offerType === "fixed" || firstOrderDiscountType === "fixed" ? optionalNumber(discountAmount) : undefined,
+      maxDiscount: optionalNumber(maxDiscount),
+      minOrder: optionalNumber(minOrder),
+      applyTo,
+      governorates: offerType === "free-shipping" ? governorates.split(",").map((item) => item.trim()).filter(Boolean) : undefined,
+      giftName: offerType === "gift" ? giftName.trim() : undefined,
+      giftDescription: offerType === "gift" ? giftDescription.trim() : undefined,
+      audience,
+      specificCustomerIds: audience === "specific" ? selectedCustomerIds : undefined,
+      startDate,
+      endDate,
+      status,
+      announcementId: initialOffer?.announcementId,
+      usedCount: initialOffer?.usedCount ?? 0,
+      ordersGenerated: initialOffer?.ordersGenerated ?? 0,
+      originalRevenue: initialOffer?.originalRevenue ?? 0,
+      discountGiven: initialOffer?.discountGiven ?? 0,
+      paidRevenue: initialOffer?.paidRevenue ?? 0,
+    };
+
+    onSave(nextOffer);
+    onClose();
+  };
+
+  return (
+    <ModalShell
+      title={initialOffer ? "Edit Offer" : "New Offer"}
+      subtitle="Choose the offer type first, then define rules and audience."
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-4 py-4">
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]/55">Offer Type</p>
+            <div className="grid gap-2 md:grid-cols-5">
+              {OFFER_TYPE_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                const active = offerType === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleTypeSelect(option.value)}
+                    className={`rounded-lg border p-3 text-left transition-colors ${
+                      active ? "border-[#b6885e] bg-[#b6885e]/10" : "border-[#2a2018] bg-[#0b0806] hover:border-[#b6885e]/40"
+                    }`}
+                  >
+                    <Icon size={16} className={active ? "text-[#b6885e]" : "text-[#6b5744]"} />
+                    <p className="mt-2 text-xs font-bold text-[#f5e6d8]">{option.label}</p>
+                    <p className="mt-1 text-[10px] leading-4 text-[#6b5744]">{option.detail}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Title EN">
+              <TextInput value={titleEn} onChange={setTitleEn} placeholder="Free shipping above 1000 EGP" />
+            </Field>
+            <Field label="Title AR">
+              <TextInput value={titleAr} onChange={setTitleAr} placeholder="شحن مجاني فوق 1000 جنيه" />
+            </Field>
+          </div>
+
+          {offerType === "free-shipping" && (
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label="Applies to">
+                <SelectInput
+                  value={applyTo}
+                  onChange={setApplyTo}
+                  options={[
+                    { value: "All orders", label: "All orders" },
+                    { value: "Orders above amount", label: "Orders above amount" },
+                  ]}
+                />
+              </Field>
+              <Field label="Minimum order amount">
+                <TextInput value={minOrder} onChange={setMinOrder} type="number" placeholder="1000" />
+              </Field>
+              <Field label="Governorates">
+                <TextInput value={governorates} onChange={setGovernorates} placeholder="All, Cairo, Giza" />
+              </Field>
+            </div>
+          )}
+
+          {offerType === "percentage" && (
+            <div className="grid gap-3 md:grid-cols-4">
+              <Field label="Discount percentage">
+                <TextInput value={discountPct} onChange={setDiscountPct} type="number" placeholder="10" />
+              </Field>
+              <Field label="Max discount amount">
+                <TextInput value={maxDiscount} onChange={setMaxDiscount} type="number" placeholder="120" />
+              </Field>
+              <Field label="Applies to">
+                <SelectInput
+                  value={applyTo}
+                  onChange={setApplyTo}
+                  options={[
+                    { value: "All products", label: "All products" },
+                    { value: "Specific category", label: "Specific category" },
+                    { value: "Specific product", label: "Specific product" },
+                    { value: "First order only", label: "First order only" },
+                    { value: "Orders above amount", label: "Orders above amount" },
+                  ]}
+                />
+              </Field>
+              <Field label="Minimum order amount">
+                <TextInput value={minOrder} onChange={setMinOrder} type="number" placeholder="400" />
+              </Field>
+            </div>
+          )}
+
+          {offerType === "fixed" && (
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label="Discount amount EGP">
+                <TextInput value={discountAmount} onChange={setDiscountAmount} type="number" placeholder="50" />
+              </Field>
+              <Field label="Minimum order amount">
+                <TextInput value={minOrder} onChange={setMinOrder} type="number" placeholder="400" />
+              </Field>
+              <Field label="Applies to">
+                <SelectInput
+                  value={applyTo}
+                  onChange={setApplyTo}
+                  options={[
+                    { value: "All orders", label: "All orders" },
+                    { value: "Specific category", label: "Specific category" },
+                    { value: "Specific product", label: "Specific product" },
+                    { value: "First order only", label: "First order only" },
+                  ]}
+                />
+              </Field>
+            </div>
+          )}
+
+          {offerType === "gift" && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Gift name">
+                <TextInput value={giftName} onChange={setGiftName} placeholder="Sample Coffee 50g" />
+              </Field>
+              <Field label="Condition">
+                <SelectInput
+                  value={applyTo}
+                  onChange={setApplyTo}
+                  options={[
+                    { value: "Orders above amount", label: "Orders above amount" },
+                    { value: "Specific category purchase", label: "Specific category purchase" },
+                    { value: "Specific product purchase", label: "Specific product purchase" },
+                  ]}
+                />
+              </Field>
+              <Field label="Minimum order amount">
+                <TextInput value={minOrder} onChange={setMinOrder} type="number" placeholder="1500" />
+              </Field>
+              <Field label="Gift description">
+                <TextInput value={giftDescription} onChange={setGiftDescription} placeholder="A free sample with the order" />
+              </Field>
+            </div>
+          )}
+
+          {offerType === "first-order" && (
+            <div className="grid gap-3 md:grid-cols-4">
+              <Field label="Discount type">
+                <SelectInput
+                  value={firstOrderDiscountType}
+                  onChange={(value) => setFirstOrderDiscountType(value as DiscountType | "free-shipping")}
+                  options={[
+                    { value: "percentage", label: "Percentage" },
+                    { value: "fixed", label: "Fixed amount" },
+                    { value: "free-shipping", label: "Free shipping" },
+                  ]}
+                />
+              </Field>
+              {firstOrderDiscountType === "percentage" && (
+                <Field label="Value">
+                  <TextInput value={discountPct} onChange={setDiscountPct} type="number" placeholder="10" />
+                </Field>
+              )}
+              {firstOrderDiscountType === "fixed" && (
+                <Field label="Value EGP">
+                  <TextInput value={discountAmount} onChange={setDiscountAmount} type="number" placeholder="50" />
+                </Field>
+              )}
+              <Field label="Minimum order amount">
+                <TextInput value={minOrder} onChange={setMinOrder} type="number" placeholder="400" />
+              </Field>
+              <Field label="Audience">
+                <TextInput value="New Customers" onChange={() => undefined} />
+              </Field>
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <Field label="Target audience">
+              <SelectInput
+                value={audience}
+                onChange={(value) => setAudience(value as AudienceType)}
+                options={AUDIENCE_OPTIONS}
+              />
+            </Field>
+            <Field label="Start date">
+              <TextInput value={startDate} onChange={setStartDate} type="date" />
+            </Field>
+            <Field label="End date">
+              <TextInput value={endDate} onChange={setEndDate} type="date" />
+            </Field>
+            <Field label="Status">
+              <SelectInput
+                value={status}
+                onChange={(value) => setStatus(value as OfferStatus)}
+                options={[
+                  { value: "Active", label: "Active" },
+                  { value: "Paused", label: "Paused" },
+                ]}
+              />
+            </Field>
+          </div>
+
+          {audience === "specific" && (
+            <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-[#b79b85]">{selectedCustomerIds.length} selected customers</p>
+                <button
+                  type="button"
+                  onClick={() => setCustomerPickerOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#b6885e]/30 px-3 py-1.5 text-xs font-semibold text-[#b6885e] transition-colors hover:bg-[#b6885e]/10"
+                >
+                  <Users size={12} /> Choose Customers
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-3">
+            <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Generated condition</p>
+            <p className="mt-1 text-xs text-[#f5e6d8]">{conditionEn}</p>
+            <p className="mt-1 text-xs text-[#b79b85]" dir="rtl">{conditionAr}</p>
+          </div>
+        </div>
+
+        <FormActions onClose={onClose} submitLabel={initialOffer ? "Save Offer" : "Create Offer"} />
+      </form>
+
+      <CustomerPickerModal
+        open={customerPickerOpen}
+        onClose={() => setCustomerPickerOpen(false)}
+        mode="select"
+        selectedIds={selectedCustomerIds}
+        onConfirm={setSelectedCustomerIds}
+      />
+    </ModalShell>
+  );
+}
+
+interface PromoBuilderModalProps {
+  initialCode?: PromoCode;
+  onClose: () => void;
+  onSave: (code: PromoCode) => void;
+}
+
+function PromoBuilderModal({ initialCode, onClose, onSave }: PromoBuilderModalProps) {
+  const [code, setCode] = useState(initialCode?.code ?? "");
+  const [type, setType] = useState<DiscountType>(initialCode?.type ?? "percentage");
+  const [value, setValue] = useState(initialCode?.value?.toString() ?? "");
+  const [minOrder, setMinOrder] = useState(initialCode?.minOrder?.toString() ?? "");
+  const [maxDiscount, setMaxDiscount] = useState(initialCode?.maxDiscount?.toString() ?? "");
+  const [usageRule, setUsageRule] = useState<UsageRule>(initialCode?.usageRule ?? "unlimited");
+  const [maxUses, setMaxUses] = useState(initialCode?.maxUses?.toString() ?? "");
+  const [audience, setAudience] = useState<AudienceType>(initialCode?.audience ?? "all");
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>(initialCode?.specificCustomerIds ?? []);
+  const [startDate, setStartDate] = useState(initialCode?.startDate ?? "2026-06-22");
+  const [endDate, setEndDate] = useState(initialCode?.endDate ?? "2026-12-31");
+  const [status, setStatus] = useState<PromoStatus>(initialCode?.status === "Archived" ? "Paused" : initialCode?.status ?? "Active");
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextCode: PromoCode = {
+      id: initialCode?.id ?? `pc-${Date.now()}`,
+      code: code.trim().toUpperCase() || "NEWCODE",
+      type,
+      value: numberOrZero(value),
+      minOrder: numberOrZero(minOrder),
+      maxDiscount: optionalNumber(maxDiscount),
+      usageRule,
+      maxUses: usageRule === "limited" ? optionalNumber(maxUses) : undefined,
+      usedCount: initialCode?.usedCount ?? 0,
+      audience,
+      specificCustomerIds: audience === "specific" ? selectedCustomerIds : undefined,
+      startDate,
+      endDate,
+      status,
+      announcementId: initialCode?.announcementId,
+      ordersGenerated: initialCode?.ordersGenerated ?? 0,
+      originalRevenue: initialCode?.originalRevenue ?? 0,
+      discountGiven: initialCode?.discountGiven ?? 0,
+      paidRevenue: initialCode?.paidRevenue ?? 0,
+    };
+
+    onSave(nextCode);
+    onClose();
+  };
+
+  return (
+    <ModalShell title={initialCode ? "Edit Promo Code" : "New Promo Code"} subtitle="Create checkout codes customers enter manually." onClose={onClose}>
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-4 py-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            <Field label="Promo code word">
+              <TextInput value={code} onChange={(next) => setCode(next.toUpperCase())} placeholder="LINE10" />
+            </Field>
+            <Field label="Discount type">
+              <SelectInput
+                value={type}
+                onChange={(next) => setType(next as DiscountType)}
+                options={[
+                  { value: "percentage", label: "Percentage" },
+                  { value: "fixed", label: "Fixed amount" },
+                ]}
+              />
+            </Field>
+            <Field label={type === "percentage" ? "Value %" : "Value EGP"}>
+              <TextInput value={value} onChange={setValue} type="number" placeholder={type === "percentage" ? "10" : "50"} />
+            </Field>
+            <Field label="Minimum order amount">
+              <TextInput value={minOrder} onChange={setMinOrder} type="number" placeholder="400" />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            {type === "percentage" && (
+              <Field label="Max discount amount">
+                <TextInput value={maxDiscount} onChange={setMaxDiscount} type="number" placeholder="120" />
+              </Field>
+            )}
+            <Field label="Total usage">
+              <SelectInput
+                value={usageRule}
+                onChange={(next) => setUsageRule(next as UsageRule)}
+                options={[
+                  { value: "unlimited", label: "Unlimited until paused" },
+                  { value: "limited", label: "Limited total uses" },
+                ]}
+              />
+            </Field>
+            {usageRule === "limited" && (
+              <Field label="Max uses">
+                <TextInput value={maxUses} onChange={setMaxUses} type="number" placeholder="100" />
+              </Field>
+            )}
+            <Field label="Target audience">
+              <SelectInput
+                value={audience}
+                onChange={(next) => setAudience(next as AudienceType)}
+                options={AUDIENCE_OPTIONS}
+              />
+            </Field>
+          </div>
+
+          {audience === "specific" && (
+            <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-[#b79b85]">{selectedCustomerIds.length} selected customers</p>
+                <button
+                  type="button"
+                  onClick={() => setCustomerPickerOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#b6885e]/30 px-3 py-1.5 text-xs font-semibold text-[#b6885e] transition-colors hover:bg-[#b6885e]/10"
+                >
+                  <Users size={12} /> Choose Customers
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <Field label="Start date">
+              <TextInput value={startDate} onChange={setStartDate} type="date" />
+            </Field>
+            <Field label="End date">
+              <TextInput value={endDate} onChange={setEndDate} type="date" />
+            </Field>
+            <Field label="Status">
+              <SelectInput
+                value={status}
+                onChange={(next) => setStatus(next as PromoStatus)}
+                options={[
+                  { value: "Active", label: "Active" },
+                  { value: "Paused", label: "Paused" },
+                ]}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <FormActions onClose={onClose} submitLabel={initialCode ? "Save Code" : "Create Promo Code"} />
+      </form>
+
+      <CustomerPickerModal
+        open={customerPickerOpen}
+        onClose={() => setCustomerPickerOpen(false)}
+        mode="select"
+        selectedIds={selectedCustomerIds}
+        onConfirm={setSelectedCustomerIds}
+      />
+    </ModalShell>
+  );
+}
+
+interface AnnouncementModalProps {
+  initialMessage?: AnnouncementMessage;
+  prefillOffer?: Offer;
+  prefillPromo?: PromoCode;
+  offers: Offer[];
+  codes: PromoCode[];
+  onClose: () => void;
+  onSave: (message: AnnouncementMessage) => void;
+}
+
+function AnnouncementModal({
+  initialMessage,
+  prefillOffer,
+  prefillPromo,
+  offers,
+  codes,
+  onClose,
+  onSave,
+}: AnnouncementModalProps) {
+  const suggestion = initialMessage
+    ? undefined
+    : prefillOffer
+      ? suggestedOfferAnnouncement(prefillOffer)
+      : prefillPromo
+        ? suggestedPromoAnnouncement(prefillPromo)
+        : undefined;
+
+  const [internalTitle, setInternalTitle] = useState(initialMessage?.internalTitle ?? suggestion?.title ?? "");
+  const [textEn, setTextEn] = useState(initialMessage?.textEn ?? suggestion?.en ?? "");
+  const [textAr, setTextAr] = useState(initialMessage?.textAr ?? suggestion?.ar ?? "");
+  const [active, setActive] = useState(initialMessage?.active ?? true);
+  const [startDate, setStartDate] = useState(initialMessage?.startDate ?? "2026-06-22");
+  const [endDate, setEndDate] = useState(initialMessage?.endDate ?? "2026-12-31");
+  const [linkUrl, setLinkUrl] = useState(initialMessage?.linkUrl ?? "");
+  const [ctaLabelEn, setCtaLabelEn] = useState(initialMessage?.ctaLabelEn ?? "");
+  const [ctaLabelAr, setCtaLabelAr] = useState(initialMessage?.ctaLabelAr ?? "");
+  const [relatedOfferId, setRelatedOfferId] = useState(initialMessage?.relatedOfferId ?? prefillOffer?.id ?? "");
+  const [relatedPromoId, setRelatedPromoId] = useState(initialMessage?.relatedPromoId ?? prefillPromo?.id ?? "");
+  const [priority, setPriority] = useState(initialMessage?.priority?.toString() ?? "10");
+  const [animationStyle, setAnimationStyle] = useState<AnnouncementAnimation>(initialMessage?.animationStyle ?? "slide");
+  const [durationSeconds, setDurationSeconds] = useState(initialMessage?.durationSeconds?.toString() ?? "4");
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    onSave({
+      id: initialMessage?.id ?? `ann-${Date.now()}`,
+      internalTitle: internalTitle.trim() || "Announcement Message",
+      textEn: textEn.trim(),
+      textAr: textAr.trim(),
+      active,
+      startDate,
+      endDate,
+      linkUrl: linkUrl.trim() || undefined,
+      ctaLabelEn: ctaLabelEn.trim() || undefined,
+      ctaLabelAr: ctaLabelAr.trim() || undefined,
+      relatedOfferId: relatedOfferId || undefined,
+      relatedPromoId: relatedPromoId || undefined,
+      priority: numberOrZero(priority) || 10,
+      animationStyle,
+      durationSeconds: numberOrZero(durationSeconds) || 4,
+    });
+    onClose();
+  };
+
+  return (
+    <ModalShell
+      title={initialMessage ? "Edit Announcement Message" : "New Announcement Message"}
+      subtitle="Controls the small rotating bar above the public header."
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-4 py-4">
+          <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-3">
+            <p className="mb-2 text-[10px] uppercase tracking-wider text-[#6b5744]">Announcement preview</p>
+            <div className="rounded bg-[#120d09] px-3 py-2 text-center text-xs text-[#f5e6d8]">
+              {textEn || "Announcement text will appear here"}
+            </div>
+            {textAr && <p className="mt-2 text-center text-xs text-[#b79b85]" dir="rtl">{textAr}</p>}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Internal title">
+              <TextInput value={internalTitle} onChange={setInternalTitle} placeholder="SUMMER15 top bar" />
+            </Field>
+            <Field label="Status">
+              <SelectInput
+                value={active ? "active" : "paused"}
+                onChange={(next) => setActive(next === "active")}
+                options={[
+                  { value: "active", label: "Active" },
+                  { value: "paused", label: "Paused" },
+                ]}
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Text EN">
+              <TextArea value={textEn} onChange={setTextEn} placeholder="Use code SUMMER15 for 15% off." />
+            </Field>
+            <Field label="Text AR">
+              <TextArea value={textAr} onChange={setTextAr} placeholder="استخدم كود SUMMER15 واحصل على خصم 15%." dir="rtl" />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <Field label="Related offer">
+              <SelectInput
+                value={relatedOfferId}
+                onChange={setRelatedOfferId}
+                options={[{ value: "", label: "None" }, ...offers.map((offer) => ({ value: offer.id, label: offer.title.en }))]}
+              />
+            </Field>
+            <Field label="Related promo code">
+              <SelectInput
+                value={relatedPromoId}
+                onChange={setRelatedPromoId}
+                options={[{ value: "", label: "None" }, ...codes.map((code) => ({ value: code.id, label: code.code }))]}
+              />
+            </Field>
+            <Field label="Start date">
+              <TextInput value={startDate} onChange={setStartDate} type="date" />
+            </Field>
+            <Field label="End date">
+              <TextInput value={endDate} onChange={setEndDate} type="date" />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <Field label="Link URL">
+              <TextInput value={linkUrl} onChange={setLinkUrl} placeholder="/products" />
+            </Field>
+            <Field label="CTA label EN">
+              <TextInput value={ctaLabelEn} onChange={setCtaLabelEn} placeholder="Shop now" />
+            </Field>
+            <Field label="CTA label AR">
+              <TextInput value={ctaLabelAr} onChange={setCtaLabelAr} placeholder="تسوق الآن" />
+            </Field>
+            <Field label="Priority">
+              <TextInput value={priority} onChange={setPriority} type="number" placeholder="1" />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Animation style">
+              <SelectInput
+                value={animationStyle}
+                onChange={(next) => setAnimationStyle(next as AnnouncementAnimation)}
+                options={ANIMATION_OPTIONS}
+              />
+            </Field>
+            <Field label="Duration seconds">
+              <TextInput value={durationSeconds} onChange={setDurationSeconds} type="number" placeholder="4" />
+            </Field>
+          </div>
+        </div>
+
+        <FormActions onClose={onClose} submitLabel={initialMessage ? "Save Message" : "Create Message"} />
+      </form>
+    </ModalShell>
+  );
+}
+
+function CampaignActions({
+  status,
+  usedCount,
+  onView,
+  onEdit,
+  onToggleStatus,
+  onArchiveOrDelete,
+  onCreateAnnouncement,
+  extra,
+}: {
+  status: CampaignStatus;
+  usedCount: number;
+  onView: () => void;
+  onEdit: () => void;
+  onToggleStatus: () => void;
+  onArchiveOrDelete: () => void;
+  onCreateAnnouncement: () => void;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button type="button" onClick={onView} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+        <Eye size={11} /> View
+      </button>
+      <button type="button" onClick={onEdit} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+        <Edit3 size={11} /> Edit
+      </button>
+      <button type="button" onClick={onToggleStatus} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+        {status === "Active" ? <Pause size={11} /> : <Play size={11} />}
+        {status === "Active" ? "Pause" : "Activate"}
+      </button>
+      <button type="button" onClick={onCreateAnnouncement} className="inline-flex items-center gap-1 rounded-lg border border-[#b6885e]/25 px-2.5 py-1.5 text-[11px] text-[#b6885e] transition-colors hover:bg-[#b6885e]/10">
+        <Megaphone size={11} /> Create Announcement
+      </button>
+      {extra}
+      <button
+        type="button"
+        onClick={onArchiveOrDelete}
+        className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#f87171] transition-colors hover:border-[#f87171]/35 hover:bg-[#f87171]/10"
+      >
+        {usedCount > 0 ? <Archive size={11} /> : <Trash2 size={11} />}
+        {usedCount > 0 ? "Archive" : "Delete"}
+      </button>
+    </div>
+  );
+}
+
+interface OffersTabProps {
+  offers: Offer[];
+  messages: AnnouncementMessage[];
+  onNew: () => void;
+  onOpen: (offer: Offer) => void;
+  onEdit: (offer: Offer) => void;
+  onToggleStatus: (id: string, status: OfferStatus) => void;
+  onArchiveOrDelete: (offer: Offer) => void;
+  onCreateAnnouncement: (offer: Offer) => void;
+}
+
+function OffersTab({
+  offers,
+  messages,
+  onNew,
+  onOpen,
+  onEdit,
+  onToggleStatus,
+  onArchiveOrDelete,
+  onCreateAnnouncement,
+}: OffersTabProps) {
+  const [filter, setFilter] = useState<OperationalFilter>("Active");
+  const [showArchived, setShowArchived] = useState(false);
+
+  const displayed = showArchived
+    ? offers.filter((offer) => offer.status === "Archived")
+    : offers.filter((offer) => offer.status === filter);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          {(["Active", "Paused"] as OperationalFilter[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => {
+                setShowArchived(false);
+                setFilter(item);
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                !showArchived && filter === item
+                  ? "border-[#b6885e] bg-[#b6885e]/10 text-[#b6885e]"
+                  : "border-[#2a2018] text-[#b79b85] hover:border-[#b6885e]/40"
+              }`}
+            >
+              {item} ({offers.filter((offer) => offer.status === item).length})
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowArchived((current) => !current)}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showArchived ? "border-[#6b5744] bg-[#2a2018] text-[#b79b85]" : "border-[#2a2018] text-[#6b5744] hover:border-[#6b5744]/60"
+            }`}
+          >
+            Archived
+          </button>
+        </div>
+        <button type="button" onClick={onNew} className="inline-flex items-center gap-1.5 rounded-lg bg-[#b6885e] px-3 py-2 text-xs font-bold text-[#0b0806] transition-colors hover:bg-[#d6a373]">
+          <Plus size={13} /> New Offer
+        </button>
+      </div>
+
+      <div className="admin-surface overflow-hidden">
+        <SectionTitle icon={Tag} title={`${showArchived ? "Archived" : filter} Offers`} />
+        <div className="divide-y divide-[#1b140f]">
+          {displayed.length === 0 ? (
+            <p className="px-4 py-10 text-center text-xs text-[#6b5744]">No offers in this view.</p>
+          ) : (
+            displayed.map((offer) => {
+              const hasAnnouncement = hasActiveAnnouncementForOffer(offer, messages);
+              return (
+                <div key={offer.id} className="p-4 transition-colors hover:bg-[#0b0806]/70">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <button type="button" onClick={() => onOpen(offer)} className="min-w-0 flex-1 text-left">
+                      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                        <StatusPill status={offer.status} />
+                        <DateStatePill startDate={offer.startDate} endDate={offer.endDate} status={offer.status} />
+                        <AnnouncementPill hasAnnouncement={hasAnnouncement} />
+                        <AudiencePill audience={offer.audience} count={offer.specificCustomerIds?.length} />
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-[#2a2018] bg-[#15100b] text-[#b6885e]">
+                          <Tag size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-[#f5e6d8]">{offer.title.en}</p>
+                          <p className="mt-1 text-xs text-[#b79b85]/70">{offer.conditionEn}</p>
+                          <p className="mt-1 text-xs text-[#6b5744]">{offer.startDate} to {offer.endDate}</p>
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="grid min-w-[260px] grid-cols-3 gap-2 lg:text-right">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Used</p>
+                        <p className="text-sm font-bold text-[#f5e6d8]">{offer.usedCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Paid</p>
+                        <p className="text-sm font-bold text-[#4ade80]">{money(offer.paidRevenue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Discount</p>
+                        <p className="text-sm font-bold text-[#f87171]">{money(offer.discountGiven)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b79b85]">{getOfferTypeLabel(offer.offerType)}</span>
+                      <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b6885e]">{buildOfferValueLabel(offer)}</span>
+                    </div>
+                    <CampaignActions
+                      status={offer.status}
+                      usedCount={offer.usedCount}
+                      onView={() => onOpen(offer)}
+                      onEdit={() => onEdit(offer)}
+                      onToggleStatus={() => onToggleStatus(offer.id, offer.status === "Active" ? "Paused" : "Active")}
+                      onArchiveOrDelete={() => onArchiveOrDelete(offer)}
+                      onCreateAnnouncement={() => onCreateAnnouncement(offer)}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PromoCodesTabProps {
+  codes: PromoCode[];
+  messages: AnnouncementMessage[];
+  copiedCode: string | null;
+  onNew: () => void;
+  onOpen: (code: PromoCode) => void;
+  onEdit: (code: PromoCode) => void;
+  onCopy: (code: string) => void;
+  onToggleStatus: (id: string, status: PromoStatus) => void;
+  onArchiveOrDelete: (code: PromoCode) => void;
+  onCreateAnnouncement: (code: PromoCode) => void;
+}
+
+function PromoCodesTab({
+  codes,
+  messages,
+  copiedCode,
+  onNew,
+  onOpen,
+  onEdit,
+  onCopy,
+  onToggleStatus,
+  onArchiveOrDelete,
+  onCreateAnnouncement,
+}: PromoCodesTabProps) {
+  const [filter, setFilter] = useState<OperationalFilter>("Active");
+  const [showArchived, setShowArchived] = useState(false);
+  const [sendCode, setSendCode] = useState<string | null>(null);
+
+  const displayed = showArchived
+    ? codes.filter((code) => code.status === "Archived")
+    : codes.filter((code) => code.status === filter);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          {(["Active", "Paused"] as OperationalFilter[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => {
+                setShowArchived(false);
+                setFilter(item);
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                !showArchived && filter === item
+                  ? "border-[#b6885e] bg-[#b6885e]/10 text-[#b6885e]"
+                  : "border-[#2a2018] text-[#b79b85] hover:border-[#b6885e]/40"
+              }`}
+            >
+              {item} ({codes.filter((code) => code.status === item).length})
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowArchived((current) => !current)}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showArchived ? "border-[#6b5744] bg-[#2a2018] text-[#b79b85]" : "border-[#2a2018] text-[#6b5744] hover:border-[#6b5744]/60"
+            }`}
+          >
+            Archived
+          </button>
+        </div>
+        <button type="button" onClick={onNew} className="inline-flex items-center gap-1.5 rounded-lg bg-[#b6885e] px-3 py-2 text-xs font-bold text-[#0b0806] transition-colors hover:bg-[#d6a373]">
+          <Plus size={13} /> New Promo Code
+        </button>
+      </div>
+
+      <div className="admin-surface overflow-hidden">
+        <SectionTitle icon={Percent} title={`${showArchived ? "Archived" : filter} Promo Codes`} />
+        <div className="divide-y divide-[#1b140f]">
+          {displayed.length === 0 ? (
+            <p className="px-4 py-10 text-center text-xs text-[#6b5744]">No promo codes in this view.</p>
+          ) : (
+            displayed.map((code) => {
+              const hasAnnouncement = hasActiveAnnouncementForPromo(code, messages);
+              return (
+                <div key={code.id} className="p-4 transition-colors hover:bg-[#0b0806]/70">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <button type="button" onClick={() => onOpen(code)} className="min-w-0 flex-1 text-left">
+                      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                        <StatusPill status={code.status} />
+                        <DateStatePill startDate={code.startDate} endDate={code.endDate} status={code.status} />
+                        <AnnouncementPill hasAnnouncement={hasAnnouncement} />
+                        <AudiencePill audience={code.audience} count={code.specificCustomerIds?.length} />
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-[#2a2018] bg-[#15100b] text-[#b6885e]">
+                          <Percent size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-mono text-base font-bold text-[#b6885e]">{code.code}</p>
+                          <p className="mt-1 text-xs text-[#b79b85]/70">
+                            {buildPromoDiscountLabel(code)} off, minimum order {money(code.minOrder)}
+                          </p>
+                          <p className="mt-1 text-xs text-[#6b5744]">
+                            {code.usageRule === "limited" ? `${code.usedCount}/${code.maxUses ?? 0} uses` : `${code.usedCount} uses, unlimited until paused`}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="grid min-w-[260px] grid-cols-3 gap-2 lg:text-right">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Orders</p>
+                        <p className="text-sm font-bold text-[#f5e6d8]">{code.ordersGenerated}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Paid</p>
+                        <p className="text-sm font-bold text-[#4ade80]">{money(code.paidRevenue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-[#6b5744]">Discount</p>
+                        <p className="text-sm font-bold text-[#f87171]">{money(code.discountGiven)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b6885e]">{buildPromoDiscountLabel(code)}</span>
+                      <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b79b85]">Min {money(code.minOrder)}</span>
+                    </div>
+                    <CampaignActions
+                      status={code.status}
+                      usedCount={code.usedCount}
+                      onView={() => onOpen(code)}
+                      onEdit={() => onEdit(code)}
+                      onToggleStatus={() => onToggleStatus(code.id, code.status === "Active" ? "Paused" : "Active")}
+                      onArchiveOrDelete={() => onArchiveOrDelete(code)}
+                      onCreateAnnouncement={() => onCreateAnnouncement(code)}
+                      extra={
+                        <>
+                          <button type="button" onClick={() => onCopy(code.code)} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+                            {copiedCode === code.code ? <Check size={11} /> : <Copy size={11} />}
+                            {copiedCode === code.code ? "Copied" : "Copy"}
+                          </button>
+                          <button type="button" onClick={() => setSendCode(code.code)} className="inline-flex items-center gap-1 rounded-lg border border-[#25D366]/25 px-2.5 py-1.5 text-[11px] text-[#25D366] transition-colors hover:bg-[#25D366]/10">
+                            <Send size={11} /> Send
+                          </button>
+                        </>
+                      }
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <CustomerPickerModal
+        open={Boolean(sendCode)}
+        onClose={() => setSendCode(null)}
+        mode="send"
+        promoCode={sendCode ?? undefined}
+        selectedIds={[]}
       />
     </div>
   );
 }
 
-function SelectField({
-  label, value, onChange, options,
-}: {
-  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
-}) {
-  return (
-    <div>
-      <label className="block text-[10.5px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg text-[13px] outline-none"
-        style={{ background: "#1a1209", border: "1px solid rgba(182,136,94,0.15)", color: "var(--cream)" }}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value} style={{ background: "#1a1209" }}>{o.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function FormFooter({ onSave, onCancel, saveLabel = "Save" }: { onSave: () => void; onCancel: () => void; saveLabel?: string }) {
-  return (
-    <div className="flex items-center gap-3 pt-2">
-      <button
-        type="button" onClick={onSave}
-        className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors"
-        style={{ background: "rgba(182,136,94,0.2)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.3)" }}
-      >
-        {saveLabel}
-      </button>
-      <button
-        type="button" onClick={onCancel}
-        className="px-4 py-2 rounded-lg text-[13px] font-medium hover:bg-white/5 transition-colors"
-        style={{ color: "var(--cream-dim)" }}
-      >
-        Cancel
-      </button>
-    </div>
-  );
-}
-
-// ─── Offers Tab ───────────────────────────────────────────────────────────────
-
-type OfferFilter = "All" | OfferStatus;
-const OFFER_FILTERS: OfferFilter[] = ["All", "Active", "Scheduled", "Paused", "Expired"];
-
-interface OfferFormState {
-  titleEn: string; titleAr: string; descEn: string; descAr: string;
-  offerType: string; value: string; minOrder: string; maxDiscount: string;
-  segments: string; startDate: string; endDate: string;
-}
-const EMPTY_OFFER_FORM: OfferFormState = {
-  titleEn: "", titleAr: "", descEn: "", descAr: "",
-  offerType: "percentage", value: "", minOrder: "", maxDiscount: "",
-  segments: "all", startDate: "", endDate: "",
-};
-
-function OffersTab({
-  offers, offerOverrides, onPause, onActivate,
-}: {
+interface AnnouncementBarTabProps {
+  messages: AnnouncementMessage[];
   offers: Offer[];
-  offerOverrides: Record<string, Partial<Offer>>;
-  onPause: (id: string) => void;
-  onActivate: (id: string) => void;
-}) {
-  const [filter, setFilter] = useState<OfferFilter>("All");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<OfferFormState>(EMPTY_OFFER_FORM);
-  const [savedId, setSavedId] = useState<string | null>(null);
-
-  const displayOffers = offers.map((o) => ({ ...o, ...(offerOverrides[o.id] ?? {}) }));
-  const filtered = filter === "All" ? displayOffers : displayOffers.filter((o) => o.status === filter);
-
-  const handleSave = () => {
-    setShowForm(false);
-    setForm(EMPTY_OFFER_FORM);
-    setSavedId("new");
-    setTimeout(() => setSavedId(null), 2000);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {OFFER_FILTERS.map((f) => {
-            const active = filter === f;
-            const count = f === "All" ? displayOffers.length : displayOffers.filter((o) => o.status === f).length;
-            return (
-              <button
-                key={f} type="button" onClick={() => setFilter(f)}
-                className="px-2.5 py-1 rounded-lg text-[11.5px] font-medium transition-all"
-                style={{
-                  background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)",
-                  color: active ? "var(--gold)" : "var(--cream-dim)",
-                  border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)",
-                }}
-              >
-                {f} <span className="opacity-60">({count})</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-2">
-          {savedId && (
-            <span className="flex items-center gap-1 text-[12px]" style={{ color: "#4ade80" }}>
-              <Check size={12} /> Offer saved
-            </span>
-          )}
-          <button
-            type="button" onClick={() => setShowForm((p) => !p)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold transition-colors"
-            style={{ background: "rgba(182,136,94,0.15)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.25)" }}
-          >
-            <Plus size={13} /> New Offer
-          </button>
-        </div>
-      </div>
-
-      {/* Create form */}
-      {showForm && (
-        <div className="admin-surface px-5 py-5 space-y-4">
-          <p className="text-[13px] font-semibold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
-            New Offer
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InputField label="Title (EN)" value={form.titleEn} onChange={(v) => setForm((p) => ({ ...p, titleEn: v }))} placeholder="e.g. 10% Off Espresso" />
-            <InputField label="Title (AR)" value={form.titleAr} onChange={(v) => setForm((p) => ({ ...p, titleAr: v }))} placeholder="مثال: خصم ١٠٪ على الإسبريسو" />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SelectField
-              label="Offer Type" value={form.offerType} onChange={(v) => setForm((p) => ({ ...p, offerType: v }))}
-              options={[
-                { value: "percentage",     label: "Percentage (%)" },
-                { value: "fixed",          label: "Fixed (EGP)" },
-                { value: "free-shipping",  label: "Free Shipping" },
-                { value: "bundle",         label: "Bundle" },
-              ]}
-            />
-            <InputField label="Value" value={form.value} onChange={(v) => setForm((p) => ({ ...p, value: v }))} placeholder="e.g. 10" />
-            <InputField label="Min Order (EGP)" value={form.minOrder} onChange={(v) => setForm((p) => ({ ...p, minOrder: v }))} placeholder="e.g. 400" />
-            <InputField label="Max Discount (EGP)" value={form.maxDiscount} onChange={(v) => setForm((p) => ({ ...p, maxDiscount: v }))} placeholder="e.g. 120" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <SelectField
-              label="Target Segments" value={form.segments} onChange={(v) => setForm((p) => ({ ...p, segments: v }))}
-              options={[
-                { value: "all",                   label: "All Customers" },
-                { value: "vip",                   label: "VIP" },
-                { value: "repeat",                label: "Repeat" },
-                { value: "new",                   label: "New" },
-                { value: "inactive",              label: "Inactive" },
-                { value: "at-risk",               label: "At Risk" },
-                { value: "wholesale-potential",   label: "Wholesale" },
-              ]}
-            />
-            <InputField label="Start Date" value={form.startDate} onChange={(v) => setForm((p) => ({ ...p, startDate: v }))} type="date" />
-            <InputField label="End Date" value={form.endDate} onChange={(v) => setForm((p) => ({ ...p, endDate: v }))} type="date" />
-          </div>
-          <FormFooter onSave={handleSave} onCancel={() => { setShowForm(false); setForm(EMPTY_OFFER_FORM); }} saveLabel="Create Offer" />
-        </div>
-      )}
-
-      {/* Offers table */}
-      <div className="admin-surface overflow-hidden">
-        <SectionHeader icon={Zap} label={`Offers — ${filtered.length} shown`} />
-
-        {/* Desktop header */}
-        <div
-          className="hidden lg:grid gap-3 px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider"
-          style={{ gridTemplateColumns: "2fr 110px 140px 80px 90px 90px 90px 110px", background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(182,136,94,0.06)", color: "var(--cream-dim)" }}
-        >
-          <span>Offer</span>
-          <span>Type</span>
-          <span>Segments</span>
-          <span>Used</span>
-          <span>Orders</span>
-          <span>Revenue</span>
-          <span>Status</span>
-          <span>Actions</span>
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="px-5 py-10 text-center">
-            <p className="text-[13px]" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>No offers match this filter.</p>
-          </div>
-        )}
-
-        {filtered.map((offer, i) => (
-          <div key={offer.id} style={i < filtered.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}>
-            {/* Desktop */}
-            <div
-              className="hidden lg:grid items-center gap-3 px-5 py-4"
-              style={{ gridTemplateColumns: "2fr 110px 140px 80px 90px 90px 90px 110px" }}
-            >
-              <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{offer.title.en}</p>
-                {offer.description && (
-                  <p className="text-[11.5px] mt-0.5 leading-snug" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-                    {offer.description.en}
-                  </p>
-                )}
-                <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.35 }}>
-                  {offer.startDate} → {offer.endDate}
-                </p>
-              </div>
-              <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-semibold w-fit"
-                style={{ background: `${OFFER_TYPE_COLOR[offer.offerType]}18`, color: OFFER_TYPE_COLOR[offer.offerType] }}
-              >
-                {offer.offerType === "percentage" ? `${offer.value}%` : offer.offerType === "fixed" ? `${offer.value} EGP` : OFFER_TYPE_LABEL[offer.offerType]}
-              </span>
-              <SegmentChips segments={offer.targetSegments} />
-              <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--cream)" }}>{offer.usedCount}</span>
-              <span className="text-[13px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{offer.ordersGenerated}</span>
-              <span className="text-[12.5px] tabular-nums" style={{ color: "#4ade80" }}>
-                {offer.revenueGenerated > 0 ? `${offer.revenueGenerated.toLocaleString()} EGP` : "—"}
-              </span>
-              <StatusBadge status={offer.status} map={OFFER_STATUS_STYLE} />
-              <div className="flex items-center gap-2">
-                {offer.status === "Active" && (
-                  <button
-                    type="button" onClick={() => onPause(offer.id)}
-                    className="text-[11px] px-2.5 py-1 rounded-lg transition-colors hover:bg-white/5"
-                    style={{ color: "#fbbf24", border: "1px solid rgba(251,191,36,0.2)" }}
-                  >
-                    Pause
-                  </button>
-                )}
-                {offer.status === "Paused" && (
-                  <button
-                    type="button" onClick={() => onActivate(offer.id)}
-                    className="text-[11px] px-2.5 py-1 rounded-lg transition-colors hover:bg-white/5"
-                    style={{ color: "#4ade80", border: "1px solid rgba(74,222,128,0.2)" }}
-                  >
-                    Activate
-                  </button>
-                )}
-                {(offer.status === "Expired" || offer.status === "Scheduled") && (
-                  <span className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.3 }}>—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile */}
-            <div className="lg:hidden px-4 py-4 space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{offer.title.en}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-                    {offer.startDate} → {offer.endDate}
-                  </p>
-                </div>
-                <StatusBadge status={offer.status} map={OFFER_STATUS_STYLE} />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className="px-2 py-0.5 rounded text-[10.5px] font-semibold"
-                  style={{ background: `${OFFER_TYPE_COLOR[offer.offerType]}18`, color: OFFER_TYPE_COLOR[offer.offerType] }}
-                >
-                  {OFFER_TYPE_LABEL[offer.offerType]}
-                  {offer.offerType === "percentage" ? ` ${offer.value}%` : offer.offerType === "fixed" ? ` ${offer.value} EGP` : ""}
-                </span>
-                <SegmentChips segments={offer.targetSegments} />
-              </div>
-              <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-                Used {offer.usedCount} · {offer.ordersGenerated} orders · {offer.revenueGenerated > 0 ? `${offer.revenueGenerated.toLocaleString()} EGP revenue` : "No revenue yet"}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Promo Codes Tab ──────────────────────────────────────────────────────────
-
-type CodeFilter = "All" | PromoStatus;
-const CODE_FILTERS: CodeFilter[] = ["All", "Active", "Scheduled", "Paused", "Expired"];
-
-interface CodeFormState {
-  code: string; type: string; value: string; minOrder: string; maxDiscount: string;
-  perCustomerLimit: string; maxUses: string; segments: string; expiresAt: string;
-}
-const EMPTY_CODE_FORM: CodeFormState = {
-  code: "", type: "percentage", value: "", minOrder: "", maxDiscount: "",
-  perCustomerLimit: "1", maxUses: "", segments: "all", expiresAt: "",
-};
-
-function PromoCodesTab({ codes, codeOverrides, onCopy, copiedCode }: {
   codes: PromoCode[];
-  codeOverrides: Record<string, Partial<PromoCode>>;
-  onCopy: (code: string) => void;
-  copiedCode: string | null;
-}) {
-  const [filter, setFilter] = useState<CodeFilter>("All");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<CodeFormState>(EMPTY_CODE_FORM);
-  const [saved, setSaved] = useState(false);
+  missingOffers: Offer[];
+  missingCodes: PromoCode[];
+  onNew: () => void;
+  onEdit: (message: AnnouncementMessage) => void;
+  onToggle: (id: string, active: boolean) => void;
+  onDelete: (id: string) => void;
+  onCreateForOffer: (offer: Offer) => void;
+  onCreateForPromo: (code: PromoCode) => void;
+}
 
-  const displayCodes = codes.map((c) => ({ ...c, ...(codeOverrides[c.id] ?? {}) }));
-  const filtered = filter === "All" ? displayCodes : displayCodes.filter((c) => c.status === filter);
-
-  const handleSave = () => {
-    setShowForm(false);
-    setForm(EMPTY_CODE_FORM);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+function AnnouncementBarTab({
+  messages,
+  offers,
+  codes,
+  missingOffers,
+  missingCodes,
+  onNew,
+  onEdit,
+  onToggle,
+  onDelete,
+  onCreateForOffer,
+  onCreateForPromo,
+}: AnnouncementBarTabProps) {
+  const activeMessages = messages.filter((message) => message.active);
+  const pausedMessages = messages.filter((message) => !message.active);
+  const previewMessage = activeMessages[0];
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {CODE_FILTERS.map((f) => {
-            const active = filter === f;
-            const count = f === "All" ? displayCodes.length : displayCodes.filter((c) => c.status === f).length;
-            return (
-              <button
-                key={f} type="button" onClick={() => setFilter(f)}
-                className="px-2.5 py-1 rounded-lg text-[11.5px] font-medium transition-all"
-                style={{
-                  background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)",
-                  color: active ? "var(--gold)" : "var(--cream-dim)",
-                  border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)",
-                }}
-              >
-                {f} <span className="opacity-60">({count})</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-2">
-          {saved && (
-            <span className="flex items-center gap-1 text-[12px]" style={{ color: "#4ade80" }}>
-              <Check size={12} /> Code created
-            </span>
-          )}
-          <button
-            type="button" onClick={() => setShowForm((p) => !p)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold"
-            style={{ background: "rgba(182,136,94,0.15)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.25)" }}
-          >
-            <Plus size={13} /> New Code
-          </button>
-        </div>
-      </div>
-
-      {/* Form */}
-      {showForm && (
-        <div className="admin-surface px-5 py-5 space-y-4">
-          <p className="text-[13px] font-semibold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
-            New Promo Code
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <InputField label="Code" value={form.code} onChange={(v) => setForm((p) => ({ ...p, code: v.toUpperCase() }))} placeholder="e.g. SAVE20" />
-            <SelectField
-              label="Type" value={form.type} onChange={(v) => setForm((p) => ({ ...p, type: v }))}
-              options={[{ value: "percentage", label: "Percentage (%)" }, { value: "fixed", label: "Fixed (EGP)" }]}
-            />
-            <InputField label="Value" value={form.value} onChange={(v) => setForm((p) => ({ ...p, value: v }))} placeholder="e.g. 15" />
-            <InputField label="Min Order (EGP)" value={form.minOrder} onChange={(v) => setForm((p) => ({ ...p, minOrder: v }))} placeholder="e.g. 300" />
-            <InputField label="Max Discount (EGP)" value={form.maxDiscount} onChange={(v) => setForm((p) => ({ ...p, maxDiscount: v }))} placeholder="optional cap" />
-            <InputField label="Per Customer Limit" value={form.perCustomerLimit} onChange={(v) => setForm((p) => ({ ...p, perCustomerLimit: v }))} placeholder="1" />
-            <InputField label="Max Total Uses" value={form.maxUses} onChange={(v) => setForm((p) => ({ ...p, maxUses: v }))} placeholder="e.g. 100" />
-            <InputField label="Expires" value={form.expiresAt} onChange={(v) => setForm((p) => ({ ...p, expiresAt: v }))} type="date" />
-          </div>
-          <SelectField
-            label="Target Segments" value={form.segments} onChange={(v) => setForm((p) => ({ ...p, segments: v }))}
-            options={[
-              { value: "all",                   label: "All Customers" },
-              { value: "vip",                   label: "VIP only" },
-              { value: "repeat",                label: "Repeat only" },
-              { value: "new",                   label: "New customers only" },
-              { value: "inactive",              label: "Inactive only" },
-              { value: "at-risk",               label: "At Risk only" },
-              { value: "wholesale-potential",   label: "Wholesale only" },
-            ]}
-          />
-          <FormFooter onSave={handleSave} onCancel={() => { setShowForm(false); setForm(EMPTY_CODE_FORM); }} saveLabel="Create Code" />
-        </div>
-      )}
-
-      {/* Table */}
       <div className="admin-surface overflow-hidden">
-        <SectionHeader icon={Tag} label={`Promo Codes — ${filtered.length} shown`} />
-        <div
-          className="hidden lg:grid gap-3 px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider"
-          style={{ gridTemplateColumns: "130px 90px 100px 90px 100px 110px 90px auto", background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(182,136,94,0.06)", color: "var(--cream-dim)" }}
-        >
-          <span>Code</span>
-          <span>Discount</span>
-          <span>Min Order</span>
-          <span>Limit/Customer</span>
-          <span>Usage</span>
-          <span>Segments</span>
-          <span>Status</span>
-          <span>Actions</span>
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="px-5 py-10 text-center">
-            <p className="text-[13px]" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>No codes match this filter.</p>
-          </div>
-        )}
-
-        {filtered.map((promo, i) => (
-          <div key={promo.id} style={i < filtered.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}>
-            {/* Desktop */}
-            <div
-              className="hidden lg:grid items-center gap-3 px-5 py-4"
-              style={{ gridTemplateColumns: "130px 90px 100px 90px 100px 110px 90px auto" }}
-            >
-              <div>
-                <span className="font-bold font-mono text-[13px]" style={{ color: "var(--gold)" }}>{promo.code}</span>
-                {promo.linkedOfferId && (
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>linked to offer</p>
-                )}
-              </div>
-              <span className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>
-                {promo.type === "percentage" ? `${promo.value}%` : `${promo.value} EGP`}
-                {promo.maxDiscount ? <span className="text-[10.5px] ml-1 opacity-40">max {promo.maxDiscount}</span> : null}
-              </span>
-              <span className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>{promo.minOrder} EGP</span>
-              <span className="text-[12.5px]" style={{ color: "var(--cream-dim)" }}>{promo.perCustomerLimit}×</span>
-              <div>
-                <span className="text-[12.5px]" style={{ color: "var(--cream)" }}>{promo.usedCount}</span>
-                <span className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>/{promo.maxUses}</span>
-                <div className="mt-1 rounded-full overflow-hidden" style={{ height: 3, background: "rgba(255,255,255,0.07)" }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.min(100, Math.round((promo.usedCount / promo.maxUses) * 100))}%`, background: "var(--gold)", opacity: 0.6 }}
-                  />
-                </div>
-              </div>
-              <SegmentChips segments={promo.targetSegments} />
-              <StatusBadge status={promo.status} map={PROMO_STATUS_STYLE} />
-              <button
-                type="button" onClick={() => onCopy(promo.code)}
-                className="flex items-center gap-1 text-[11.5px] font-medium px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5 w-fit"
-                style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
-              >
-                {copiedCode === promo.code ? <Check size={11} style={{ color: "#4ade80" }} /> : <Copy size={11} />}
-                {copiedCode === promo.code ? "Copied" : "Copy"}
-              </button>
-            </div>
-
-            {/* Mobile */}
-            <div className="lg:hidden flex items-center justify-between px-4 py-4 gap-3">
-              <div>
-                <p className="font-bold font-mono text-[13px]" style={{ color: "var(--gold)" }}>{promo.code}</p>
-                <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
-                  {promo.type === "percentage" ? `${promo.value}%` : `${promo.value} EGP`} off · used {promo.usedCount}/{promo.maxUses} · min {promo.minOrder} EGP
-                </p>
-              </div>
-              <StatusBadge status={promo.status} map={PROMO_STATUS_STYLE} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Customer Targeting Tab ───────────────────────────────────────────────────
-
-function CustomerTargetingTab({
-  codes, offers,
-}: {
-  codes: PromoCode[];
-  offers: Offer[];
-}) {
-  const [assignments, setAssignments] = useState<Record<string, string>>({});
-
-  const activeCodes = codes.filter((c) => c.status === "Active");
-  const activeOffers = offers.filter((o) => o.status === "Active");
-
-  return (
-    <div className="space-y-5">
-      {/* Info banner */}
-      <div
-        className="flex items-start gap-3 px-4 py-3 rounded-xl"
-        style={{ background: "rgba(96,165,250,0.07)", border: "1px solid rgba(96,165,250,0.15)" }}
-      >
-        <AlertTriangle size={14} style={{ color: "#60a5fa", flexShrink: 0, marginTop: 2 }} />
-        <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.75 }}>
-          Assign active offers and codes to specific customer segments. Targeting is informational —
-          codes remain manually entered at checkout. Segment-specific landing pages and email triggers are a future feature.
-        </p>
-      </div>
-
-      {/* Segment cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {SEGMENT_INFO.map((seg) => {
-          const assignedOffers = activeOffers.filter((o) =>
-            o.targetSegments.includes("all") || o.targetSegments.includes(seg.key)
-          );
-          const assignedCodes = activeCodes.filter((c) =>
-            c.targetSegments.includes("all") || c.targetSegments.includes(seg.key)
-          );
-          const s = SEGMENT_STYLE[seg.key];
-
-          return (
-            <div
-              key={seg.key}
-              className="admin-surface px-5 py-4 space-y-3"
-              style={{ borderLeft: `3px solid ${seg.color}` }}
-            >
-              {/* Segment header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="px-2 py-0.5 rounded-full text-[11px] font-bold"
-                    style={{ background: s.bg, color: s.color }}
-                  >
-                    {seg.label}
-                  </span>
-                  <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--cream)" }}>
-                    {seg.count}
-                  </span>
-                  <span className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>customers</span>
-                </div>
-              </div>
-              <p className="text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>{seg.desc}</p>
-
-              {/* Active offers for this segment */}
-              {assignedOffers.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>
-                    Active Offers
-                  </p>
-                  <div className="space-y-1">
-                    {assignedOffers.map((o) => (
-                      <div key={o.id} className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#4ade80" }} />
-                        <span className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.65 }}>{o.title.en}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Active codes for this segment */}
-              {assignedCodes.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>
-                    Active Codes
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {assignedCodes.map((c) => (
-                      <span
-                        key={c.id}
-                        className="font-mono text-[11px] font-semibold px-2 py-0.5 rounded"
-                        style={{ background: "rgba(182,136,94,0.1)", color: "var(--gold)" }}
-                      >
-                        {c.code}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {assignedOffers.length === 0 && assignedCodes.length === 0 && (
-                <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.35 }}>No active promotions for this segment.</p>
-              )}
-
-              {/* Assign a code dropdown */}
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>
-                  Quick-assign code
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={assignments[seg.key] ?? ""}
-                    onChange={(e) => setAssignments((p) => ({ ...p, [seg.key]: e.target.value }))}
-                    className="flex-1 px-2 py-1.5 rounded-lg text-[12px] outline-none"
-                    style={{ background: "#1a1209", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream)" }}
-                  >
-                    <option value="" style={{ background: "#1a1209" }}>Choose code…</option>
-                    {activeCodes.map((c) => (
-                      <option key={c.id} value={c.code} style={{ background: "#1a1209" }}>{c.code} — {c.type === "percentage" ? `${c.value}%` : `${c.value} EGP`}</option>
-                    ))}
-                  </select>
-                  {assignments[seg.key] && (
-                    <button
-                      type="button"
-                      onClick={() => setAssignments((p) => ({ ...p, [seg.key]: "" }))}
-                      className="px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/5"
-                      style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.1)" }}
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-                {assignments[seg.key] && (
-                  <p className="text-[11px] mt-1" style={{ color: "#4ade80", opacity: 0.8 }}>
-                    ✓ {assignments[seg.key]} noted for this segment
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Website Banners Tab ──────────────────────────────────────────────────────
-
-function WebsiteBannersTab({
-  banners, bannerActive, onToggle,
-}: {
-  banners: typeof WEBSITE_BANNERS;
-  bannerActive: Record<string, boolean>;
-  onToggle: (id: string) => void;
-}) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ titleEn: "", titleAr: "", subtitleEn: "", ctaEn: "", position: "hero", startDate: "", endDate: "" });
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    setShowForm(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-          {Object.values(bannerActive).filter(Boolean).length} of {banners.length} banners active
-        </p>
-        <div className="flex items-center gap-2">
-          {saved && <span className="flex items-center gap-1 text-[12px]" style={{ color: "#4ade80" }}><Check size={12} /> Banner saved</span>}
-          <button
-            type="button" onClick={() => setShowForm((p) => !p)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold"
-            style={{ background: "rgba(182,136,94,0.15)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.25)" }}
-          >
-            <Plus size={13} /> Add Banner
-          </button>
-        </div>
-      </div>
-
-      {showForm && (
-        <div className="admin-surface px-5 py-5 space-y-4">
-          <p className="text-[13px] font-semibold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>New Banner</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InputField label="Title (EN)" value={form.titleEn} onChange={(v) => setForm((p) => ({ ...p, titleEn: v }))} placeholder="e.g. Shop Espresso Blends" />
-            <InputField label="Title (AR)" value={form.titleAr} onChange={(v) => setForm((p) => ({ ...p, titleAr: v }))} placeholder="مثال: تسوق خلطات الإسبريسو" />
-            <InputField label="Subtitle (EN)" value={form.subtitleEn} onChange={(v) => setForm((p) => ({ ...p, subtitleEn: v }))} placeholder="optional subtitle or offer detail" />
-            <InputField label="CTA Button (EN)" value={form.ctaEn} onChange={(v) => setForm((p) => ({ ...p, ctaEn: v }))} placeholder="e.g. Shop Now" />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <SelectField
-              label="Position" value={form.position} onChange={(v) => setForm((p) => ({ ...p, position: v }))}
-              options={[{ value: "hero", label: "Hero Banner" }, { value: "announcement", label: "Announcement Bar" }, { value: "section", label: "Section Banner" }]}
-            />
-            <InputField label="Start Date" value={form.startDate} onChange={(v) => setForm((p) => ({ ...p, startDate: v }))} type="date" />
-            <InputField label="End Date" value={form.endDate} onChange={(v) => setForm((p) => ({ ...p, endDate: v }))} type="date" />
-          </div>
-          <FormFooter onSave={handleSave} onCancel={() => setShowForm(false)} saveLabel="Create Banner" />
-        </div>
-      )}
-
-      <div className="admin-surface overflow-hidden">
-        <SectionHeader icon={ImageIcon} label="Website Banners" />
-        <div className="divide-y" style={{ borderColor: "rgba(182,136,94,0.06)" }}>
-          {banners.map((banner) => {
-            const pos = BANNER_POSITION_STYLE[banner.position];
-            const isActive = bannerActive[banner.id] ?? banner.active;
-            return (
-              <div key={banner.id} className="flex items-start gap-4 px-5 py-4">
-                {/* Toggle */}
-                <button
-                  type="button"
-                  onClick={() => onToggle(banner.id)}
-                  className="w-9 h-5 rounded-full flex-shrink-0 mt-1 transition-colors relative"
-                  style={{ background: isActive ? "rgba(74,222,128,0.25)" : "rgba(255,255,255,0.07)" }}
-                  aria-pressed={isActive ? "true" : "false"}
-                >
-                  <span
-                    className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
-                    style={{
-                      left: isActive ? "calc(100% - 18px)" : "2px",
-                      background: isActive ? "#4ade80" : "rgba(255,255,255,0.3)",
-                    }}
-                  />
-                </button>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[13px] font-semibold" style={{ color: isActive ? "var(--cream)" : "var(--cream-dim)", opacity: isActive ? 1 : 0.55 }}>
-                      {banner.title.en}
-                    </p>
-                    <span
-                      className="px-2 py-0.5 rounded text-[10px] font-semibold"
-                      style={{ background: pos.bg, color: pos.color }}
-                    >
-                      {pos.label}
-                    </span>
-                    {!isActive && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold" style={{ background: "rgba(156,163,175,0.12)", color: "#9ca3af" }}>
-                        Inactive
-                      </span>
-                    )}
-                  </div>
-                  {banner.subtitle && (
-                    <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>{banner.subtitle.en}</p>
-                  )}
-                  <p className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.35 }}>
-                    {banner.startDate} → {banner.endDate}
-                    {banner.linkedOfferId && " · linked to offer"}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Announcement Bar section */}
-      <div className="admin-surface overflow-hidden">
-        <SectionHeader icon={Megaphone} label="Header Announcement Bar Messages" />
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(182,136,94,0.06)" }}>
-          <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-            These 3 messages rotate every 3.8s in the public header. Toggle each on or off.
-          </p>
-        </div>
-        <div className="divide-y" style={{ borderColor: "rgba(182,136,94,0.06)" }}>
-          {/* Announcement messages managed from parent via annActive */}
-          {ANNOUNCEMENT_MESSAGES.map((msg) => (
-            <div key={msg.id} className="flex items-start gap-4 px-5 py-4">
-              <div className="w-9 h-5 rounded-full flex-shrink-0 mt-0.5" style={{ background: "rgba(74,222,128,0.25)", position: "relative" }}>
-                <span className="absolute top-0.5 w-4 h-4 rounded-full" style={{ left: "calc(100% - 18px)", background: "#4ade80" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px]" style={{ color: "var(--cream)" }}>{msg.text.en}</p>
-                <p className="text-[12px] mt-0.5" dir="rtl" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>{msg.text.ar}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Performance Tab ──────────────────────────────────────────────────────────
-
-type PerfView = "By Offer" | "By Promo Code";
-
-function PerformanceTab({ offers, codes }: { offers: Offer[]; codes: PromoCode[] }) {
-  const [view, setView] = useState<PerfView>("By Offer");
-
-  const offerRows = [...offers].sort((a, b) => b.revenueGenerated - a.revenueGenerated);
-  const codeRows = [...codes].sort((a, b) => b.revenueGenerated - a.revenueGenerated);
-
-  const totalRevenue = offerRows.reduce((s, o) => s + o.revenueGenerated, 0);
-  const totalDiscount = offerRows.reduce((s, o) => s + o.discountGiven, 0);
-  const totalCodeDiscount = codeRows.reduce((s, c) => s + c.discountGiven, 0);
-
-  return (
-    <div className="space-y-4">
-      {/* View toggle */}
-      <div className="flex gap-1.5">
-        {(["By Offer", "By Promo Code"] as PerfView[]).map((v) => {
-          const active = view === v;
-          return (
-            <button
-              key={v} type="button" onClick={() => setView(v)}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-              style={{
-                background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)",
-                color: active ? "var(--gold)" : "var(--cream-dim)",
-                border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)",
-              }}
-            >
-              {v}
+        <SectionTitle
+          icon={Megaphone}
+          title="Announcement Bar"
+          right={
+            <button type="button" onClick={onNew} className="inline-flex items-center gap-1.5 rounded-lg bg-[#b6885e] px-3 py-1.5 text-xs font-bold text-[#0b0806] transition-colors hover:bg-[#d6a373]">
+              <Plus size={13} /> Add Message
             </button>
-          );
-        })}
+          }
+        />
+        <div className="p-4">
+          <div className="rounded-lg border border-[#2a2018] bg-[#080604] p-3">
+            <div className="flex items-center justify-between gap-3 rounded bg-[#15100b] px-3 py-2 text-xs">
+              <span className="truncate text-[#f5e6d8]">{previewMessage?.textEn ?? "No active announcement messages"}</span>
+              <span className="flex-shrink-0 text-[10px] uppercase tracking-wider text-[#6b5744]">
+                {previewMessage ? `${previewMessage.animationStyle} / ${previewMessage.durationSeconds}s` : "Paused"}
+              </span>
+            </div>
+            {previewMessage?.textAr && <p className="mt-2 text-center text-xs text-[#b79b85]" dir="rtl">{previewMessage.textAr}</p>}
+          </div>
+        </div>
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3">
-        {view === "By Offer" ? (
-          <>
-            <div className="admin-kpi-card py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Campaign Revenue</p>
-              <p className="text-[18px] font-bold" style={{ color: "#4ade80" }}>{totalRevenue.toLocaleString()} EGP</p>
-            </div>
-            <div className="admin-kpi-card py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Discount Given</p>
-              <p className="text-[18px] font-bold" style={{ color: "#f87171" }}>{totalDiscount.toLocaleString()} EGP</p>
-            </div>
-            <div className="admin-kpi-card py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>ROI</p>
-              <p className="text-[18px] font-bold" style={{ color: "var(--gold)" }}>
-                {totalDiscount > 0 ? `${Math.round((totalRevenue / totalDiscount) * 10) / 10}×` : "—"}
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="admin-kpi-card py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Total Code Revenue</p>
-              <p className="text-[18px] font-bold" style={{ color: "#4ade80" }}>{codeRows.reduce((s, c) => s + c.revenueGenerated, 0).toLocaleString()} EGP</p>
-            </div>
-            <div className="admin-kpi-card py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Discount Given</p>
-              <p className="text-[18px] font-bold" style={{ color: "#f87171" }}>{totalCodeDiscount.toLocaleString()} EGP</p>
-            </div>
-            <div className="admin-kpi-card py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Total Uses</p>
-              <p className="text-[18px] font-bold" style={{ color: "var(--gold)" }}>{codeRows.reduce((s, c) => s + c.usedCount, 0)}</p>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="admin-surface overflow-hidden">
-        <SectionHeader icon={BarChart2} label={view === "By Offer" ? "Offer Performance" : "Code Performance"} />
-
-        {view === "By Offer" ? (
-          <>
-            <div
-              className="hidden lg:grid gap-3 px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ gridTemplateColumns: "2fr 90px 80px 100px 100px 90px 90px", background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(182,136,94,0.06)", color: "var(--cream-dim)" }}
-            >
-              <span>Offer</span>
-              <span>Status</span>
-              <span>Used</span>
-              <span>Orders</span>
-              <span>Revenue</span>
-              <span>Discount</span>
-              <span>Best Segment</span>
-            </div>
-            {offerRows.map((offer, i) => {
-              const bestSeg = offer.targetSegments[0];
-              const conv = offer.usedCount > 0 ? `${Math.round((offer.ordersGenerated / offer.usedCount) * 100)}%` : "—";
-              return (
-                <div
-                  key={offer.id}
-                  className="hidden lg:grid items-center gap-3 px-5 py-4"
-                  style={{ gridTemplateColumns: "2fr 90px 80px 100px 100px 90px 90px", borderBottom: i < offerRows.length - 1 ? "1px solid rgba(182,136,94,0.06)" : undefined }}
-                >
-                  <div>
-                    <p className="text-[13px] font-medium" style={{ color: "var(--cream)" }}>{offer.title.en}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>{offer.startDate} → {offer.endDate}</p>
-                  </div>
-                  <StatusBadge status={offer.status} map={OFFER_STATUS_STYLE} />
-                  <span className="text-[13px] tabular-nums" style={{ color: "var(--cream)" }}>{offer.usedCount}</span>
-                  <span className="text-[12.5px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{offer.ordersGenerated} <span className="text-[10.5px] opacity-50">({conv})</span></span>
-                  <span className="text-[13px] tabular-nums font-semibold" style={{ color: offer.revenueGenerated > 0 ? "#4ade80" : "var(--cream-dim)" }}>
-                    {offer.revenueGenerated > 0 ? `${offer.revenueGenerated.toLocaleString()} EGP` : "—"}
-                  </span>
-                  <span className="text-[12.5px] tabular-nums" style={{ color: offer.discountGiven > 0 ? "#f87171" : "var(--cream-dim)", opacity: offer.discountGiven > 0 ? 1 : 0.4 }}>
-                    {offer.discountGiven > 0 ? `${offer.discountGiven.toLocaleString()} EGP` : "—"}
-                  </span>
-                  {bestSeg && bestSeg !== "all" ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold w-fit" style={{ background: SEGMENT_STYLE[bestSeg].bg, color: SEGMENT_STYLE[bestSeg].color }}>
-                      {SEGMENT_STYLE[bestSeg].label}
-                    </span>
-                  ) : (
-                    <span className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>All</span>
-                  )}
-                </div>
-              );
-            })}
-            {/* Mobile fallback */}
-            {offerRows.map((offer, i) => (
-              <div key={`m-${offer.id}`} className="lg:hidden px-4 py-4" style={{ borderBottom: i < offerRows.length - 1 ? "1px solid rgba(182,136,94,0.06)" : undefined }}>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-[13px] font-medium" style={{ color: "var(--cream)" }}>{offer.title.en}</p>
-                  <StatusBadge status={offer.status} map={OFFER_STATUS_STYLE} />
-                </div>
-                <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-                  Used {offer.usedCount} · {offer.ordersGenerated} orders · {offer.revenueGenerated > 0 ? `${offer.revenueGenerated.toLocaleString()} EGP` : "no revenue"} · {offer.discountGiven > 0 ? `${offer.discountGiven.toLocaleString()} EGP discount` : ""}
-                </p>
-              </div>
-            ))}
-          </>
-        ) : (
-          <>
-            <div
-              className="hidden lg:grid gap-3 px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ gridTemplateColumns: "130px 90px 90px 90px 100px 100px 90px", background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(182,136,94,0.06)", color: "var(--cream-dim)" }}
-            >
-              <span>Code</span>
-              <span>Status</span>
-              <span>Used</span>
-              <span>Conv.</span>
-              <span>Orders</span>
-              <span>Revenue</span>
-              <span>Discount</span>
-            </div>
-            {codeRows.map((code, i) => {
-              const conv = code.usedCount > 0 ? `${Math.round((code.ordersGenerated / code.usedCount) * 100)}%` : "—";
-              return (
-                <div
-                  key={code.id}
-                  className="hidden lg:grid items-center gap-3 px-5 py-4"
-                  style={{ gridTemplateColumns: "130px 90px 90px 90px 100px 100px 90px", borderBottom: i < codeRows.length - 1 ? "1px solid rgba(182,136,94,0.06)" : undefined }}
-                >
-                  <span className="font-mono font-bold text-[13px]" style={{ color: "var(--gold)" }}>{code.code}</span>
-                  <StatusBadge status={code.status} map={PROMO_STATUS_STYLE} />
-                  <span className="text-[13px] tabular-nums" style={{ color: "var(--cream)" }}>{code.usedCount}</span>
-                  <span className="text-[12.5px] tabular-nums" style={{ color: "var(--cream-dim)", opacity: 0.7 }}>{conv}</span>
-                  <span className="text-[12.5px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{code.ordersGenerated}</span>
-                  <span className="text-[13px] tabular-nums font-semibold" style={{ color: code.revenueGenerated > 0 ? "#4ade80" : "var(--cream-dim)" }}>
-                    {code.revenueGenerated > 0 ? `${code.revenueGenerated.toLocaleString()} EGP` : "—"}
-                  </span>
-                  <span className="text-[12.5px] tabular-nums" style={{ color: code.discountGiven > 0 ? "#f87171" : "var(--cream-dim)", opacity: code.discountGiven > 0 ? 1 : 0.4 }}>
-                    {code.discountGiven > 0 ? `${code.discountGiven.toLocaleString()} EGP` : "—"}
-                  </span>
-                </div>
-              );
-            })}
-            {/* Mobile */}
-            {codeRows.map((code, i) => (
-              <div key={`m-${code.id}`} className="lg:hidden flex items-center justify-between px-4 py-4" style={{ borderBottom: i < codeRows.length - 1 ? "1px solid rgba(182,136,94,0.06)" : undefined }}>
+      {(missingOffers.length > 0 || missingCodes.length > 0) && (
+        <div className="admin-surface overflow-hidden border border-[#fbbf24]/20">
+          <SectionTitle icon={AlertTriangle} title="Missing Announcement Warnings" />
+          <div className="divide-y divide-[#1b140f]">
+            {missingOffers.map((offer) => (
+              <div key={offer.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-mono font-bold text-[13px]" style={{ color: "var(--gold)" }}>{code.code}</p>
-                  <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-                    Used {code.usedCount} · {code.revenueGenerated > 0 ? `${code.revenueGenerated.toLocaleString()} EGP` : "no revenue"}
-                  </p>
+                  <p className="text-sm font-semibold text-[#f5e6d8]">{offer.title.en}</p>
+                  <p className="mt-1 text-xs text-[#b79b85]/60">This active offer has no active bar message.</p>
                 </div>
-                <StatusBadge status={code.status} map={PROMO_STATUS_STYLE} />
+                <button type="button" onClick={() => onCreateForOffer(offer)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#fbbf24]/30 px-3 py-1.5 text-xs font-semibold text-[#fbbf24] transition-colors hover:bg-[#fbbf24]/10">
+                  <Plus size={12} /> Create Message
+                </button>
               </div>
             ))}
-          </>
+            {missingCodes.map((code) => (
+              <div key={code.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-mono text-sm font-semibold text-[#b6885e]">{code.code}</p>
+                  <p className="mt-1 text-xs text-[#b79b85]/60">This active promo code has no active bar message.</p>
+                </div>
+                <button type="button" onClick={() => onCreateForPromo(code)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#fbbf24]/30 px-3 py-1.5 text-xs font-semibold text-[#fbbf24] transition-colors hover:bg-[#fbbf24]/10">
+                  <Plus size={12} /> Create Message
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <MessageList
+        title={`Active Messages (${activeMessages.length})`}
+        messages={activeMessages}
+        offers={offers}
+        codes={codes}
+        onEdit={onEdit}
+        onToggle={onToggle}
+        onDelete={onDelete}
+      />
+      <MessageList
+        title={`Paused Messages (${pausedMessages.length})`}
+        messages={pausedMessages}
+        offers={offers}
+        codes={codes}
+        onEdit={onEdit}
+        onToggle={onToggle}
+        onDelete={onDelete}
+      />
+    </div>
+  );
+}
+
+function MessageList({
+  title,
+  messages,
+  offers,
+  codes,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  title: string;
+  messages: AnnouncementMessage[];
+  offers: Offer[];
+  codes: PromoCode[];
+  onEdit: (message: AnnouncementMessage) => void;
+  onToggle: (id: string, active: boolean) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="admin-surface overflow-hidden">
+      <SectionTitle icon={MessageSquare} title={title} />
+      <div className="divide-y divide-[#1b140f]">
+        {messages.length === 0 ? (
+          <p className="px-4 py-8 text-center text-xs text-[#6b5744]">No messages here.</p>
+        ) : (
+          messages.map((message) => {
+            const linkedOffer = message.relatedOfferId ? offers.find((offer) => offer.id === message.relatedOfferId) : undefined;
+            const linkedCode = message.relatedPromoId ? codes.find((code) => code.id === message.relatedPromoId) : undefined;
+
+            return (
+              <div key={message.id} className="p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${message.active ? "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#4ade80]" : "border-[#6b5744]/30 bg-[#2a2018] text-[#8b735b]"}`}>
+                        {message.active ? "Active" : "Paused"}
+                      </span>
+                      <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b79b85]">Priority {message.priority}</span>
+                      <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b79b85]">{message.animationStyle} / {message.durationSeconds}s</span>
+                    </div>
+                    <p className="text-sm font-semibold text-[#f5e6d8]">{message.internalTitle}</p>
+                    <p className="mt-1 text-xs text-[#b79b85]/75">{message.textEn}</p>
+                    <p className="mt-1 text-xs text-[#6b5744]" dir="rtl">{message.textAr}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {linkedOffer && <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b6885e]">Offer: {linkedOffer.title.en}</span>}
+                      {linkedCode && <span className="rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 font-mono text-[10px] text-[#b6885e]">Code: {linkedCode.code}</span>}
+                      {message.linkUrl && <span className="inline-flex items-center gap-1 rounded-full border border-[#2a2018] bg-[#15100b] px-2 py-0.5 text-[10px] text-[#b79b85]"><LinkIcon size={9} /> {message.linkUrl}</span>}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button type="button" onClick={() => onToggle(message.id, !message.active)} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+                      {message.active ? <Pause size={11} /> : <Play size={11} />}
+                      {message.active ? "Pause" : "Activate"}
+                    </button>
+                    <button type="button" onClick={() => onEdit(message)} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+                      <Edit3 size={11} /> Edit
+                    </button>
+                    <button type="button" onClick={() => onDelete(message.id)} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#f87171] transition-colors hover:border-[#f87171]/35 hover:bg-[#f87171]/10">
+                      <Trash2 size={11} /> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+interface PerformanceTabProps {
+  offers: Offer[];
+  codes: PromoCode[];
+  onOpenUsage: (kind: CampaignKind, id: string) => void;
+}
+
+function PerformanceTab({ offers, codes, onOpenUsage }: PerformanceTabProps) {
+  const [view, setView] = useState<"offers" | "codes">("offers");
+  const rows = view === "offers" ? offers : codes;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1.5">
+        {(["offers", "codes"] as const).map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setView(item)}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              view === item ? "border-[#b6885e] bg-[#b6885e]/10 text-[#b6885e]" : "border-[#2a2018] text-[#b79b85] hover:border-[#b6885e]/40"
+            }`}
+          >
+            {item === "offers" ? "Offers Performance" : "Promo Codes Performance"}
+          </button>
+        ))}
+      </div>
+
+      <div className="admin-surface overflow-hidden">
+        <SectionTitle icon={BarChart2} title={view === "offers" ? "Offers Performance" : "Promo Codes Performance"} />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#2a2018] bg-[#0b0806]/70 text-[10px] uppercase tracking-wider text-[#6b5744]">
+                <th className="px-4 py-3 font-semibold">Campaign</th>
+                <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 font-semibold">Used</th>
+                <th className="px-4 py-3 font-semibold">Orders</th>
+                <th className="px-4 py-3 font-semibold">Before Discount</th>
+                <th className="px-4 py-3 font-semibold">Discount Given</th>
+                <th className="px-4 py-3 font-semibold">Paid Revenue</th>
+                <th className="px-4 py-3 font-semibold">Avg Before</th>
+                <th className="px-4 py-3 font-semibold">Avg Paid</th>
+                <th className="px-4 py-3 font-semibold">Best Segment</th>
+                <th className="px-4 py-3 font-semibold"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1b140f]">
+              {rows.map((row) => {
+                const isOffer = view === "offers";
+                const name = isOffer ? (row as Offer).title.en : (row as PromoCode).code;
+                const kind: CampaignKind = isOffer ? "offer" : "promo";
+                return (
+                  <tr key={row.id} className="transition-colors hover:bg-[#0b0806]/70">
+                    <td className="px-4 py-3">
+                      <p className={isOffer ? "font-semibold text-[#f5e6d8]" : "font-mono font-bold text-[#b6885e]"}>{name}</p>
+                      <p className="mt-0.5 text-[10px] text-[#6b5744]">{row.startDate} to {row.endDate}</p>
+                    </td>
+                    <td className="px-4 py-3"><StatusPill status={row.status} /></td>
+                    <td className="px-4 py-3 font-mono text-[#f5e6d8]">{row.usedCount}</td>
+                    <td className="px-4 py-3 font-mono text-[#b79b85]">{row.ordersGenerated}</td>
+                    <td className="px-4 py-3 font-mono text-[#b79b85]">{money(row.originalRevenue)}</td>
+                    <td className="px-4 py-3 font-mono text-[#f87171]">{money(row.discountGiven)}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-[#4ade80]">{money(row.paidRevenue)}</td>
+                    <td className="px-4 py-3 font-mono text-[#b79b85]">{money(getAverage(row.originalRevenue, row.ordersGenerated))}</td>
+                    <td className="px-4 py-3 font-mono text-[#b79b85]">{money(getAverage(row.paidRevenue, row.ordersGenerated))}</td>
+                    <td className="px-4 py-3"><AudiencePill audience={row.audience} count={row.specificCustomerIds?.length} /></td>
+                    <td className="px-4 py-3">
+                      <button type="button" onClick={() => onOpenUsage(kind, row.id)} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+                        <Eye size={11} /> Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface OfferDetailDrawerProps {
+  offer: Offer;
+  hasAnnouncement: boolean;
+  onClose: () => void;
+  onEdit: (offer: Offer) => void;
+  onToggleStatus: (id: string, status: OfferStatus) => void;
+  onArchiveOrDelete: (offer: Offer) => void;
+  onCreateAnnouncement: (offer: Offer) => void;
+}
+
+function OfferDetailDrawer({
+  offer,
+  hasAnnouncement,
+  onClose,
+  onEdit,
+  onToggleStatus,
+  onArchiveOrDelete,
+  onCreateAnnouncement,
+}: OfferDetailDrawerProps) {
+  return (
+    <DrawerShell title={offer.title.en} subtitle={offer.title.ar} onClose={onClose}>
+      <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        <div className="flex flex-wrap gap-1.5">
+          <StatusPill status={offer.status} />
+          <DateStatePill startDate={offer.startDate} endDate={offer.endDate} status={offer.status} />
+          <AnnouncementPill hasAnnouncement={hasAnnouncement} />
+          <AudiencePill audience={offer.audience} count={offer.specificCustomerIds?.length} />
+        </div>
+
+        <MetricStrip
+          original={offer.originalRevenue}
+          discount={offer.discountGiven}
+          paid={offer.paidRevenue}
+          used={offer.usedCount}
+          orders={offer.ordersGenerated}
+        />
+
+        <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-4">
+          <p className="mb-3 text-[10px] uppercase tracking-wider text-[#6b5744]">Rules and conditions</p>
+          <div className="space-y-2 text-xs">
+            <p className="text-[#f5e6d8]">{offer.conditionEn}</p>
+            <p className="text-[#b79b85]" dir="rtl">{offer.conditionAr}</p>
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              <span className="rounded-full border border-[#2a2018] px-2 py-0.5 text-[10px] text-[#b79b85]">{getOfferTypeLabel(offer.offerType)}</span>
+              <span className="rounded-full border border-[#2a2018] px-2 py-0.5 text-[10px] text-[#b6885e]">{buildOfferValueLabel(offer)}</span>
+              {offer.minOrder !== undefined && <span className="rounded-full border border-[#2a2018] px-2 py-0.5 text-[10px] text-[#b79b85]">Min {money(offer.minOrder)}</span>}
+              {offer.applyTo && <span className="rounded-full border border-[#2a2018] px-2 py-0.5 text-[10px] text-[#b79b85]">{offer.applyTo}</span>}
+            </div>
+          </div>
+        </div>
+
+        {offer.audience === "specific" && (
+          <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-4">
+            <p className="mb-2 text-[10px] uppercase tracking-wider text-[#6b5744]">Selected customers</p>
+            <p className="text-xs text-[#b79b85]">{offer.specificCustomerIds?.join(", ") || "No customers selected."}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-[#2a2018] px-5 py-4">
+        <CampaignActions
+          status={offer.status}
+          usedCount={offer.usedCount}
+          onView={() => undefined}
+          onEdit={() => {
+            onClose();
+            onEdit(offer);
+          }}
+          onToggleStatus={() => onToggleStatus(offer.id, offer.status === "Active" ? "Paused" : "Active")}
+          onArchiveOrDelete={() => {
+            onArchiveOrDelete(offer);
+            onClose();
+          }}
+          onCreateAnnouncement={() => {
+            onClose();
+            onCreateAnnouncement(offer);
+          }}
+        />
+      </div>
+    </DrawerShell>
+  );
+}
+
+interface PromoDetailDrawerProps {
+  code: PromoCode;
+  hasAnnouncement: boolean;
+  copiedCode: string | null;
+  onClose: () => void;
+  onEdit: (code: PromoCode) => void;
+  onCopy: (code: string) => void;
+  onToggleStatus: (id: string, status: PromoStatus) => void;
+  onArchiveOrDelete: (code: PromoCode) => void;
+  onCreateAnnouncement: (code: PromoCode) => void;
+}
+
+function PromoDetailDrawer({
+  code,
+  hasAnnouncement,
+  copiedCode,
+  onClose,
+  onEdit,
+  onCopy,
+  onToggleStatus,
+  onArchiveOrDelete,
+  onCreateAnnouncement,
+}: PromoDetailDrawerProps) {
+  const [sendOpen, setSendOpen] = useState(false);
+
+  return (
+    <DrawerShell title={code.code} subtitle={`${buildPromoDiscountLabel(code)} off, minimum ${money(code.minOrder)}`} onClose={onClose}>
+      <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        <div className="flex flex-wrap gap-1.5">
+          <StatusPill status={code.status} />
+          <DateStatePill startDate={code.startDate} endDate={code.endDate} status={code.status} />
+          <AnnouncementPill hasAnnouncement={hasAnnouncement} />
+          <AudiencePill audience={code.audience} count={code.specificCustomerIds?.length} />
+        </div>
+
+        <MetricStrip
+          original={code.originalRevenue}
+          discount={code.discountGiven}
+          paid={code.paidRevenue}
+          used={code.usedCount}
+          orders={code.ordersGenerated}
+        />
+
+        <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-4">
+          <p className="mb-3 text-[10px] uppercase tracking-wider text-[#6b5744]">Promo code rules</p>
+          <div className="grid gap-3 text-xs sm:grid-cols-2">
+            <p className="text-[#b79b85]">Discount: <span className="font-bold text-[#f5e6d8]">{buildPromoDiscountLabel(code)}</span></p>
+            <p className="text-[#b79b85]">Minimum order: <span className="font-bold text-[#f5e6d8]">{money(code.minOrder)}</span></p>
+            <p className="text-[#b79b85]">Usage: <span className="font-bold text-[#f5e6d8]">{code.usageRule === "limited" ? `${code.usedCount}/${code.maxUses ?? 0}` : "Unlimited until paused"}</span></p>
+            <p className="text-[#b79b85]">Dates: <span className="font-bold text-[#f5e6d8]">{code.startDate} to {code.endDate}</span></p>
+          </div>
+        </div>
+
+        {code.audience === "specific" && (
+          <div className="rounded-lg border border-[#2a2018] bg-[#0b0806] p-4">
+            <p className="mb-2 text-[10px] uppercase tracking-wider text-[#6b5744]">Selected customers</p>
+            <p className="text-xs text-[#b79b85]">{code.specificCustomerIds?.join(", ") || "No customers selected."}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-[#2a2018] px-5 py-4">
+        <CampaignActions
+          status={code.status}
+          usedCount={code.usedCount}
+          onView={() => undefined}
+          onEdit={() => {
+            onClose();
+            onEdit(code);
+          }}
+          onToggleStatus={() => onToggleStatus(code.id, code.status === "Active" ? "Paused" : "Active")}
+          onArchiveOrDelete={() => {
+            onArchiveOrDelete(code);
+            onClose();
+          }}
+          onCreateAnnouncement={() => {
+            onClose();
+            onCreateAnnouncement(code);
+          }}
+          extra={
+            <>
+              <button type="button" onClick={() => onCopy(code.code)} className="inline-flex items-center gap-1 rounded-lg border border-[#2a2018] px-2.5 py-1.5 text-[11px] text-[#b79b85] transition-colors hover:border-[#b6885e]/40 hover:text-[#f5e6d8]">
+                {copiedCode === code.code ? <Check size={11} /> : <Copy size={11} />}
+                {copiedCode === code.code ? "Copied" : "Copy"}
+              </button>
+              <button type="button" onClick={() => setSendOpen(true)} className="inline-flex items-center gap-1 rounded-lg border border-[#25D366]/25 px-2.5 py-1.5 text-[11px] text-[#25D366] transition-colors hover:bg-[#25D366]/10">
+                <Send size={11} /> Send to Customers
+              </button>
+            </>
+          }
+        />
+      </div>
+
+      <CustomerPickerModal
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        mode="send"
+        promoCode={code.code}
+        selectedIds={[]}
+      />
+    </DrawerShell>
+  );
+}
+
+function UsageDetailsDrawer({
+  kind,
+  campaign,
+  onClose,
+}: {
+  kind: CampaignKind;
+  campaign: Offer | PromoCode;
+  onClose: () => void;
+}) {
+  const records = USAGE_RECORDS.filter((record) => record.campaignType === kind && record.campaignId === campaign.id);
+  const title = kind === "offer" ? (campaign as Offer).title.en : (campaign as PromoCode).code;
+
+  return (
+    <DrawerShell title="Usage Details" subtitle={title} onClose={onClose}>
+      <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        <MetricStrip
+          original={campaign.originalRevenue}
+          discount={campaign.discountGiven}
+          paid={campaign.paidRevenue}
+          used={campaign.usedCount}
+          orders={campaign.ordersGenerated}
+        />
+
+        <div className="admin-surface overflow-hidden rounded-lg">
+          <SectionTitle icon={Users} title="Customers and orders" />
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead>
+                <tr className="border-b border-[#2a2018] bg-[#0b0806]/70 text-[10px] uppercase tracking-wider text-[#6b5744]">
+                  <th className="px-4 py-3 font-semibold">Customer</th>
+                  <th className="px-4 py-3 font-semibold">Order</th>
+                  <th className="px-4 py-3 font-semibold">Original</th>
+                  <th className="px-4 py-3 font-semibold">Discount</th>
+                  <th className="px-4 py-3 font-semibold">Paid</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1b140f]">
+                {records.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-xs text-[#6b5744]">No usage records yet.</td>
+                  </tr>
+                ) : (
+                  records.map((record) => (
+                    <tr key={record.id} className="transition-colors hover:bg-[#0b0806]/70">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-[#f5e6d8]">{record.customerName}</p>
+                        <p className="mt-0.5 text-[10px] text-[#6b5744]">{record.customerPhone} / {record.customerType}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-mono font-bold text-[#b6885e]">{record.orderId}</p>
+                        <p className="mt-0.5 text-[10px] text-[#6b5744]">{record.orderDate}</p>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[#b79b85]">{money(record.originalTotal)}</td>
+                      <td className="px-4 py-3 font-mono text-[#f87171]">{money(record.discountAmt)}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-[#4ade80]">{money(record.finalPaid)}</td>
+                      <td className="px-4 py-3 text-[#b79b85]">{record.orderStatus}</td>
+                      <td className="px-4 py-3">
+                        <a
+                          href={`https://wa.me/${normalizePhone(record.customerPhone)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#25D366]/25 px-2.5 py-1.5 text-[11px] text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+                        >
+                          <MessageSquare size={11} /> WhatsApp
+                        </a>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </DrawerShell>
+  );
+}
 
 export default function MarketingPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("Offers");
-
-  // Offer state
-  const [offerOverrides, setOfferOverrides] = useState<Record<string, Partial<Offer>>>({});
-  const handlePauseOffer = (id: string) => setOfferOverrides((p) => ({ ...p, [id]: { ...p[id], status: "Paused" } }));
-  const handleActivateOffer = (id: string) => setOfferOverrides((p) => ({ ...p, [id]: { ...p[id], status: "Active" } }));
-
-  // Code copy state
+  const [activeTab, setActiveTab] = useState<ActiveTab>("offers");
+  const [offers, setOffers] = useState<Offer[]>(OFFERS);
+  const [codes, setCodes] = useState<PromoCode[]>(PROMO_CODES);
+  const [messages, setMessages] = useState<AnnouncementMessage[]>(ANNOUNCEMENT_MESSAGES);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const handleCopy = (code: string) => { setCopiedCode(code); setTimeout(() => setCopiedCode(null), 1800); };
 
-  // Code overrides (unused but preserved for future)
-  const [codeOverrides] = useState<Record<string, Partial<PromoCode>>>({});
+  const [offerBuilder, setOfferBuilder] = useState<Offer | "new" | null>(null);
+  const [promoBuilder, setPromoBuilder] = useState<PromoCode | "new" | null>(null);
+  const [announcementBuilder, setAnnouncementBuilder] = useState<
+    | { type: "new" }
+    | { type: "edit"; message: AnnouncementMessage }
+    | { type: "offer"; offer: Offer }
+    | { type: "promo"; code: PromoCode }
+    | null
+  >(null);
+  const [openOfferId, setOpenOfferId] = useState<string | null>(null);
+  const [openCodeId, setOpenCodeId] = useState<string | null>(null);
+  const [usageDrawer, setUsageDrawer] = useState<{ kind: CampaignKind; id: string } | null>(null);
 
-  // Banner toggles
-  const [bannerActive, setBannerActive] = useState<Record<string, boolean>>(
-    Object.fromEntries(WEBSITE_BANNERS.map((b) => [b.id, b.active]))
+  const sortedMessages = useMemo(() => [...messages].sort((a, b) => a.priority - b.priority), [messages]);
+
+  const missingOffers = useMemo(
+    () => offers.filter((offer) => offer.status === "Active" && !hasActiveAnnouncementForOffer(offer, sortedMessages)),
+    [offers, sortedMessages],
   );
-  const handleBannerToggle = (id: string) => setBannerActive((p) => ({ ...p, [id]: !p[id] }));
+  const missingCodes = useMemo(
+    () => codes.filter((code) => code.status === "Active" && !hasActiveAnnouncementForPromo(code, sortedMessages)),
+    [codes, sortedMessages],
+  );
+  const missingCount = missingOffers.length + missingCodes.length;
 
-  const KPI_CARDS = [
-    { label: "Active Offers",    value: MARKETING_SUMMARY.activeOffers,                      color: "#4ade80"       },
-    { label: "Active Codes",     value: MARKETING_SUMMARY.activeCodes,                       color: "#4ade80"       },
-    { label: "Total Usage",      value: MARKETING_SUMMARY.totalUsage,                        color: "var(--cream)"  },
-    { label: "Discount Given",   value: `${(MARKETING_SUMMARY.totalDiscountGiven / 1000).toFixed(1)}k EGP`, color: "#f87171" },
-    { label: "Campaign Revenue", value: `${Math.round(MARKETING_SUMMARY.totalCampaignRevenue / 1000)}k EGP`, color: "#4ade80" },
-    {
-      label: "Expiring Soon",
-      value: MARKETING_SUMMARY.expiringSoon,
-      color: MARKETING_SUMMARY.expiringSoon > 0 ? "#fbbf24" : "var(--cream-dim)",
-    },
-  ];
+  const kpis = useMemo(() => {
+    const allCampaigns = [...offers, ...codes];
+    return {
+      activeOffers: offers.filter((offer) => offer.status === "Active").length,
+      activeCodes: codes.filter((code) => code.status === "Active").length,
+      totalUsage: allCampaigns.reduce((sum, campaign) => sum + campaign.usedCount, 0),
+      totalDiscount: allCampaigns.reduce((sum, campaign) => sum + campaign.discountGiven, 0),
+      paidRevenue: allCampaigns.reduce((sum, campaign) => sum + campaign.paidRevenue, 0),
+      originalRevenue: allCampaigns.reduce((sum, campaign) => sum + campaign.originalRevenue, 0),
+    };
+  }, [codes, offers]);
+
+  const openedOffer = openOfferId ? offers.find((offer) => offer.id === openOfferId) : undefined;
+  const openedCode = openCodeId ? codes.find((code) => code.id === openCodeId) : undefined;
+  const usageCampaign =
+    usageDrawer?.kind === "offer"
+      ? offers.find((offer) => offer.id === usageDrawer.id)
+      : usageDrawer?.kind === "promo"
+        ? codes.find((code) => code.id === usageDrawer.id)
+        : undefined;
+
+  const saveOffer = (offer: Offer) => {
+    setOffers((current) => {
+      const exists = current.some((item) => item.id === offer.id);
+      return exists ? current.map((item) => (item.id === offer.id ? offer : item)) : [offer, ...current];
+    });
+  };
+
+  const saveCode = (code: PromoCode) => {
+    setCodes((current) => {
+      const exists = current.some((item) => item.id === code.id);
+      return exists ? current.map((item) => (item.id === code.id ? code : item)) : [code, ...current];
+    });
+  };
+
+  const saveMessage = (message: AnnouncementMessage) => {
+    setMessages((current) => {
+      const exists = current.some((item) => item.id === message.id);
+      return exists ? current.map((item) => (item.id === message.id ? message : item)) : [message, ...current];
+    });
+  };
+
+  const copyCode = (code: string) => {
+    void navigator.clipboard?.writeText(code).catch(() => undefined);
+    setCopiedCode(code);
+    window.setTimeout(() => setCopiedCode(null), 1600);
+  };
+
+  const archiveOrDeleteOffer = (offer: Offer) => {
+    setOffers((current) =>
+      offer.usedCount > 0
+        ? current.map((item) => (item.id === offer.id ? { ...item, status: "Archived" } : item))
+        : current.filter((item) => item.id !== offer.id),
+    );
+  };
+
+  const archiveOrDeleteCode = (code: PromoCode) => {
+    setCodes((current) =>
+      code.usedCount > 0
+        ? current.map((item) => (item.id === code.id ? { ...item, status: "Archived" } : item))
+        : current.filter((item) => item.id !== code.id),
+    );
+  };
 
   return (
     <div className="space-y-6">
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+          <h1 className="text-xl font-bold text-[#f5e6d8]" style={{ fontFamily: "var(--font-playfair)" }}>
             Marketing &amp; Promotions
           </h1>
-          <p className="text-[13px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
-            {MARKETING_SUMMARY.activeOffers} active offers · {MARKETING_SUMMARY.activeCodes} active codes ·{" "}
-            <span style={{ color: "var(--gold)" }}>
-              {MARKETING_SUMMARY.totalCampaignRevenue.toLocaleString()} EGP
-            </span>{" "}
-            campaign revenue
+          <p className="mt-1 text-[13px] text-[#b79b85]/60">
+            Offers, promo codes, header announcement messages, and campaign performance.
           </p>
         </div>
-        {MARKETING_SUMMARY.expiringSoon > 0 && (
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold"
-            style={{ background: "rgba(251,191,36,0.10)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.2)" }}
+        {missingCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("announcements")}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#fbbf24]/25 bg-[#fbbf24]/10 px-3 py-2 text-xs font-semibold text-[#fbbf24] transition-colors hover:bg-[#fbbf24]/15"
           >
-            <AlertTriangle size={13} />
-            {MARKETING_SUMMARY.expiringSoon} expiring within 14 days
-          </div>
+            <AlertTriangle size={14} />
+            {missingCount} active campaign{missingCount > 1 ? "s" : ""} missing announcements
+            <ChevronRight size={13} />
+          </button>
         )}
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {KPI_CARDS.map(({ label, value, color }) => (
-          <div key={label} className="admin-kpi-card py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-              {label}
-            </p>
-            <p className="text-[20px] font-bold tabular-nums" style={{ color }}>{value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <KpiCard label="Active Offers" value={kpis.activeOffers} icon={Tag} tone="gold" onClick={() => setActiveTab("offers")} />
+        <KpiCard label="Active Promo Codes" value={kpis.activeCodes} icon={Percent} tone="gold" onClick={() => setActiveTab("promos")} />
+        <KpiCard label="Total Usage" value={kpis.totalUsage} icon={Users} sub="offers + codes" />
+        <KpiCard label="Discount Given" value={money(kpis.totalDiscount)} icon={Gift} tone="red" />
+        <KpiCard label="Paid Revenue" value={money(kpis.paidRevenue)} icon={Sparkles} tone="green" sub={`before discount ${money(kpis.originalRevenue)}`} />
+        <KpiCard label="Missing Announcements" value={missingCount} icon={AlertTriangle} tone={missingCount > 0 ? "amber" : "cream"} onClick={() => setActiveTab("announcements")} />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0 overflow-x-auto" style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}>
-        {TABS.map((tab) => {
-          const active = activeTab === tab;
+      {missingCount > 0 && (
+        <div className="rounded-lg border border-[#fbbf24]/20 bg-[#fbbf24]/10 px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-[#fbbf24]" />
+              <p className="text-sm text-[#f5e6d8]">
+                {missingCount} active campaign{missingCount > 1 ? "s have" : " has"} no announcement message. Customers may not notice them.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("announcements")}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#fbbf24]/35 px-3 py-1.5 text-xs font-semibold text-[#fbbf24] transition-colors hover:bg-[#fbbf24]/10"
+            >
+              Fix Now <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex overflow-x-auto border-b border-[#2a2018]">
+        {TAB_OPTIONS.map((tab) => {
+          const active = activeTab === tab.key;
           return (
             <button
-              key={tab}
+              key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab)}
-              className="px-4 py-2.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors relative flex-shrink-0"
-              style={{ color: active ? "var(--gold)" : "var(--cream-dim)", opacity: active ? 1 : 0.55 }}
+              onClick={() => setActiveTab(tab.key)}
+              className={`relative flex-shrink-0 px-4 py-3 text-xs font-semibold transition-colors ${
+                active ? "text-[#b6885e]" : "text-[#b79b85]/60 hover:text-[#f5e6d8]"
+              }`}
             >
-              {tab}
-              {active && (
-                <span
-                  className="absolute bottom-0 left-0 right-0 h-0.5"
-                  style={{ background: "var(--gold)" }}
-                />
+              {tab.label}
+              {tab.key === "announcements" && missingCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-[#fbbf24] px-1.5 py-0.5 text-[9px] font-bold text-[#0b0806]">{missingCount}</span>
               )}
+              {active && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#b6885e]" />}
             </button>
           );
         })}
       </div>
 
-      {/* Tab content */}
-      {activeTab === "Offers" && (
+      {activeTab === "offers" && (
         <OffersTab
-          offers={OFFERS}
-          offerOverrides={offerOverrides}
-          onPause={handlePauseOffer}
-          onActivate={handleActivateOffer}
+          offers={offers}
+          messages={sortedMessages}
+          onNew={() => setOfferBuilder("new")}
+          onOpen={(offer) => setOpenOfferId(offer.id)}
+          onEdit={(offer) => setOfferBuilder(offer)}
+          onToggleStatus={(id, status) => setOffers((current) => current.map((offer) => (offer.id === id ? { ...offer, status } : offer)))}
+          onArchiveOrDelete={archiveOrDeleteOffer}
+          onCreateAnnouncement={(offer) => setAnnouncementBuilder({ type: "offer", offer })}
         />
       )}
-      {activeTab === "Promo Codes" && (
+
+      {activeTab === "promos" && (
         <PromoCodesTab
-          codes={PROMO_CODES}
-          codeOverrides={codeOverrides}
-          onCopy={handleCopy}
+          codes={codes}
+          messages={sortedMessages}
           copiedCode={copiedCode}
+          onNew={() => setPromoBuilder("new")}
+          onOpen={(code) => setOpenCodeId(code.id)}
+          onEdit={(code) => setPromoBuilder(code)}
+          onCopy={copyCode}
+          onToggleStatus={(id, status) => setCodes((current) => current.map((code) => (code.id === id ? { ...code, status } : code)))}
+          onArchiveOrDelete={archiveOrDeleteCode}
+          onCreateAnnouncement={(code) => setAnnouncementBuilder({ type: "promo", code })}
         />
       )}
-      {activeTab === "Customer Targeting" && (
-        <CustomerTargetingTab codes={PROMO_CODES} offers={OFFERS} />
-      )}
-      {activeTab === "Website Banners" && (
-        <WebsiteBannersTab
-          banners={WEBSITE_BANNERS}
-          bannerActive={bannerActive}
-          onToggle={handleBannerToggle}
+
+      {activeTab === "announcements" && (
+        <AnnouncementBarTab
+          messages={sortedMessages}
+          offers={offers}
+          codes={codes}
+          missingOffers={missingOffers}
+          missingCodes={missingCodes}
+          onNew={() => setAnnouncementBuilder({ type: "new" })}
+          onEdit={(message) => setAnnouncementBuilder({ type: "edit", message })}
+          onToggle={(id, active) => setMessages((current) => current.map((message) => (message.id === id ? { ...message, active } : message)))}
+          onDelete={(id) => setMessages((current) => current.filter((message) => message.id !== id))}
+          onCreateForOffer={(offer) => setAnnouncementBuilder({ type: "offer", offer })}
+          onCreateForPromo={(code) => setAnnouncementBuilder({ type: "promo", code })}
         />
       )}
-      {activeTab === "Performance" && (
-        <PerformanceTab offers={OFFERS} codes={PROMO_CODES} />
+
+      {activeTab === "performance" && (
+        <PerformanceTab
+          offers={offers}
+          codes={codes}
+          onOpenUsage={(kind, id) => setUsageDrawer({ kind, id })}
+        />
+      )}
+
+      {offerBuilder && (
+        <OfferBuilderModal
+          initialOffer={offerBuilder === "new" ? undefined : offerBuilder}
+          onClose={() => setOfferBuilder(null)}
+          onSave={saveOffer}
+        />
+      )}
+
+      {promoBuilder && (
+        <PromoBuilderModal
+          initialCode={promoBuilder === "new" ? undefined : promoBuilder}
+          onClose={() => setPromoBuilder(null)}
+          onSave={saveCode}
+        />
+      )}
+
+      {announcementBuilder && (
+        <AnnouncementModal
+          initialMessage={announcementBuilder.type === "edit" ? announcementBuilder.message : undefined}
+          prefillOffer={announcementBuilder.type === "offer" ? announcementBuilder.offer : undefined}
+          prefillPromo={announcementBuilder.type === "promo" ? announcementBuilder.code : undefined}
+          offers={offers}
+          codes={codes}
+          onClose={() => setAnnouncementBuilder(null)}
+          onSave={saveMessage}
+        />
+      )}
+
+      {openedOffer && (
+        <OfferDetailDrawer
+          offer={openedOffer}
+          hasAnnouncement={hasActiveAnnouncementForOffer(openedOffer, sortedMessages)}
+          onClose={() => setOpenOfferId(null)}
+          onEdit={(offer) => setOfferBuilder(offer)}
+          onToggleStatus={(id, status) => setOffers((current) => current.map((offer) => (offer.id === id ? { ...offer, status } : offer)))}
+          onArchiveOrDelete={archiveOrDeleteOffer}
+          onCreateAnnouncement={(offer) => setAnnouncementBuilder({ type: "offer", offer })}
+        />
+      )}
+
+      {openedCode && (
+        <PromoDetailDrawer
+          code={openedCode}
+          hasAnnouncement={hasActiveAnnouncementForPromo(openedCode, sortedMessages)}
+          copiedCode={copiedCode}
+          onClose={() => setOpenCodeId(null)}
+          onEdit={(code) => setPromoBuilder(code)}
+          onCopy={copyCode}
+          onToggleStatus={(id, status) => setCodes((current) => current.map((code) => (code.id === id ? { ...code, status } : code)))}
+          onArchiveOrDelete={archiveOrDeleteCode}
+          onCreateAnnouncement={(code) => setAnnouncementBuilder({ type: "promo", code })}
+        />
+      )}
+
+      {usageDrawer && usageCampaign && (
+        <UsageDetailsDrawer
+          kind={usageDrawer.kind}
+          campaign={usageCampaign}
+          onClose={() => setUsageDrawer(null)}
+        />
       )}
     </div>
   );

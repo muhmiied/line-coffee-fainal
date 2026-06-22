@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -8,7 +8,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
 } from "recharts";
 import { SALES_DATA } from "@/lib/mock-data/admin/dashboard-mock";
 
@@ -55,7 +54,29 @@ const PERIOD_LABELS: Record<Period, string> = {
 
 export default function SalesChart() {
   const [period, setPeriod] = useState<Period>("week");
+  const [chartWidth, setChartWidth] = useState(0);
+  const chartRef = useRef<HTMLDivElement | null>(null);
   const data = SALES_DATA[period];
+
+  useEffect(() => {
+    const node = chartRef.current;
+    if (!node) return;
+
+    const setMeasuredWidth = () => {
+      const measuredWidth = Math.floor(node.getBoundingClientRect().width);
+      if (measuredWidth > 0) setChartWidth(measuredWidth);
+    };
+
+    setMeasuredWidth();
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entryWidth = Math.floor(entries[0]?.contentRect.width ?? 0);
+      if (entryWidth > 0) setChartWidth(entryWidth);
+    });
+
+    resizeObserver.observe(node);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   return (
     <div className="admin-surface p-5 h-full flex flex-col">
@@ -90,9 +111,11 @@ export default function SalesChart() {
       </div>
 
       {/* Chart */}
-      <div className="flex-1" style={{ minHeight: 190 }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div ref={chartRef} className="min-w-0" style={{ width: "100%", height: 220, minHeight: 190 }}>
+        {chartWidth > 0 ? (
           <AreaChart
+            width={chartWidth}
+            height={220}
             data={data}
             margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
           >
@@ -146,7 +169,13 @@ export default function SalesChart() {
               activeDot={{ r: 4, fill: "#d6a373", stroke: "#1a1209", strokeWidth: 2 }}
             />
           </AreaChart>
-        </ResponsiveContainer>
+        ) : (
+          <div
+            aria-hidden="true"
+            className="h-full rounded-lg"
+            style={{ background: "rgba(255,255,255,0.018)" }}
+          />
+        )}
       </div>
     </div>
   );

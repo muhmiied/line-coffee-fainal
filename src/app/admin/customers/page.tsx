@@ -138,13 +138,21 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
   const status = getStatus(customer);
   const tc     = TYPE_CFG[customer.type];
   const visibleSegs = segs.slice(0, 2);
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onOpen(customer.id, "overview");
+    }
+  };
 
   return (
     <>
       {/* Desktop row */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onOpen(customer.id, "overview")}
+        onKeyDown={handleRowKeyDown}
         className="hidden lg:grid w-full text-left hover:bg-white/[0.02] transition-colors"
         style={{
           gridTemplateColumns: "2.8fr 1.4fr 1fr 1.2fr 0.8fr 1fr 0.9fr 0.9fr 0.8fr 1.1fr",
@@ -238,12 +246,14 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
             <ShoppingBag size={12} />
           </button>
         </div>
-      </button>
+      </div>
 
       {/* Mobile card */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onOpen(customer.id, "overview")}
+        onKeyDown={handleRowKeyDown}
         className="lg:hidden w-full text-left flex items-center gap-3 px-4 py-4 hover:bg-white/[0.02] transition-colors"
         style={{ background: "none", border: "none", cursor: "pointer" }}
       >
@@ -272,7 +282,7 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
         >
           <MessageCircle size={16} />
         </a>
-      </button>
+      </div>
     </>
   );
 }

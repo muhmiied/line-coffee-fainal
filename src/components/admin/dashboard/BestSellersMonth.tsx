@@ -79,6 +79,7 @@ export default function BestSellersMonth() {
                         src={product.image}
                         alt={product.name}
                         fill
+                        sizes="40px"
                         className="object-contain p-1"
                       />
                     </div>

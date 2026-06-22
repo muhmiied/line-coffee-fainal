@@ -75,6 +75,7 @@ function SidebarContent({ collapsed, onClose }: SidebarContentProps) {
                 src="/brand/logo-white.svg"
                 alt="Line Coffee"
                 fill
+                sizes="176px"
                 className="object-contain object-left"
               />
             </span>
@@ -149,6 +150,7 @@ function SidebarContent({ collapsed, onClose }: SidebarContentProps) {
                 src="/assets/story/roastery.png"
                 alt=""
                 fill
+                sizes="216px"
                 className="object-cover"
                 style={{ opacity: 0.6 }}
               />

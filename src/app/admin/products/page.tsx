@@ -67,6 +67,7 @@ function AdminProductCard({
           src={product.image}
           alt={product.name.en}
           fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
           className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.04]"
         />
         {/* Status badge — top-left */}
@@ -379,7 +380,7 @@ export default function ProductsPage() {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="relative w-8 h-8 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "rgba(182,136,94,0.07)" }}>
-                        <Image src={p.image} alt={p.name.en} fill className="object-contain p-1" />
+                        <Image src={p.image} alt={p.name.en} fill sizes="32px" className="object-contain p-1" />
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--cream)" }}>{p.name.en}</p>
@@ -420,7 +421,7 @@ export default function ProductsPage() {
                     className="md:hidden w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors text-left"
                   >
                     <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "rgba(182,136,94,0.07)" }}>
-                      <Image src={p.image} alt={p.name.en} fill className="object-contain p-1.5" />
+                      <Image src={p.image} alt={p.name.en} fill sizes="40px" className="object-contain p-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-[13px] font-medium" style={{ color: "var(--cream)" }}>{p.name.en}</p>

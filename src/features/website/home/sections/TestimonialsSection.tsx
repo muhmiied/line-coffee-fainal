@@ -62,7 +62,7 @@ export function TestimonialsSection({
               />
             </Link>
             <Link
-              href="/reviews"
+              href="/contact"
               className="inline-flex items-center justify-center rounded-full border border-[#B6885E]/25 bg-[#F5E6D8]/5 px-7 py-3 text-sm font-semibold text-[#F5E6D8] transition-all duration-300 hover:border-[#D6A373]/45 hover:bg-[#D6A373]/10"
             >
               {t({ en: "Leave a Review", ar: "اترك تقييمك" })}
