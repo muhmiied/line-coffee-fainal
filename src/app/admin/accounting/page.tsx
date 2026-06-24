@@ -1338,6 +1338,7 @@ export default function AccountingPage() {
     closeDrawer();
   }
 
+  // MOCK-ONLY: local UI state only — replace with server action during backend integration.
   function handleAddPurchase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -1362,6 +1363,7 @@ export default function AccountingPage() {
     savePurchaseFromForm();
   }
 
+  // MOCK-ONLY: local UI state only — replace with server action during backend integration.
   function handleAddSupplier() {
     if (!supplierForm.name.trim()) {
       setSupplierError("Supplier name is required.");
@@ -1385,6 +1387,7 @@ export default function AccountingPage() {
     setShowNewSupplierForm(false);
   }
 
+  // MOCK-ONLY: local UI state only — replace with server action during backend integration.
   function handleAddExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -1456,6 +1459,7 @@ export default function AccountingPage() {
     closeDrawer();
   }
 
+  // MOCK-ONLY: local UI state only — replace with server action during backend integration.
   function handleRecordPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
