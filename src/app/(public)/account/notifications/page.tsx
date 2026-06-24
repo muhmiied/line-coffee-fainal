@@ -4,13 +4,13 @@ import { useState } from "react";
 import { Bell } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { AccountShell } from "@/components/layout/account/AccountShell";
-import { MOCK_NOTIFICATIONS, type MockNotification } from "@/lib/mock-data/account-data";
+import { type MockNotification } from "@/lib/mock-data/account-data";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
 
 export default function NotificationsPage() {
   const { t, language } = useLanguage();
-  const [items, setItems] = useState<MockNotification[]>(MOCK_NOTIFICATIONS);
+  const [items, setItems] = useState<MockNotification[]>([]);
 
   const unread = items.filter((n) => !n.read).length;
 
@@ -42,6 +42,9 @@ export default function NotificationsPage() {
           <Bell className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/20" />
           <p className="text-sm text-[#B79B85]/55">
             {t({ en: "No notifications yet.", ar: "لا توجد إشعارات بعد." })}
+          </p>
+          <p className="mt-2 text-xs text-[#B79B85]/40">
+            {t({ en: "Order updates and account alerts will appear here.", ar: "ستظهر هنا تحديثات طلباتك وإشعارات حسابك." })}
           </p>
         </div>
       ) : (

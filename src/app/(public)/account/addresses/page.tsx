@@ -4,13 +4,13 @@ import { useState } from "react";
 import { MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { AccountShell } from "@/components/layout/account/AccountShell";
-import { MOCK_ADDRESSES, type MockAddress } from "@/lib/mock-data/account-data";
+import { type MockAddress } from "@/lib/mock-data/account-data";
 import { cn } from "@/lib/utils/cn";
 
 export default function AddressesPage() {
   const { t } = useLanguage();
 
-  const [addresses, setAddresses] = useState<MockAddress[]>(MOCK_ADDRESSES);
+  const [addresses, setAddresses] = useState<MockAddress[]>([]);
   const [showForm, setShowForm]   = useState(false);
   const [newLabel, setNewLabel]   = useState("");
   const [newStreet, setNewStreet] = useState("");
@@ -92,6 +92,19 @@ export default function AddressesPage() {
             </div>
           </div>
         ))}
+
+        {/* Empty state */}
+        {addresses.length === 0 && !showForm && (
+          <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-10 text-center">
+            <MapPin className="mx-auto mb-3 h-8 w-8 text-[#B6885E]/20" />
+            <p className="text-sm text-[#B79B85]/55">
+              {t({ en: "No addresses saved yet.", ar: "لا توجد عناوين محفوظة بعد." })}
+            </p>
+            <p className="mt-1.5 text-xs text-[#B79B85]/40">
+              {t({ en: "Saved delivery addresses will appear here after backend integration.", ar: "ستظهر هنا عناوين التوصيل المحفوظة بعد ربط النظام." })}
+            </p>
+          </div>
+        )}
 
         {/* Add new */}
         {showForm ? (
