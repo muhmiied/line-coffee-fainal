@@ -15,6 +15,7 @@
 /.playwright-mcp
 /.claude
 /.impeccable
+graphify-out/
 
 # next.js
 /.next/
