@@ -1511,6 +1511,11 @@ export default function AccountingPage() {
         </div>
       </div>
 
+      <Note tone="amber">
+        Accounting figures are based on sample data. After backend integration, all calculations will derive
+        automatically from real orders, purchases, and expenses.
+      </Note>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard
           label="Product Revenue"

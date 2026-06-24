@@ -1028,6 +1028,21 @@ export default function AnalyticsPage() {
       </div>
 
       <div
+        className="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed"
+        style={{
+          color: "var(--cream-dim)",
+          background: "rgba(251,191,36,0.10)",
+          borderColor: "rgba(251,191,36,0.24)",
+        }}
+      >
+        <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" style={{ color: "#fbbf24" }} />
+        <span>
+          Analytics shown here are based on sample data. After backend integration, these will reflect real orders,
+          customers, and marketing events.
+        </span>
+      </div>
+
+      <div
         className="flex gap-2 overflow-x-auto rounded-xl p-1 admin-scrollbar"
         style={{
           background: "rgba(255,255,255,0.025)",
