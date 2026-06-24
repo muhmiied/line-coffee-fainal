@@ -11,6 +11,7 @@
 import type {
   ID,
   ISODateTime,
+  ImageAssetRef,
   LocalizedValue,
   Money,
   PackageSize,
@@ -140,10 +141,30 @@ export interface Supplier {
   updatedAt?: ISODateTime;
 }
 
+// Espresso bean taste-metric axes used by the Make-Your-Espresso builder and
+// Espresso Manager (0–5 scale per axis). Phase 3E addition.
+export type EspressoBeanMetricKey =
+  | "body"
+  | "crema"
+  | "acidity"
+  | "chocolate"
+  | "sweetness"
+  | "strength";
+
+// A bean's taste profile. Partial so beans can omit axes they don't rate.
+export type EspressoBeanMetrics = Partial<Record<EspressoBeanMetricKey, number>>;
+
 // Dedicated KG-based bean stock contract for the espresso workflow. It can link
 // to an InventoryItem row, but stays readable for Espresso Manager and builder
 // stock planning.
-// Supabase mapping: `espresso_bean_stock` table.
+//
+// Phase 3E: extended with optional catalog/builder fields (slug, description,
+// taste metrics, public visibility, sort order, image) so this one shape can
+// serve BOTH the Espresso Manager stock view AND the public Make-Your-Espresso
+// builder catalog — unifying the two current bean sources (`espressoBeans.ts`
+// catalog + inventory `ESPRESSO_BEANS` stock) into a single future
+// `espresso_beans` table. All additions are optional; no existing field changed.
+// Supabase mapping: `espresso_beans` table (catalog + stock).
 export interface EspressoBeanStock {
   id: ID;
   inventoryItemId?: ID;
@@ -157,6 +178,13 @@ export interface EspressoBeanStock {
   supplierId?: ID;
   status: InventoryItemStatus;
   updatedAt?: ISODateTime;
+  // --- Phase 3E catalog/builder fields (optional, additive) ---
+  slug?: string;
+  description?: LocalizedValue;
+  metrics?: EspressoBeanMetrics;
+  visible?: boolean;
+  sortOrder?: number;
+  image?: ImageAssetRef;
 }
 
 // Compact stock view for order/admin reads.

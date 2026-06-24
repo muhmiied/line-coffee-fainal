@@ -132,3 +132,39 @@ export interface PromoValidationResult {
   freeShipping: boolean;
   message: LocalizedValue;
 }
+
+// ---------------------------------------------------------------------------
+// Promo redemption tracking (Phase 3E)
+// ---------------------------------------------------------------------------
+//
+// Closes the redemption gap from the Supabase Schema + Real Data Transition
+// Plan (§B gap, §E table 23): PromoCode.usedCount is only an aggregate. A
+// per-use record is required to enforce maxUses / once_per_customer and to feed
+// the Marketing → Performance tab (original value, discount given, paid revenue,
+// usage by customer/order). Promo VALIDATION remains future server-side only;
+// this is just the audit record of an accepted redemption.
+
+// One recorded use of a promo code against an order. `codeSnapshot` freezes the
+// code string at redemption time so history survives later code edits/renames.
+// Supabase mapping: `promo_redemptions` table.
+export interface PromoRedemption {
+  id: ID;
+  promoCodeId: ID;
+  orderId: ID;
+  customerId?: ID;
+  codeSnapshot: string;
+  discountAmount: Money;
+  originalOrderValue?: Money;
+  redeemedAt: ISODateTime;
+}
+
+// Aggregated redemption stats for one promo code (DERIVED from PromoRedemption
+// rows). Mirrors PromoCode.usedCount but adds discount/value totals for the
+// Marketing Performance tab.
+// Supabase mapping: SQL view/aggregation over `promo_redemptions`.
+export interface PromoRedemptionSummary {
+  promoCodeId: ID;
+  usedCount: number;
+  totalDiscountAmount: Money;
+  totalOrderValue?: Money;
+}

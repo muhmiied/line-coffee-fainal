@@ -7,3 +7,6 @@ export type * from "./inventory";
 export type * from "./accounting";
 export type * from "./marketing";
 export type * from "./cms";
+export type * from "./admin";
+export type * from "./settings";
+export type * from "./flavor";
