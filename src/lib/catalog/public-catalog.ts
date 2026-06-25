@@ -1,7 +1,7 @@
 "use client";
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { LocalizedValue } from "@/lib/context/language";
+import { supabase } from "@/lib/supabase/client";
 import type { PackageSize } from "@/lib/types/common";
 
 const publicCatalogPackageSizes = ["250g", "500g", "1kg"] as const satisfies readonly PackageSize[];
@@ -110,31 +110,6 @@ export class PublicCatalogReadError extends Error {
     this.name = "PublicCatalogReadError";
     this.cause = cause;
   }
-}
-
-let catalogClient: SupabaseClient | null = null;
-
-function getPublicCatalogClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new PublicCatalogReadError("Public catalog is not configured.");
-  }
-
-  if (!catalogClient) {
-    catalogClient = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-    });
-  }
-
-  return catalogClient;
 }
 
 function asCatalogError(error: unknown) {
@@ -336,7 +311,7 @@ function mapProductRows(
 }
 
 async function fetchCategoryRows() {
-  const { data, error } = await getPublicCatalogClient()
+  const { data, error } = await supabase
     .from("public_categories")
     .select("id, slug, name_en, name_ar, description_en, description_ar, image_url, sort_order")
     .order("sort_order", { ascending: true })
@@ -347,7 +322,7 @@ async function fetchCategoryRows() {
 }
 
 async function fetchProductRows() {
-  const { data, error } = await getPublicCatalogClient()
+  const { data, error } = await supabase
     .from("public_products")
     .select(
       [
@@ -380,7 +355,7 @@ async function fetchProductRows() {
 }
 
 async function fetchProductRowsByCategorySlug(slug: string) {
-  const { data, error } = await getPublicCatalogClient()
+  const { data, error } = await supabase
     .from("public_products")
     .select(
       [
@@ -415,7 +390,7 @@ async function fetchProductRowsByCategorySlug(slug: string) {
 async function fetchProductRowsBySlugs(slugs: string[]) {
   if (slugs.length === 0) return [];
 
-  const { data, error } = await getPublicCatalogClient()
+  const { data, error } = await supabase
     .from("public_products")
     .select(
       [
@@ -447,7 +422,7 @@ async function fetchProductRowsBySlugs(slugs: string[]) {
 }
 
 async function fetchProductRowBySlug(slug: string) {
-  const { data, error } = await getPublicCatalogClient()
+  const { data, error } = await supabase
     .from("public_products")
     .select(
       [
@@ -482,7 +457,7 @@ async function fetchProductRowBySlug(slug: string) {
 async function fetchVariantRows(productIds?: string[]) {
   if (productIds && productIds.length === 0) return [];
 
-  let query = getPublicCatalogClient()
+  let query = supabase
     .from("public_product_variants")
     .select("id, product_id, size, price, compare_at_price, stock_state, sort_order")
     .order("sort_order", { ascending: true });
@@ -497,7 +472,7 @@ async function fetchVariantRows(productIds?: string[]) {
 }
 
 async function fetchVariantRowsByProductId(productId: string) {
-  const { data, error } = await getPublicCatalogClient()
+  const { data, error } = await supabase
     .from("public_product_variants")
     .select("id, product_id, size, price, compare_at_price, stock_state, sort_order")
     .eq("product_id", productId)
