@@ -30,7 +30,10 @@ import {
   getAdminDisplayName,
   getAdminInitials,
 } from "@/lib/auth/admin";
-import { catalogProducts } from "@/lib/mock-data/product-catalog";
+import {
+  getPublicProductsBySlugs,
+  type PublicCatalogProduct,
+} from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 
 const announcements = [
@@ -344,10 +347,32 @@ function CommercePopover({
   const { ids: wishlistIds, remove: removeWish } = useWishlist();
   const isWishlist = panel === "wishlist";
   const hasCartItems = !isWishlist && items.length > 0;
+  const wishlistKey = wishlistIds.join("|");
+  const [wishlistProducts, setWishlistProducts] = useState<PublicCatalogProduct[]>([]);
+  const [wishlistState, setWishlistState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const visibleWishlistProducts = wishlistProducts.filter((product) => wishlistIds.includes(product.slug));
 
-  const wishlistProducts = isWishlist
-    ? catalogProducts.filter((p) => wishlistIds.includes(p.slug))
-    : [];
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isWishlist || wishlistIds.length === 0) return;
+
+    getPublicProductsBySlugs(wishlistIds)
+      .then((products) => {
+        if (!isMounted) return;
+        setWishlistProducts(products);
+        setWishlistState("ready");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setWishlistProducts([]);
+        setWishlistState("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isWishlist, wishlistIds, wishlistKey]);
 
   return (
     <div className="absolute end-0 top-[calc(100%+2rem)] z-50 w-[min(30rem,calc(100vw-1rem))] overflow-hidden rounded-[1.65rem] border border-[#F5CFAE]/20 bg-[#100B08]/72 text-start shadow-[0_34px_96px_rgba(0,0,0,0.64),0_0_52px_rgba(182,136,94,0.16),inset_0_1px_0_rgba(245,230,216,0.08)] backdrop-blur-[30px]">
@@ -382,7 +407,35 @@ function CommercePopover({
 
         {/* ── WISHLIST panel ── */}
         {isWishlist && (
-          wishlistProducts.length === 0 ? (
+          wishlistIds.length === 0 ? (
+            <div className="py-8 text-center">
+              <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
+              <p className="text-sm text-[#D6B79A]/55">
+                {t({ en: "No saved items yet.", ar: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª Ù…Ø­ÙÙˆØ¸Ø© Ø¨Ø¹Ø¯." })}
+              </p>
+              <Link
+                href="/products"
+                onClick={onClose}
+                className="mt-4 inline-block text-sm font-medium text-[#B6885E] hover:text-[#D6A373]"
+              >
+                {t({ en: "Browse products â†’", ar: "â† ØªØµÙØ­ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+              </Link>
+            </div>
+          ) : wishlistState === "idle" || wishlistState === "loading" ? (
+            <div className="py-8 text-center">
+              <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
+              <p className="text-sm text-[#D6B79A]/55">
+                {t({ en: "Loading saved products.", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©." })}
+              </p>
+            </div>
+          ) : wishlistState === "error" ? (
+            <div className="py-8 text-center">
+              <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
+              <p className="text-sm text-[#D6B79A]/55">
+                {t({ en: "Saved products could not be loaded.", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©." })}
+              </p>
+            </div>
+          ) : visibleWishlistProducts.length === 0 ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
               <p className="text-sm text-[#D6B79A]/55">
@@ -399,7 +452,7 @@ function CommercePopover({
           ) : (
             <div className="space-y-2">
               <div className="max-h-[18rem] space-y-2 overflow-y-auto">
-                {wishlistProducts.map((product) => {
+                {visibleWishlistProducts.map((product) => {
                   const firstSize = product.sizes[0];
                   return (
                     <div

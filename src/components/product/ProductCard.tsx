@@ -8,18 +8,18 @@ import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
 import { useWishlist } from "@/lib/hooks/useWishlist";
 import type { VisualProduct } from "@/types/homepage";
-import type { CatalogProduct } from "@/lib/mock-data/product-catalog";
+import type { PublicCatalogProduct } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 
 // ─── Type helpers ─────────────────────────────────────────────────────────────
 
 type NormalizedSize = { label: string; price: string | number };
 
-function isCatalogProduct(p: VisualProduct | CatalogProduct): p is CatalogProduct {
+function isCatalogProduct(p: VisualProduct | PublicCatalogProduct): p is PublicCatalogProduct {
   return "pricingModel" in p;
 }
 
-function getPriceChips(p: VisualProduct | CatalogProduct): NormalizedSize[] {
+function getPriceChips(p: VisualProduct | PublicCatalogProduct): NormalizedSize[] {
   if (!isCatalogProduct(p)) {
     return p.sizes.map((s) => ({ label: s.label, price: s.price }));
   }
@@ -42,7 +42,7 @@ function CinematicPlaceholder() {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type ProductCardProps = {
-  product: VisualProduct | CatalogProduct;
+  product: VisualProduct | PublicCatalogProduct;
   index?: number;
   isDuplicate?: boolean;
   reveal?: boolean;

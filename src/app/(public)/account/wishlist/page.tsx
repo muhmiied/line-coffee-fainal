@@ -1,12 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { AccountShell } from "@/components/layout/account/AccountShell";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
-import { catalogProducts } from "@/lib/mock-data/product-catalog";
+import {
+  getPublicProductsBySlugs,
+  type PublicCatalogProduct,
+} from "@/lib/catalog/public-catalog";
 import { useCart } from "@/lib/context/cart";
 
 export default function WishlistPage() {
@@ -14,14 +18,38 @@ export default function WishlistPage() {
   const { addItem } = useCart();
 
   const [wishlistIds, setWishlistIds] = useLocalStorage<string[]>("line-wishlist-v1", []);
+  const [products, setProducts] = useState<PublicCatalogProduct[]>([]);
+  const [catalogState, setCatalogState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const wishlistKey = wishlistIds.join("|");
+  const visibleProducts = products.filter((product) => wishlistIds.includes(product.slug));
 
-  const products = catalogProducts.filter((p) => wishlistIds.includes(p.slug));
+  useEffect(() => {
+    let isMounted = true;
+
+    if (wishlistIds.length === 0) return;
+
+    getPublicProductsBySlugs(wishlistIds)
+      .then((nextProducts) => {
+        if (!isMounted) return;
+        setProducts(nextProducts);
+        setCatalogState("ready");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setProducts([]);
+        setCatalogState("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [wishlistIds, wishlistKey]);
 
   const remove = (slug: string) =>
     setWishlistIds((prev) => prev.filter((id) => id !== slug));
 
   const handleAddToCart = (slug: string) => {
-    const product = products.find((p) => p.slug === slug);
+    const product = visibleProducts.find((p) => p.slug === slug);
     if (!product) return;
     const firstSize = product.sizes[0];
     addItem({
@@ -36,7 +64,37 @@ export default function WishlistPage() {
 
   return (
     <AccountShell title={{ en: "Wishlist", ar: "المحفوظات" }}>
-      {products.length === 0 ? (
+      {wishlistIds.length === 0 ? (
+        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+          <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
+          <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
+            {t({ en: "Your wishlist is empty", ar: "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø§Øª ÙØ§Ø±ØºØ©" })}
+          </p>
+          <p className="mb-6 text-xs text-[#B79B85]/50">
+            {t({ en: "Tap the heart icon on any product to save it here.", ar: "Ø§Ø¶ØºØ· Ø£ÙŠÙ‚ÙˆÙ†Ø© Ø§Ù„Ù‚Ù„Ø¨ Ø¹Ù„Ù‰ Ø£ÙŠ Ù…Ù†ØªØ¬ Ù„Ø­ÙØ¸Ù‡ Ù‡Ù†Ø§." })}
+          </p>
+          <Link href="/products" className="premium-button inline-block px-8 py-2.5 text-sm">
+            {t({ en: "Browse products", ar: "ØªØµÙØ­ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+          </Link>
+        </div>
+      ) : catalogState === "idle" || catalogState === "loading" ? (
+        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+          <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
+          <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
+            {t({ en: "Loading saved products", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©" })}
+          </p>
+        </div>
+      ) : catalogState === "error" ? (
+        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+          <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
+          <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
+            {t({ en: "Saved products could not be loaded", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©" })}
+          </p>
+          <p className="text-xs text-[#B79B85]/50">
+            {t({ en: "Please try again in a moment.", ar: "ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰ Ø¨Ø¹Ø¯ Ù‚Ù„ÙŠÙ„." })}
+          </p>
+        </div>
+      ) : visibleProducts.length === 0 ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
@@ -51,7 +109,7 @@ export default function WishlistPage() {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {products.map((product) => {
+          {visibleProducts.map((product) => {
             const firstPrice = product.sizes[0];
             return (
               <div

@@ -1,55 +1,59 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronRight, Search, Sparkles } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { ProductCard } from "@/components/product/ProductCard";
 import {
-  catalogCategories,
-  catalogProducts,
-  type CatalogCategorySlug,
-} from "@/lib/mock-data/product-catalog";
+  getPublicCategories,
+  getPublicProducts,
+  type PublicCatalogCategory,
+  type PublicCatalogProduct,
+} from "@/lib/catalog/public-catalog";
 import { EspressoBlendStudio } from "@/features/website/make-your-espresso/EspressoBlendStudio";
 import { FlavorMixStudio } from "@/features/website/make-your-flavor/FlavorMixStudio";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+type CatalogLoadState = "loading" | "ready" | "error";
+type StudioCategory = "make-your-espresso" | "make-your-flavor";
+type ActiveCategory = string | StudioCategory;
 
-type ActiveCategory = CatalogCategorySlug | "make-your-espresso" | "make-your-flavor";
-
-const VALID_CATEGORIES = new Set<ActiveCategory>([
-  ...catalogCategories.map((c) => c.slug),
-  "make-your-espresso",
-  "make-your-flavor",
-]);
-
-// ─── Sidebar items (interleaved with special studio entries) ─────────────────
+const STUDIO_CATEGORY_IDS: StudioCategory[] = ["make-your-espresso", "make-your-flavor"];
 
 type SidebarItem =
-  | { kind: "cat"; slug: CatalogCategorySlug; name: { en: string; ar: string } }
-  | { kind: "studio"; id: "make-your-espresso" | "make-your-flavor"; label: { en: string; ar: string }; disabled?: boolean };
+  | { kind: "cat"; slug: string; name: { en: string; ar: string } }
+  | { kind: "studio"; id: StudioCategory; label: { en: string; ar: string }; disabled?: boolean };
 
-const sidebarItems: SidebarItem[] = [];
-for (const cat of catalogCategories) {
-  sidebarItems.push({ kind: "cat", slug: cat.slug, name: cat.name });
-  if (cat.slug === "espresso-blends") {
-    sidebarItems.push({
-      kind: "studio",
-      id: "make-your-espresso",
-      label: { en: "Make Your Espresso", ar: "اصنع إسبريسو خاصتك" },
-    });
-  }
-  if (cat.slug === "flavor-coffee") {
-    sidebarItems.push({
-      kind: "studio",
-      id: "make-your-flavor",
-      label: { en: "Make Your Flavor", ar: "اصنع نكهتك" },
-    });
-  }
+function isStudioCategory(value: string): value is StudioCategory {
+  return STUDIO_CATEGORY_IDS.includes(value as StudioCategory);
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
+function buildSidebarItems(categories: PublicCatalogCategory[]): SidebarItem[] {
+  const items: SidebarItem[] = [];
+
+  for (const cat of categories) {
+    items.push({ kind: "cat", slug: cat.slug, name: cat.name });
+
+    if (cat.slug === "espresso-blends") {
+      items.push({
+        kind: "studio",
+        id: "make-your-espresso",
+        label: { en: "Make Your Espresso", ar: "Ø§ØµÙ†Ø¹ Ø¥Ø³Ø¨Ø±ÙŠØ³Ùˆ Ø®Ø§ØµØªÙƒ" },
+      });
+    }
+
+    if (cat.slug === "flavor-coffee") {
+      items.push({
+        kind: "studio",
+        id: "make-your-flavor",
+        label: { en: "Make Your Flavor", ar: "Ø§ØµÙ†Ø¹ Ù†ÙƒÙ‡ØªÙƒ" },
+      });
+    }
+  }
+
+  return items;
+}
 
 function ProductsHero() {
   const { t } = useLanguage();
@@ -71,12 +75,12 @@ function ProductsHero() {
 
       <div className="relative z-10 px-4 text-center text-white">
         <h1 className="mb-4 font-serif text-4xl font-bold md:text-5xl lg:text-6xl">
-          {t({ en: "Our Products", ar: "منتجاتنا" })}
+          {t({ en: "Our Products", ar: "Ù…Ù†ØªØ¬Ø§ØªÙ†Ø§" })}
         </h1>
         <p className="mx-auto max-w-2xl text-lg text-white/90 md:text-xl">
           {t({
             en: "Discover our carefully curated selection of premium coffee.",
-            ar: "اكتشف مجموعتنا المنتقاة من القهوة الفاخرة.",
+            ar: "Ø§ÙƒØªØ´Ù Ù…Ø¬Ù…ÙˆØ¹ØªÙ†Ø§ Ø§Ù„Ù…Ù†ØªÙ‚Ø§Ø© Ù…Ù† Ø§Ù„Ù‚Ù‡ÙˆØ© Ø§Ù„ÙØ§Ø®Ø±Ø©.",
           })}
         </p>
       </div>
@@ -84,31 +88,60 @@ function ProductsHero() {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function ProductsPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // ?category= is primary; ?cat= is the backward-compatible fallback
-  const rawCat = searchParams.get("category") ?? searchParams.get("cat");
-  const initialCat: ActiveCategory =
-    rawCat !== null && VALID_CATEGORIES.has(rawCat as ActiveCategory)
-      ? (rawCat as ActiveCategory)
-      : "turkish-blends";
-  const [activeCategory, setActiveCategory] = useState<ActiveCategory>(initialCat);
+  const [categories, setCategories] = useState<PublicCatalogCategory[]>([]);
+  const [products, setProducts] = useState<PublicCatalogProduct[]>([]);
+  const [catalogState, setCatalogState] = useState<CatalogLoadState>("loading");
+  const [selectedCategory, setSelectedCategory] = useState<ActiveCategory>("");
   const [search, setSearch] = useState("");
 
+  const rawCat = searchParams.get("category") ?? searchParams.get("cat");
+  const sidebarItems = useMemo(() => buildSidebarItems(categories), [categories]);
+  const validCategories = useMemo(
+    () => new Set<ActiveCategory>([...categories.map((category) => category.slug), ...STUDIO_CATEGORY_IDS]),
+    [categories],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    Promise.all([getPublicCategories(), getPublicProducts()])
+      .then(([nextCategories, nextProducts]) => {
+        if (!isMounted) return;
+        setCategories(nextCategories);
+        setProducts(nextProducts);
+        setCatalogState("ready");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setCategories([]);
+        setProducts([]);
+        setCatalogState("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const fallbackCategory = categories[0]?.slug ?? "";
+  const activeCategory =
+    (rawCat && validCategories.has(rawCat) ? rawCat : "") ||
+    (selectedCategory && validCategories.has(selectedCategory) ? selectedCategory : "") ||
+    fallbackCategory;
+
   const selectCategory = (cat: ActiveCategory) => {
-    setActiveCategory(cat);
+    setSelectedCategory(cat);
     router.replace(`/products?category=${cat}`, { scroll: false });
   };
 
   const filtered = useMemo(() => {
-    if (activeCategory === "make-your-espresso" || activeCategory === "make-your-flavor") return [];
-    const slug = activeCategory;
-    let list = catalogProducts.filter((p) => p.category === slug);
+    if (!activeCategory || isStudioCategory(activeCategory)) return [];
+
+    let list = products.filter((p) => p.category === activeCategory);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -118,9 +151,9 @@ export default function ProductsPage() {
       );
     }
     return list;
-  }, [activeCategory, search]);
+  }, [activeCategory, products, search]);
 
-  const isStudio = activeCategory === "make-your-espresso" || activeCategory === "make-your-flavor";
+  const isStudio = activeCategory ? isStudioCategory(activeCategory) : false;
 
   return (
     <div className="min-h-screen bg-[#0B0806]">
@@ -128,12 +161,10 @@ export default function ProductsPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-8 lg:flex-row">
-
-          {/* ── Sidebar ─────────────────────────────────────────────── */}
           <aside className="shrink-0 lg:w-64">
             <div className="luxury-panel sticky top-28 rounded-2xl p-4">
               <h2 className="mb-4 px-2 font-serif text-lg font-semibold text-[#F5E6D8]/90">
-                {t({ en: "Categories", ar: "التصنيفات" })}
+                {t({ en: "Categories", ar: "Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª" })}
               </h2>
               <nav className="space-y-1">
                 {sidebarItems.map((item) => {
@@ -158,7 +189,6 @@ export default function ProductsPage() {
                     );
                   }
 
-                  // Studio entry
                   const isActive = activeCategory === item.id;
                   if (item.disabled) {
                     return (
@@ -171,7 +201,7 @@ export default function ProductsPage() {
                         <span className="flex items-center justify-between gap-2">
                           <span>{t(item.label)}</span>
                           <span className="text-[10px] uppercase tracking-[0.14em] text-[#D6B79A]/30">
-                            {t({ en: "Soon", ar: "قريباً" })}
+                            {t({ en: "Soon", ar: "Ù‚Ø±ÙŠØ¨Ø§Ù‹" })}
                           </span>
                         </span>
                       </button>
@@ -197,9 +227,26 @@ export default function ProductsPage() {
             </div>
           </aside>
 
-          {/* ── Main ────────────────────────────────────────────────── */}
           <main className="min-w-0 flex-1">
-            {isStudio ? (
+            {catalogState === "loading" ? (
+              <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
+                <p className="font-serif text-lg text-[#F5E6D8]/50">
+                  {t({ en: "Loading products", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+                </p>
+                <p className="text-sm text-[#D6B79A]/40">
+                  {t({ en: "Reading the live catalog.", ar: "Ù†Ù‚Ø±Ø£ Ø§Ù„ÙƒØ§ØªØ§Ù„ÙˆØ¬ Ø§Ù„Ø­ÙŠ." })}
+                </p>
+              </div>
+            ) : catalogState === "error" ? (
+              <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
+                <p className="font-serif text-lg text-[#F5E6D8]/50">
+                  {t({ en: "Products could not be loaded", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+                </p>
+                <p className="text-sm text-[#D6B79A]/40">
+                  {t({ en: "Please try again in a moment.", ar: "ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰ Ø¨Ø¹Ø¯ Ù‚Ù„ÙŠÙ„." })}
+                </p>
+              </div>
+            ) : isStudio ? (
               activeCategory === "make-your-espresso" ? (
                 <EspressoBlendStudio embedded />
               ) : (
@@ -207,25 +254,22 @@ export default function ProductsPage() {
               )
             ) : (
               <>
-                {/* Search */}
                 <div className="relative mb-4">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/45" />
                   <input
                     type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder={t({ en: "Search products…", ar: "ابحث عن منتج…" })}
+                    placeholder={t({ en: "Search productsâ€¦", ar: "Ø§Ø¨Ø­Ø« Ø¹Ù† Ù…Ù†ØªØ¬â€¦" })}
                     className="line-input line-input-search w-full"
                   />
                 </div>
 
-                {/* Count */}
                 <p className="mb-5 text-sm text-[#D6B79A]/55">
                   {filtered.length}{" "}
-                  {t({ en: "products", ar: "منتج" })}
+                  {t({ en: "products", ar: "Ù…Ù†ØªØ¬" })}
                 </p>
 
-                {/* Grid */}
                 {filtered.length > 0 ? (
                   <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:grid-cols-3">
                     {filtered.map((product, i) => (
@@ -240,10 +284,10 @@ export default function ProductsPage() {
                 ) : (
                   <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
                     <p className="font-serif text-lg text-[#F5E6D8]/50">
-                      {t({ en: "No products found", ar: "لا توجد منتجات" })}
+                      {t({ en: "No products found", ar: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª" })}
                     </p>
                     <p className="text-sm text-[#D6B79A]/40">
-                      {t({ en: "Try a different search or category", ar: "جرب بحثاً أو تصنيفاً مختلفاً" })}
+                      {t({ en: "Try a different search or category", ar: "Ø¬Ø±Ø¨ Ø¨Ø­Ø«Ø§Ù‹ Ø£Ùˆ ØªØµÙ†ÙŠÙØ§Ù‹ Ù…Ø®ØªÙ„ÙØ§Ù‹" })}
                     </p>
                   </div>
                 )}

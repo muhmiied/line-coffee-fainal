@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Check,
@@ -17,13 +17,14 @@ import { useLanguage, type LocalizedValue } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
 import { useWishlist } from "@/lib/hooks/useWishlist";
 import {
-  catalogCategories,
-  catalogProducts,
-  type CatalogCategory,
-  type CatalogProduct,
-} from "@/lib/mock-data/product-catalog";
+  getPublicCatalogProductBySlug,
+  getPublicCategories,
+  type PublicCatalogCategory,
+  type PublicCatalogProduct,
+} from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 
+type CatalogLoadState = "loading" | "ready" | "error";
 type WeightLabel = "250g" | "500g" | "1kg";
 
 type PriceOption = {
@@ -41,11 +42,11 @@ function getSlugParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function getPriceOptions(product: CatalogProduct): PriceOption[] {
+function getPriceOptions(product: PublicCatalogProduct): PriceOption[] {
   return product.sizes.map((size) => ({ label: size.label, price: size.salePrice }));
 }
 
-function getRobustaShare(product: CatalogProduct) {
+function getRobustaShare(product: PublicCatalogProduct) {
   return product.blend
     ?.filter((component) => component.beanType === "robusta")
     .reduce((sum, component) => sum + component.pct, 0) ?? 0;
@@ -55,7 +56,7 @@ function clampMetric(value: number) {
   return Math.round(Math.max(0, Math.min(5, value)) * 10) / 10;
 }
 
-function getProductMetrics(product: CatalogProduct): ProductMetric[] {
+function getProductMetrics(product: PublicCatalogProduct): ProductMetric[] {
   const robusta = getRobustaShare(product);
   const premiumLift = product.salePricePerKg >= 900 ? 0.4 : product.salePricePerKg >= 700 ? 0.2 : 0;
   const strengthLift = robusta > 10 ? 0.4 : robusta > 0 ? 0.2 : 0;
@@ -114,9 +115,10 @@ function getProductMetrics(product: CatalogProduct): ProductMetric[] {
   ];
 }
 
-function getGalleryImages(product: CatalogProduct, category?: CatalogCategory) {
+function getGalleryImages(product: PublicCatalogProduct, category?: PublicCatalogCategory) {
   return Array.from(new Set([
     product.image,
+    ...product.gallery,
     category?.image,
     "/assets/story/roastery.png",
     "/assets/hero/dark-roast.png",
@@ -143,7 +145,32 @@ function ProductNotFound() {
   );
 }
 
-function Breadcrumb({ product, category }: { product: CatalogProduct; category?: CatalogCategory }) {
+function ProductLoadPanel({ state }: { state: "loading" | "error" }) {
+  const { t } = useLanguage();
+  return (
+    <div className="min-h-screen bg-[#0B0806] px-4 py-16 text-center text-[#F5E6D8]">
+      <div className="mx-auto max-w-xl rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/70 p-8">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
+          {state === "loading"
+            ? t({ en: "Loading Product", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬" })
+            : t({ en: "Product Unavailable", ar: "Ø§Ù„Ù…Ù†ØªØ¬ ØºÙŠØ± Ù…ØªØ§Ø­" })}
+        </p>
+        <h1 className="mt-3 font-serif text-3xl font-bold">
+          {state === "loading"
+            ? t({ en: "Reading the live product.", ar: "Ù†Ù‚Ø±Ø£ Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ø­ÙŠ." })
+            : t({ en: "We could not load this product right now.", ar: "Ù„Ù… Ù†ØªÙ…ÙƒÙ† Ù…Ù† ØªØ­Ù…ÙŠÙ„ Ù‡Ø°Ø§ Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ø¢Ù†." })}
+        </h1>
+        {state === "error" ? (
+          <Link href="/products" className="premium-button mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
+            {t({ en: "Back to Products", ar: "Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function Breadcrumb({ product, category }: { product: PublicCatalogProduct; category?: PublicCatalogCategory }) {
   const { dir, t } = useLanguage();
   const separator = <ChevronRight className={cn("h-3.5 w-3.5 text-[#D6A373]/44", dir === "rtl" && "rotate-180")} />;
 
@@ -319,17 +346,59 @@ export default function ProductDetailPage() {
   const [selectedWeight, setSelectedWeight] = useState<WeightLabel>("250g");
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  const [catalogState, setCatalogState] = useState<CatalogLoadState>("loading");
+  const [product, setProduct] = useState<PublicCatalogProduct | null>(null);
+  const [categories, setCategories] = useState<PublicCatalogCategory[]>([]);
   const productSlug = getSlugParam(slug);
-  const product = catalogProducts.find((item) => item.slug === productSlug);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!productSlug) return;
+
+    Promise.all([getPublicCatalogProductBySlug(productSlug), getPublicCategories()])
+      .then(([nextProduct, nextCategories]) => {
+        if (!isMounted) return;
+        setProduct(nextProduct);
+        setCategories(nextCategories);
+        setActiveImageIndex(0);
+        setSelectedWeight(nextProduct?.sizes[0]?.label ?? "250g");
+        setQuantity(1);
+        setCatalogState("ready");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setProduct(null);
+        setCategories([]);
+        setCatalogState("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [productSlug]);
+
   const wishlisted = product ? isWishlisted(product.slug) : false;
+
+  if (!productSlug) {
+    return <ProductNotFound />;
+  }
+
+  if (catalogState === "loading") {
+    return <ProductLoadPanel state="loading" />;
+  }
+
+  if (catalogState === "error") {
+    return <ProductLoadPanel state="error" />;
+  }
 
   if (!product) {
     return <ProductNotFound />;
   }
 
-  const category = catalogCategories.find((item) => item.slug === product.category);
+  const category = categories.find((item) => item.slug === product.category);
   const priceOptions = getPriceOptions(product);
-  const selectedPrice = priceOptions.find((option) => option.label === selectedWeight) ?? priceOptions[0]!;
+  const selectedPrice = priceOptions.find((option) => option.label === selectedWeight) ?? priceOptions[0] ?? { label: "250g", price: 0 };
   const totalPrice = selectedPrice.price * quantity;
   const galleryImages = getGalleryImages(product, category);
   const metrics = getProductMetrics(product);

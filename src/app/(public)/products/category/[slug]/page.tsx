@@ -2,22 +2,31 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ChevronRight, Filter, Search, SlidersHorizontal } from "lucide-react";
 import { CatalogProductCard } from "@/components/product/CatalogProductCard";
 import { useLanguage, type LocalizedValue } from "@/lib/context/language";
 import {
-  catalogCategories,
-  catalogProducts,
-  type CatalogCategory,
-  type CatalogCategorySlug,
-  type CatalogProduct,
-} from "@/lib/mock-data/product-catalog";
+  getPublicCategories,
+  getPublicProducts,
+  getPublicProductsByCategorySlug,
+  type PublicCatalogCategory,
+  type PublicCatalogProduct,
+} from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 
+type CatalogLoadState = "loading" | "ready" | "error";
 type PriceFilter = "all" | "under-400" | "400-700" | "700-plus";
 type SortValue = "featured" | "price-asc" | "price-desc" | "name";
+type KnownCategorySlug =
+  | "turkish-blends"
+  | "espresso-blends"
+  | "easy-coffee"
+  | "coffee-mix"
+  | "cappuccino"
+  | "hot-chocolate"
+  | "flavor-coffee";
 
 type CategoryExperience = {
   eyebrow: LocalizedValue;
@@ -26,7 +35,7 @@ type CategoryExperience = {
   story: LocalizedValue;
 };
 
-const categoryExperiences: Record<CatalogCategorySlug, CategoryExperience> = {
+const categoryExperiences: Record<KnownCategorySlug, CategoryExperience> = {
   "turkish-blends": {
     eyebrow: { en: "Slow Rituals", ar: "طقوس هادئة" },
     title: { en: "Turkish coffee with a deeper house signature.", ar: "قهوة تركي بطابع لاين الأعمق." },
@@ -131,18 +140,29 @@ function getSlugParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function isCategorySlug(value: string | undefined): value is CatalogCategorySlug {
-  return catalogCategories.some((category) => category.slug === value);
+function isKnownCategorySlug(value: string): value is KnownCategorySlug {
+  return value in categoryExperiences;
 }
 
-function matchesPrice(product: CatalogProduct, filter: PriceFilter) {
+function getCategoryExperience(category: PublicCatalogCategory): CategoryExperience {
+  if (isKnownCategorySlug(category.slug)) return categoryExperiences[category.slug];
+
+  return {
+    eyebrow: { en: "Line Coffee", ar: "Ù„Ø§ÙŠÙ† ÙƒÙˆÙÙŠ" },
+    title: category.name,
+    intro: category.description ?? category.name,
+    story: category.description ?? category.name,
+  };
+}
+
+function matchesPrice(product: PublicCatalogProduct, filter: PriceFilter) {
   if (filter === "all") return true;
   if (filter === "under-400") return product.salePricePerKg < 400;
   if (filter === "400-700") return product.salePricePerKg >= 400 && product.salePricePerKg <= 700;
   return product.salePricePerKg > 700;
 }
 
-function sortProducts(products: CatalogProduct[], sort: SortValue, localize: (value: LocalizedValue) => string, language: "en" | "ar") {
+function sortProducts(products: PublicCatalogProduct[], sort: SortValue, localize: (value: LocalizedValue) => string, language: "en" | "ar") {
   const locale = language;
   return [...products].sort((a, b) => {
     if (sort === "price-asc") return a.salePricePerKg - b.salePricePerKg;
@@ -154,7 +174,7 @@ function sortProducts(products: CatalogProduct[], sort: SortValue, localize: (va
   });
 }
 
-function Breadcrumb({ category }: { category?: CatalogCategory }) {
+function Breadcrumb({ category }: { category?: PublicCatalogCategory }) {
   const { dir, t } = useLanguage();
   const itemClass = "text-[#D6B79A]/64 transition-colors hover:text-[#F5E6D8]";
   const separator = <ChevronRight className={cn("h-3.5 w-3.5 text-[#D6A373]/44", dir === "rtl" && "rotate-180")} />;
@@ -193,21 +213,92 @@ function CategoryNotFound() {
   );
 }
 
+function CategoryLoadPanel({ state }: { state: "loading" | "error" }) {
+  const { t } = useLanguage();
+  return (
+    <div className="min-h-screen bg-[#0B0806] px-4 py-16 text-center text-[#F5E6D8]">
+      <div className="mx-auto max-w-xl rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/70 p-8">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
+          {state === "loading"
+            ? t({ en: "Loading Catalog", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ÙƒØ§ØªØ§Ù„ÙˆØ¬" })
+            : t({ en: "Catalog Unavailable", ar: "Ø§Ù„ÙƒØ§ØªØ§Ù„ÙˆØ¬ ØºÙŠØ± Ù…ØªØ§Ø­" })}
+        </p>
+        <h1 className="mt-3 font-serif text-3xl font-bold">
+          {state === "loading"
+            ? t({ en: "Reading this category.", ar: "Ù†Ù‚Ø±Ø£ Ù‡Ø°Ø§ Ø§Ù„ØªØµÙ†ÙŠÙ." })
+            : t({ en: "We could not load this category right now.", ar: "Ù„Ù… Ù†ØªÙ…ÙƒÙ† Ù…Ù† ØªØ­Ù…ÙŠÙ„ Ù‡Ø°Ø§ Ø§Ù„ØªØµÙ†ÙŠÙ Ø§Ù„Ø¢Ù†." })}
+        </h1>
+        {state === "error" ? (
+          <Link href="/products" className="premium-button mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
+            {t({ en: "Back to Products", ar: "Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function ProductCategoryPage() {
   const { slug } = useParams<{ slug?: string | string[] }>();
   const { language, dir, t } = useLanguage();
   const [search, setSearch] = useState("");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
   const [sortValue, setSortValue] = useState<SortValue>("featured");
+  const [catalogState, setCatalogState] = useState<CatalogLoadState>("loading");
+  const [categories, setCategories] = useState<PublicCatalogCategory[]>([]);
+  const [productsInCategory, setProductsInCategory] = useState<PublicCatalogProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<PublicCatalogProduct[]>([]);
   const categorySlug = getSlugParam(slug);
 
-  if (!isCategorySlug(categorySlug)) {
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!categorySlug) return;
+
+    Promise.all([
+      getPublicCategories(),
+      getPublicProductsByCategorySlug(categorySlug),
+      getPublicProducts(),
+    ])
+      .then(([nextCategories, nextProductsInCategory, nextAllProducts]) => {
+        if (!isMounted) return;
+        setCategories(nextCategories);
+        setProductsInCategory(nextProductsInCategory);
+        setAllProducts(nextAllProducts);
+        setCatalogState("ready");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setCategories([]);
+        setProductsInCategory([]);
+        setAllProducts([]);
+        setCatalogState("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [categorySlug]);
+
+  if (!categorySlug) {
     return <CategoryNotFound />;
   }
 
-  const category = catalogCategories.find((item) => item.slug === categorySlug);
-  const experience = categoryExperiences[categorySlug];
-  const productsInCategory = catalogProducts.filter((product) => product.category === categorySlug);
+  if (catalogState === "loading") {
+    return <CategoryLoadPanel state="loading" />;
+  }
+
+  if (catalogState === "error") {
+    return <CategoryLoadPanel state="error" />;
+  }
+
+  const category = categories.find((item) => item.slug === categorySlug);
+
+  if (!category) {
+    return <CategoryNotFound />;
+  }
+
+  const experience = getCategoryExperience(category);
 
   const query = search.trim().toLowerCase();
   const filteredProducts = sortProducts(
@@ -226,7 +317,7 @@ export default function ProductCategoryPage() {
     language,
   );
 
-  const relatedCategories = catalogCategories.filter((item) => item.slug !== categorySlug).slice(0, 5);
+  const relatedCategories = categories.filter((item) => item.slug !== categorySlug).slice(0, 5);
 
   return (
     <div className="arabic-body min-h-screen overflow-x-hidden bg-[#0B0806] text-[#F5E6D8]">
@@ -415,7 +506,7 @@ export default function ProductCategoryPage() {
                     {t(item.name)}
                   </h3>
                   <p className="mt-1 text-xs font-semibold text-[#D6A373]">
-                    {catalogProducts.filter((product) => product.category === item.slug).length} {t({ en: "products", ar: "منتج" })}
+                    {allProducts.filter((product) => product.category === item.slug).length} {t({ en: "products", ar: "منتج" })}
                   </p>
                 </div>
               </Link>

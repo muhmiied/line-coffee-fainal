@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
-import type { CatalogProduct } from "@/lib/mock-data/product-catalog";
+import type { PublicCatalogProduct } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 
 type PriceChip = {
@@ -12,7 +12,7 @@ type PriceChip = {
   price: number;
 };
 
-function getPriceChips(product: CatalogProduct): PriceChip[] {
+function getPriceChips(product: PublicCatalogProduct): PriceChip[] {
   return product.sizes.map((size) => ({ label: size.label, price: size.salePrice }));
 }
 
@@ -20,7 +20,7 @@ export function CatalogProductCard({
   product,
   className,
 }: {
-  product: CatalogProduct;
+  product: PublicCatalogProduct;
   className?: string;
 }) {
   const { language, dir, t } = useLanguage();
