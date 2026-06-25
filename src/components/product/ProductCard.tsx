@@ -23,10 +23,7 @@ function getPriceChips(p: VisualProduct | CatalogProduct): NormalizedSize[] {
   if (!isCatalogProduct(p)) {
     return p.sizes.map((s) => ({ label: s.label, price: s.price }));
   }
-  return [
-    ...p.sizes.map((s) => ({ label: s.label, price: s.salePrice })),
-    { label: "1 kg", price: p.salePricePerKg },
-  ];
+  return p.sizes.map((s) => ({ label: s.label, price: s.salePrice }));
 }
 
 // ─── Placeholder ──────────────────────────────────────────────────────────────

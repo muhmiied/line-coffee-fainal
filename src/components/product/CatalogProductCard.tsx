@@ -13,10 +13,7 @@ type PriceChip = {
 };
 
 function getPriceChips(product: CatalogProduct): PriceChip[] {
-  return [
-    ...product.sizes.map((size) => ({ label: size.label, price: size.salePrice })),
-    { label: "1kg", price: product.salePricePerKg },
-  ];
+  return product.sizes.map((size) => ({ label: size.label, price: size.salePrice }));
 }
 
 export function CatalogProductCard({

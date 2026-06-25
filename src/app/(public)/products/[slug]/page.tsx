@@ -42,10 +42,7 @@ function getSlugParam(value: string | string[] | undefined) {
 }
 
 function getPriceOptions(product: CatalogProduct): PriceOption[] {
-  return [
-    ...product.sizes.map((size) => ({ label: size.label, price: size.salePrice })),
-    { label: "1kg", price: product.salePricePerKg },
-  ];
+  return product.sizes.map((size) => ({ label: size.label, price: size.salePrice }));
 }
 
 function getRobustaShare(product: CatalogProduct) {
