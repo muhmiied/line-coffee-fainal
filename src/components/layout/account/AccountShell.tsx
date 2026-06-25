@@ -35,22 +35,30 @@ export function AccountShell({ children, title }: AccountShellProps) {
   const { dir, t } = useLanguage();
   const pathname   = usePathname();
   const router     = useRouter();
-  const { user, isLoggedIn, signOut } = useAuth();
+  const { user, isLoading, isLoggedIn, signOut } = useAuth();
 
   // Auth guard — useEffect runs client-side only, where localStorage is available
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoading && !isLoggedIn) {
       router.replace("/auth/login");
     }
-  }, [isLoggedIn, router]);
+  }, [isLoading, isLoggedIn, router]);
 
-  const handleSignOut = () => {
-    signOut();
-    router.push("/");
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/");
   };
 
-  const displayName  = user?.name  ?? "Mohamed Sayed";
-  const displayEmail = user?.email ?? "info@linecoffee.com";
+  const displayName = user?.name ?? user?.email ?? "Customer";
+  const displayEmail = user?.email ?? "";
+
+  if (isLoading || !isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-[#0B0806] pt-28 text-center text-sm text-[#B79B85]/70">
+        {t({ en: "Checking your session...", ar: "جار التحقق من الجلسة..." })}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -82,7 +90,9 @@ export function AccountShell({ children, title }: AccountShellProps) {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-[#F5E6D8]">{displayName}</p>
-                <p className="truncate text-xs text-[#B79B85]/60">{displayEmail}</p>
+                {displayEmail ? (
+                  <p className="truncate text-xs text-[#B79B85]/60">{displayEmail}</p>
+                ) : null}
               </div>
             </div>
 

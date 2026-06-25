@@ -20,18 +20,20 @@ function parseNameParts(fullName: string | undefined): { firstName: string; last
   };
 }
 
-export default function ProfilePage() {
-  const { t } = useLanguage();
-  const { user } = useAuth();
-
+function getInitialProfileForm(user: { name?: string; email?: string } | null | undefined): ProfileForm {
   const { firstName, lastName } = parseNameParts(user?.name);
+  return {
+    firstName,
+    lastName,
+    phone: "",
+    email: user?.email ?? "",
+  };
+}
 
-  const [form, setForm]   = useState<ProfileForm>({
-    firstName: firstName || "Mohamed",
-    lastName:  lastName  || "Sayed",
-    phone:     "+20 100 476 1171",
-    email:     user?.email ?? "info@linecoffee.com",
-  });
+function ProfileFormContent({ initialForm }: { initialForm: ProfileForm }) {
+  const { t } = useLanguage();
+
+  const [form, setForm] = useState<ProfileForm>(initialForm);
   const [saved, setSaved] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -132,4 +134,12 @@ export default function ProfilePage() {
       </form>
     </AccountShell>
   );
+}
+
+export default function ProfilePage() {
+  const { user } = useAuth();
+  const initialForm = getInitialProfileForm(user);
+  const formKey = `${user?.id ?? "guest"}:${user?.name ?? ""}:${user?.email ?? ""}`;
+
+  return <ProfileFormContent key={formKey} initialForm={initialForm} />;
 }

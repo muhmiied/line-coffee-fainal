@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { getAdminDisplayName } from "@/lib/auth/admin";
+import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 import { ALERTS_DATA, LATEST_ORDERS } from "@/lib/mock-data/admin/dashboard-mock";
 
 function getGreeting(): string {
@@ -12,8 +13,9 @@ function getGreeting(): string {
 }
 
 export default function WelcomeHero() {
-  const { user } = useAuth();
-  const firstName = user?.name?.split(" ")[0] ?? "Mohamed";
+  const { admin } = useCurrentAdmin();
+  const adminName = admin ? getAdminDisplayName(admin) : "there";
+  const firstName = adminName.split(" ")[0] || adminName;
 
   const newOrders      = LATEST_ORDERS.filter((o) => o.status === "New").length;
   const lowStockCount  = ALERTS_DATA.find((a) => a.type === "low-stock")?.count ?? 0;

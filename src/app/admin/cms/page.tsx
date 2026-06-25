@@ -26,6 +26,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { getAdminDisplayName } from "@/lib/auth/admin";
+import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 import {
   CMS_ACTIVITY,
   CMS_ARTICLES,
@@ -136,7 +138,7 @@ function bumpVersion(version: string) {
   return `${major}.${nextMinor}`;
 }
 
-function createEmptyArticle(): CmsArticle {
+function createEmptyArticle(authorName = ""): CmsArticle {
   return {
     id: makeId("ART"),
     slug: "",
@@ -144,7 +146,7 @@ function createEmptyArticle(): CmsArticle {
     excerpt: { en: "", ar: "" },
     content: { en: "", ar: "" },
     category: { en: "Guide", ar: "دليل" },
-    author: "Mohamed Sayed",
+    author: authorName,
     status: "Draft",
     featured: false,
     views: 0,
@@ -529,18 +531,20 @@ function ReviewPreviewCard({ review }: { review: CmsReview }) {
 
 function ArticleDrawer({
   article,
+  authorName,
   onClose,
   onSave,
   onDuplicate,
   onDelete,
 }: {
   article: CmsArticle | null;
+  authorName: string;
   onClose: () => void;
   onSave: (article: CmsArticle, activity: string, tone?: ActivityTone) => void;
   onDuplicate: (article: CmsArticle) => void;
   onDelete: (article: CmsArticle) => void;
 }) {
-  const [form, setForm] = useState<CmsArticle>(() => article ?? createEmptyArticle());
+  const [form, setForm] = useState<CmsArticle>(() => article ?? createEmptyArticle(authorName));
   const [tagsText, setTagsText] = useState(() => (article?.tags ?? []).map((tag) => tag.en).join(", "));
   const isNew = !article;
 
@@ -1318,6 +1322,9 @@ function ContactMessagesTab({
 }
 
 export default function CmsPage() {
+  const { admin } = useCurrentAdmin();
+  const currentAdminName = admin ? getAdminDisplayName(admin) : "";
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("blog");
   const [articles, setArticles] = useState<CmsArticle[]>(CMS_ARTICLES);
   const [reviews, setReviews] = useState<CmsReview[]>(CMS_REVIEWS);
@@ -1350,7 +1357,7 @@ export default function CmsPage() {
     setActivities((current) => [
       {
         id: makeId("ACT"),
-        actor: "Mohamed",
+        actor: currentAdminName || "Current admin",
         action,
         target,
         time: "Just now",
@@ -1438,6 +1445,14 @@ export default function CmsPage() {
 
   const drawerArticle = articleDrawer === "new" ? null : articleDrawer;
   const drawerReview = reviewDrawer === "new" ? null : reviewDrawer;
+
+  if (!admin) {
+    return (
+      <div className="admin-surface p-6 text-sm text-[#b79b85]">
+        Loading admin session...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -1558,6 +1573,7 @@ export default function CmsPage() {
       {articleDrawer && (
         <ArticleDrawer
           article={drawerArticle}
+          authorName={currentAdminName}
           onClose={() => setArticleDrawer(null)}
           onSave={saveArticle}
           onDuplicate={duplicateArticle}

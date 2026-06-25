@@ -14,6 +14,8 @@ import {
   type FinishedProduct, type EspressoBean, type PackagingItem, type Supplier,
   type StockMovement, type MovementType, type ItemType, type StockStatus,
 } from "@/lib/mock-data/admin/inventory-mock";
+import { getAdminDisplayName } from "@/lib/auth/admin";
+import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1249,6 +1251,9 @@ function MovementsTab({ movements, typeFilter, onTypeFilter, itemFilter, onClear
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
+  const { admin } = useCurrentAdmin();
+  const currentAdminName = admin ? getAdminDisplayName(admin) : "";
+
   const [activeTab,       setActiveTab]       = useState<Tab>("Finished Products");
   const [catFilter,       setCatFilter]       = useState("All");
   const [movTypeFilter,   setMovTypeFilter]   = useState<MovementType | "all">("all");
@@ -1357,7 +1362,7 @@ export default function InventoryPage() {
         change: parts.join(" / "),
         before: `250g:${cur.stock250g} / 500g:${cur.stock500g} / 1kg:${cur.stock1kg}`,
         after:  `250g:${next.stock250g} / 500g:${next.stock500g} / 1kg:${next.stock1kg}`,
-        supplierId: supId, notes, adminName: "Admin",
+        supplierId: supId, notes, adminName: currentAdminName,
       }, ...prev]);
     } else if (target.kind === "bean") {
       const b    = target.bean;
@@ -1368,7 +1373,7 @@ export default function InventoryPage() {
       setMovements(prev => [{
         id: `mv-${Date.now()}`, date, type: "restock", itemType: "bean", itemSlug: b.slug, itemName: b.nameEn,
         change: `+${kgQty} KG`, before: `${cur} KG`, after: `${next} KG`,
-        supplierId: supId, notes: notes || (sup ? sup.name : ""), adminName: "Admin",
+        supplierId: supId, notes: notes || (sup ? sup.name : ""), adminName: currentAdminName,
       }, ...prev]);
     } else {
       const item  = target.item;
@@ -1379,7 +1384,7 @@ export default function InventoryPage() {
       setMovements(prev => [{
         id: `mv-${Date.now()}`, date, type: "restock", itemType: "packaging", itemSlug: item.slug, itemName: item.name,
         change: `+${uqty} units`, before: `${cur} units`, after: `${next} units`,
-        supplierId: supId, notes, adminName: "Admin",
+        supplierId: supId, notes, adminName: currentAdminName,
       }, ...prev]);
     }
     setRestockTarget(null);
@@ -1417,7 +1422,7 @@ export default function InventoryPage() {
         orderRef: orderRef || undefined,
         supplierId: adjSupId || (sup ? adjSupId : undefined),
         reason: reason !== "Customer Return" && reason !== "Supplier Return" ? reason : undefined,
-        notes, adminName: "Admin",
+        notes, adminName: currentAdminName,
       }, ...prev]);
     } else if (target.kind === "bean") {
       const b   = target.bean;
@@ -1430,7 +1435,7 @@ export default function InventoryPage() {
         orderRef: orderRef || undefined,
         supplierId: adjSupId || undefined,
         reason: reason !== "Customer Return" && reason !== "Supplier Return" ? reason : undefined,
-        notes, adminName: "Admin",
+        notes, adminName: currentAdminName,
       }, ...prev]);
     } else {
       const item = target.item;
@@ -1443,7 +1448,7 @@ export default function InventoryPage() {
         orderRef: orderRef || undefined,
         supplierId: adjSupId || undefined,
         reason: reason !== "Customer Return" && reason !== "Supplier Return" ? reason : undefined,
-        notes, adminName: "Admin",
+        notes, adminName: currentAdminName,
       }, ...prev]);
     }
     setAdjustTarget(null);
@@ -1477,6 +1482,14 @@ export default function InventoryPage() {
   }
 
   const totalAlert = kpis.lowStockCount + kpis.outOfStockCount;
+
+  if (!admin) {
+    return (
+      <div className="admin-surface p-6 text-sm text-[#b79b85]">
+        Loading admin session...
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 flex flex-col gap-6" style={{ minHeight: "100vh", background: "var(--coffee-black)" }}>

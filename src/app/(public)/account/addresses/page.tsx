@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { AccountShell } from "@/components/layout/account/AccountShell";
 import { type MockAddress } from "@/lib/mock-data/account-data";
 import { cn } from "@/lib/utils/cn";
 
 export default function AddressesPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
 
   const [addresses, setAddresses] = useState<MockAddress[]>([]);
   const [showForm, setShowForm]   = useState(false);
@@ -28,8 +30,8 @@ export default function AddressesPage() {
     const next: MockAddress = {
       id: `addr-${Date.now()}`,
       label:     { en: newLabel || "New Address", ar: newLabel || "عنوان جديد" },
-      name:      "Mohamed Sayed",
-      phone:     "+20 100 476 1171",
+      name:      user?.name ?? user?.email ?? "Customer",
+      phone:     "",
       street:    { en: newStreet, ar: newStreet },
       city:      { en: newCity,   ar: newCity },
       isDefault: false,
