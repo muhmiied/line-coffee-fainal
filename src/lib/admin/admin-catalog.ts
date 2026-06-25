@@ -694,3 +694,106 @@ export async function getAdminProductBySlug(slug: string) {
     throw asCatalogError(error);
   }
 }
+
+// ─── WRITE LAYER — basic admin product updates ───────────────────────────────
+// Scope: update existing products + existing variants only. No create/delete,
+// no media/storage, no inventory/stock writes (see ProductDrawer for the disabled
+// Media/Inventory tabs). RLS (products_admin_all / product_variants_admin_all,
+// both `for all ... is_admin()`) already gates these writes to admins; the matching
+// table-level UPDATE grant is added in the admin_catalog_write_grants migration.
+// updated_at is set automatically by the trg_*_updated_at triggers — never set here.
+
+export class AdminCatalogWriteError extends Error {
+  readonly cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "AdminCatalogWriteError";
+    this.cause = cause;
+  }
+}
+
+function writeError(table: string, error: { message?: string } | null) {
+  const detail = error?.message ? ` ${error.message}` : "";
+  return new AdminCatalogWriteError(`Unable to update admin ${table}.${detail}`.trim(), error);
+}
+
+export interface AdminProductUpdateInput {
+  name?: LocalizedValue;
+  /** Maps to notes_en/notes_ar — the description shown/edited in the admin drawer + public catalog. */
+  note?: LocalizedValue;
+  slug?: string;
+  salePricePerKg?: number;
+  showOnWebsite?: boolean;
+  visibility?: AdminProductVisibility;
+  featured?: boolean;
+  bestSeller?: boolean;
+  metaTitle?: LocalizedValue;
+  metaDescription?: LocalizedValue;
+}
+
+export interface AdminVariantPriceInput {
+  size: PackageSize;
+  price: number;
+}
+
+/** Update the basic, in-scope columns of a single product row. */
+export async function updateAdminProduct(productId: string, input: AdminProductUpdateInput) {
+  if (!productId) throw new AdminCatalogWriteError("Missing product id for update.");
+
+  const patch: Record<string, unknown> = {};
+
+  if (input.name) {
+    patch.name_en = input.name.en.trim();
+    patch.name_ar = input.name.ar.trim();
+  }
+  if (input.note) {
+    patch.notes_en = input.note.en.trim();
+    patch.notes_ar = input.note.ar.trim();
+  }
+  if (input.slug !== undefined) patch.slug = input.slug.trim().toLowerCase();
+  if (input.salePricePerKg !== undefined) {
+    if (!Number.isFinite(input.salePricePerKg) || input.salePricePerKg < 0) {
+      throw new AdminCatalogWriteError("Per-kg sale price must be a non-negative number.");
+    }
+    patch.sale_price_per_kg = input.salePricePerKg;
+  }
+  if (input.showOnWebsite !== undefined) patch.show_on_website = input.showOnWebsite;
+  if (input.visibility !== undefined) patch.visibility = input.visibility;
+  if (input.featured !== undefined) patch.featured = input.featured;
+  if (input.bestSeller !== undefined) patch.best_seller = input.bestSeller;
+  if (input.metaTitle) {
+    patch.seo_title_en = input.metaTitle.en.trim();
+    patch.seo_title_ar = input.metaTitle.ar.trim();
+  }
+  if (input.metaDescription) {
+    patch.seo_description_en = input.metaDescription.en.trim();
+    patch.seo_description_ar = input.metaDescription.ar.trim();
+  }
+
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase.from("products").update(patch).eq("id", productId);
+  if (error) throw writeError("products", error);
+}
+
+/** Update the price of existing variants (250g / 500g / 1kg) for a product. */
+export async function updateAdminProductVariantPrices(
+  productId: string,
+  prices: AdminVariantPriceInput[],
+) {
+  if (!productId) throw new AdminCatalogWriteError("Missing product id for variant update.");
+
+  for (const { size, price } of prices) {
+    if (!isPackageSize(size)) continue;
+    if (!Number.isFinite(price) || price < 0) {
+      throw new AdminCatalogWriteError(`Price for ${size} must be a non-negative number.`);
+    }
+    const { error } = await supabase
+      .from("product_variants")
+      .update({ price })
+      .eq("product_id", productId)
+      .eq("size", size);
+    if (error) throw writeError("product_variants", error);
+  }
+}

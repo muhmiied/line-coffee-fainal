@@ -35,6 +35,7 @@ export default function WelcomeHero() {
           src="/assets/story/roastery.png"
           alt=""
           fill
+          priority
           sizes="(max-width: 640px) 100vw, calc(100vw - 300px)"
           className="object-cover object-center"
           style={{ opacity: 0.45 }}

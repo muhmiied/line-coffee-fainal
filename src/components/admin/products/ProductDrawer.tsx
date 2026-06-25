@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { X, Upload, ImageIcon } from "lucide-react";
-import type { AdminProduct, AdminProductMeta, ProductStatus } from "@/lib/admin/admin-catalog";
+import { X, Upload, ImageIcon, Loader2, AlertTriangle } from "lucide-react";
+import {
+  updateAdminProduct,
+  updateAdminProductVariantPrices,
+  type AdminProduct,
+  type AdminVariantPriceInput,
+} from "@/lib/admin/admin-catalog";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -18,12 +23,15 @@ const TABS: { key: DrawerTab; label: string }[] = [
   { key: "seo",        label: "SEO"        },
 ];
 
+const MEDIA_NOTICE = "Media upload will be implemented in the Media/Storage layer.";
+const INVENTORY_NOTICE = "Inventory will be handled by the inventory movement layer.";
+
 interface ProductDrawerProps {
   product: AdminProduct | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (slug: string, meta: Partial<AdminProductMeta>) => void;
-  readOnly?: boolean;
+  /** Called after a successful Supabase save. Passes the new slug when it changed so the parent can re-target the drawer. */
+  onSaved: (newSlug?: string) => void | Promise<void>;
 }
 
 // ── Form state shape ──────────────────────────────────────────────────────────
@@ -31,6 +39,9 @@ interface ProductDrawerProps {
 interface DrawerForm {
   activeTab: DrawerTab;
   saved: boolean;
+  dirty: boolean;
+  saving: boolean;
+  errorMsg: string | null;
   nameEn: string;
   nameAr: string;
   descEn: string;
@@ -51,7 +62,7 @@ interface DrawerForm {
 }
 
 const EMPTY_FORM: DrawerForm = {
-  activeTab: "general", saved: false,
+  activeTab: "general", saved: false, dirty: false, saving: false, errorMsg: null,
   nameEn: "", nameAr: "", descEn: "", descAr: "",
   price250: 0, price500: 0, price1kg: 0,
   stockQty: 0, threshold: 5,
@@ -65,7 +76,7 @@ function initForm(product: AdminProduct): DrawerForm {
   const noteEn = product.note?.en ?? "";
   const noteAr = product.note?.ar ?? "";
   return {
-    activeTab: "general", saved: false,
+    activeTab: "general", saved: false, dirty: false, saving: false, errorMsg: null,
     nameEn: product.name.en,
     nameAr: product.name.ar,
     descEn: noteEn,
@@ -87,12 +98,6 @@ function initForm(product: AdminProduct): DrawerForm {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function computeStatus(stockQty: number, threshold: number): ProductStatus {
-  if (stockQty === 0) return "Out of Stock";
-  if (stockQty <= threshold) return "Low Stock";
-  return "In Stock";
-}
 
 function marginPct(sale: number, cost: number): number {
   return Math.round(((sale - cost) / sale) * 100);
@@ -123,51 +128,68 @@ const NUM_INPUT: React.CSSProperties = {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function ProductDrawer({ product, isOpen, onClose, onSave, readOnly = false }: ProductDrawerProps) {
+export default function ProductDrawer({ product, isOpen, onClose, onSaved }: ProductDrawerProps) {
   const [form, setForm] = useState<DrawerForm>(EMPTY_FORM);
 
+  // Editing a content field marks the form dirty (enables Save). Tab/flag changes don't.
   const set = <K extends keyof DrawerForm>(key: K, val: DrawerForm[K]) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
+    setForm((prev) => ({
+      ...prev,
+      [key]: val,
+      dirty: key === "activeTab" ? prev.dirty : true,
+      errorMsg: key === "activeTab" ? prev.errorMsg : null,
+    }));
 
-  // Reset form to product values when product changes (single setState call)
+  // Reset form to product values each time the drawer opens for a product.
   useEffect(() => {
-    if (!product) return;
+    if (!isOpen || !product) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(initForm(product));
-  }, [product?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [product?.slug, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSave = () => {
-    if (!product) return;
-    if (readOnly) return;
-    const status = computeStatus(form.stockQty, form.threshold);
-    onSave(product.slug, {
-      stockQty: form.stockQty,
-      lowStockThreshold: form.threshold,
-      status,
-      featured: form.featured,
-      hidden: form.hidden,
-      bestSeller: form.bestSeller,
-      metaTitle: { en: form.metaTitleEn, ar: form.metaTitleAr },
-      metaDescription: { en: form.metaDescEn, ar: form.metaDescAr },
-    });
-    setForm((prev) => ({ ...prev, saved: true }));
-    setTimeout(() => setForm((prev) => ({ ...prev, saved: false })), 2200);
+  const handleSave = async () => {
+    if (!product || form.saving) return;
+
+    setForm((prev) => ({ ...prev, saving: true, errorMsg: null, saved: false }));
+    try {
+      const nextSlug = form.slugVal.trim().toLowerCase();
+      // Only update variant prices for sizes the product actually has.
+      // 1kg variant tracks the per-kg sale price (1kg pack == per-kg price).
+      const variantPrices: AdminVariantPriceInput[] = product.sizes.map((size) => ({
+        size: size.label,
+        price:
+          size.label === "250g" ? form.price250 :
+          size.label === "500g" ? form.price500 : form.price1kg,
+      }));
+
+      await updateAdminProduct(product.id, {
+        name: { en: form.nameEn, ar: form.nameAr },
+        note: { en: form.descEn, ar: form.descAr },
+        slug: nextSlug,
+        salePricePerKg: form.price1kg,
+        showOnWebsite: !form.hidden,
+        visibility: form.hidden ? "hidden" : "public",
+        featured: form.featured,
+        bestSeller: form.bestSeller,
+        metaTitle: { en: form.metaTitleEn, ar: form.metaTitleAr },
+        metaDescription: { en: form.metaDescEn, ar: form.metaDescAr },
+      });
+
+      if (variantPrices.length > 0) {
+        await updateAdminProductVariantPrices(product.id, variantPrices);
+      }
+
+      const slugChanged = nextSlug !== product.slug;
+      setForm((prev) => ({ ...prev, saving: false, saved: true, dirty: false }));
+      await onSaved(slugChanged ? nextSlug : undefined);
+      setTimeout(() => setForm((prev) => ({ ...prev, saved: false })), 2200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Save failed. Please try again.";
+      setForm((prev) => ({ ...prev, saving: false, errorMsg: message }));
+    }
   };
 
-  const computedStatus = computeStatus(form.stockQty, form.threshold);
   const margin = product ? marginPct(product.salePricePerKg, product.purchaseCostPerKg) : 0;
-
-  const statusColor =
-    computedStatus === "Out of Stock" ? "#ef4444" :
-    computedStatus === "Low Stock"    ? "#fbbf24" : "#4ade80";
-
-  const statusBg =
-    computedStatus === "Out of Stock" ? "rgba(239,68,68,0.07)" :
-    computedStatus === "Low Stock"    ? "rgba(251,191,36,0.07)" : "rgba(74,222,128,0.07)";
-
-  const statusBorder =
-    computedStatus === "Out of Stock" ? "rgba(239,68,68,0.2)" :
-    computedStatus === "Low Stock"    ? "rgba(251,191,36,0.2)" : "rgba(74,222,128,0.2)";
 
   return (
     <>
@@ -215,7 +237,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave, readOn
                 borderRadius: 8, overflow: "hidden", flexShrink: 0,
                 background: "rgba(182,136,94,0.07)",
               }}>
-                <Image src={product.image} alt={product.name.en} fill className="object-contain p-1" />
+                <Image src={product.image} alt={product.name.en} fill sizes="44px" className="object-contain p-1" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p className="truncate" style={{
@@ -301,27 +323,35 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave, readOn
               {/* MEDIA */}
               {form.activeTab === "media" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                  <div style={{
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                    padding: "10px 12px", borderRadius: 10,
+                    background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.18)",
+                  }}>
+                    <AlertTriangle size={14} style={{ color: "#fbbf24", marginTop: 1, flexShrink: 0 }} />
+                    <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{MEDIA_NOTICE}</p>
+                  </div>
                   <div>
                     <FL>Main Image</FL>
                     <div style={{
                       position: "relative", width: 200, height: 200, borderRadius: 12, overflow: "hidden",
                       background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.14)",
                     }}>
-                      <Image src={product.image} alt={product.name.en} fill className="object-contain p-6" />
+                      <Image src={product.image} alt={product.name.en} fill sizes="200px" className="object-contain p-6" />
                     </div>
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <button type="button" style={{
+                      <button type="button" disabled title={MEDIA_NOTICE} style={{
                         display: "flex", alignItems: "center", gap: 5,
                         padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500,
-                        color: "var(--gold)", border: "1px solid rgba(182,136,94,0.25)",
-                        background: "rgba(182,136,94,0.08)",
+                        color: "rgba(245,232,209,0.30)", border: "1px solid rgba(182,136,94,0.12)",
+                        background: "rgba(182,136,94,0.04)", cursor: "not-allowed",
                       }}>
                         <Upload size={12} /> Upload New
                       </button>
-                      <button type="button" style={{
+                      <button type="button" disabled title={MEDIA_NOTICE} style={{
                         padding: "6px 12px", borderRadius: 8, fontSize: 12,
-                        color: "var(--cream-dim)", opacity: 0.5,
-                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "rgba(245,232,209,0.30)", opacity: 0.6,
+                        border: "1px solid rgba(255,255,255,0.06)", cursor: "not-allowed",
                       }}>
                         Remove
                       </button>
@@ -335,10 +365,11 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave, readOn
                     }}>
                       <ImageIcon size={22} style={{ color: "var(--gold)", opacity: 0.25, margin: "0 auto 8px" }} />
                       <p style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.35 }}>No gallery images yet</p>
-                      <button type="button" style={{
+                      <button type="button" disabled title={MEDIA_NOTICE} style={{
                         marginTop: 10, padding: "5px 14px", borderRadius: 8,
-                        fontSize: 12, background: "rgba(182,136,94,0.1)",
-                        color: "var(--gold)", border: "1px solid rgba(182,136,94,0.2)",
+                        fontSize: 12, background: "rgba(182,136,94,0.05)",
+                        color: "rgba(245,232,209,0.30)", border: "1px solid rgba(182,136,94,0.12)",
+                        cursor: "not-allowed",
                       }}>
                         Upload Images
                       </button>
@@ -378,26 +409,22 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave, readOn
                 </div>
               )}
 
-              {/* INVENTORY */}
+              {/* INVENTORY (disabled — handled by the inventory movement layer) */}
               {form.activeTab === "inventory" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                    padding: "10px 12px", borderRadius: 10,
+                    background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.18)",
+                  }}>
+                    <AlertTriangle size={14} style={{ color: "#fbbf24", marginTop: 1, flexShrink: 0 }} />
+                    <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{INVENTORY_NOTICE}</p>
+                  </div>
                   <div><FL>Current Stock (bags / units)</FL>
-                    <input type="number" value={form.stockQty} onChange={(e) => set("stockQty", Number(e.target.value))} style={NUM_INPUT} />
+                    <input type="number" value={form.stockQty} disabled title={INVENTORY_NOTICE} readOnly style={{ ...NUM_INPUT, opacity: 0.4, cursor: "not-allowed" }} />
                   </div>
                   <div><FL>Low Stock Threshold</FL>
-                    <input type="number" value={form.threshold} onChange={(e) => set("threshold", Number(e.target.value))} style={NUM_INPUT} />
-                  </div>
-                  <div style={{
-                    padding: "12px 14px", borderRadius: 10,
-                    background: statusBg, border: `1px solid ${statusBorder}`,
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55 }}>Computed status</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: statusColor }}>{computedStatus}</span>
-                    </div>
-                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.35, marginTop: 5 }}>
-                      Updates automatically when you change stock or threshold.
-                    </p>
+                    <input type="number" value={form.threshold} disabled title={INVENTORY_NOTICE} readOnly style={{ ...NUM_INPUT, opacity: 0.4, cursor: "not-allowed" }} />
                   </div>
                 </div>
               )}
@@ -479,23 +506,30 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave, readOn
               borderTop: "1px solid rgba(182,136,94,0.10)",
               display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
             }}>
-              {readOnly ? (
-                <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55, marginRight: "auto" }}>
-                  Read-only until write layer is implemented.
+              {form.errorMsg ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "#fca5a5", marginRight: "auto", lineHeight: 1.4 }}>
+                  <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                  <span>{form.errorMsg}</span>
+                </span>
+              ) : form.saving ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--cream-dim)", marginRight: "auto" }}>
+                  <Loader2 size={13} className="animate-spin" /> Saving…
                 </span>
               ) : form.saved ? (
-                <span style={{ fontSize: 12, color: "#4ade80", marginRight: "auto" }}>✓ Saved</span>
+                <span style={{ fontSize: 12, color: "#4ade80", marginRight: "auto" }}>✓ Saved to Supabase</span>
               ) : (
                 <span style={{ flex: 1 }} />
               )}
               <button
                 type="button"
                 onClick={onClose}
+                disabled={form.saving}
                 className="hover:opacity-100 transition-opacity"
                 style={{
                   padding: "9px 16px", borderRadius: 9, fontSize: 12.5,
-                  color: "var(--cream-dim)", opacity: 0.55,
+                  color: "var(--cream-dim)", opacity: form.saving ? 0.3 : 0.55,
                   border: "1px solid rgba(182,136,94,0.12)",
+                  cursor: form.saving ? "not-allowed" : "pointer",
                 }}
               >
                 Cancel
@@ -503,17 +537,17 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave, readOn
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={readOnly}
-                title={readOnly ? "Read-only until write layer is implemented" : undefined}
+                disabled={!form.dirty || form.saving}
+                title={!form.dirty ? "Edit a field to enable saving" : undefined}
                 style={{
                   padding: "9px 22px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                  background: readOnly ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
-                  color: readOnly ? "rgba(245,232,209,0.30)" : "var(--gold)",
+                  background: !form.dirty || form.saving ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
+                  color: !form.dirty || form.saving ? "rgba(245,232,209,0.30)" : "var(--gold)",
                   border: "1px solid rgba(182,136,94,0.30)",
-                  cursor: readOnly ? "not-allowed" : "pointer",
+                  cursor: !form.dirty || form.saving ? "not-allowed" : "pointer",
                 }}
               >
-                Save Changes
+                {form.saving ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </>

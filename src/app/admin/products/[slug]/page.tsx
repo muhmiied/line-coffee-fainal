@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, Check, Edit2, Package, X } from "lucide-react";
-import { getAdminProductBySlug, type AdminProduct } from "@/lib/admin/admin-catalog";
-
-const READ_ONLY_NOTICE = "Read-only until the admin catalog write layer is implemented.";
+import { AlertTriangle, ArrowLeft, Check, Edit2, Loader2, Package, X } from "lucide-react";
+import {
+  getAdminProductBySlug,
+  updateAdminProduct,
+  updateAdminProductVariantPrices,
+  type AdminProduct,
+  type AdminVariantPriceInput,
+} from "@/lib/admin/admin-catalog";
 
 function margin(salePricePerKg: number, costPerKg: number) {
   if (salePricePerKg <= 0) return 0;
@@ -33,40 +37,41 @@ export default function ProductDetailPage() {
 
   const [editing, setEditing]   = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [product, setProduct]   = useState<AdminProduct | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [readError, setReadError] = useState<string | null>(null);
-  const [readOnlyNotice, setReadOnlyNotice] = useState<string | null>(null);
   const [prices, setPrices]     = useState<Record<string, number>>({});
 
-  useEffect(() => {
+  // Re-reads the product from Supabase without toggling the full-page loader —
+  // used after a price save so the view refreshes in place.
+  const loadProduct = useCallback(async () => {
     if (!slug) return;
-    let mounted = true;
-
-    async function loadProduct() {
-      setIsLoading(true);
-      setReadError(null);
-      try {
-        const nextProduct = await getAdminProductBySlug(slug);
-        if (!mounted) return;
-        setProduct(nextProduct);
-        setPrices(Object.fromEntries((nextProduct?.sizes ?? []).map((s) => [s.label, s.salePrice])));
-      } catch (error) {
-        if (!mounted) return;
-        const message =
-          error instanceof Error ? error.message : "Unable to read admin product.";
-        setReadError(message);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
+    setReadError(null);
+    try {
+      const nextProduct = await getAdminProductBySlug(slug);
+      setProduct(nextProduct);
+      setPrices(Object.fromEntries((nextProduct?.sizes ?? []).map((s) => [s.label, s.salePrice])));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to read admin product.";
+      setReadError(message);
     }
+  }, [slug]);
 
-    void loadProduct();
-
+  useEffect(() => {
+    let mounted = true;
+    async function initialLoad() {
+      setIsLoading(true);
+      await loadProduct();
+      if (mounted) setIsLoading(false);
+    }
+    void initialLoad();
     return () => {
       mounted = false;
     };
-  }, [slug]);
+  }, [loadProduct]);
 
   if (isLoading) {
     return (
@@ -112,10 +117,38 @@ export default function ProductDetailPage() {
 
   const mgn = margin(product.salePricePerKg, product.purchaseCostPerKg);
 
-  const handleSave = () => {
-    setReadOnlyNotice(READ_ONLY_NOTICE);
-    setEditing(false);
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
     setSaved(false);
+    try {
+      const variantPrices: AdminVariantPriceInput[] = product.sizes.map((s) => ({
+        size: s.label,
+        price: prices[s.label] ?? s.salePrice,
+      }));
+      const oneKg = prices["1kg"];
+      await updateAdminProduct(product.id, {
+        salePricePerKg: typeof oneKg === "number" ? oneKg : product.salePricePerKg,
+      });
+      if (variantPrices.length > 0) {
+        await updateAdminProductVariantPrices(product.id, variantPrices);
+      }
+      await loadProduct();
+      setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2200);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Save failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setSaveError(null);
+    setPrices(Object.fromEntries(product.sizes.map((s) => [s.label, s.salePrice])));
   };
 
   return (
@@ -143,7 +176,7 @@ export default function ProductDetailPage() {
       {/* Product header card */}
       <div className="admin-surface flex flex-col sm:flex-row gap-5 p-5">
         <div className="relative w-full sm:w-32 h-32 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(182,136,94,0.06)" }}>
-          <Image src={product.image} alt={product.name.en} fill className="object-cover" />
+          <Image src={product.image} alt={product.name.en} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover" />
         </div>
         <div className="flex-1 min-w-0 space-y-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -165,26 +198,28 @@ export default function ProductDetailPage() {
                 <>
                   <button
                     type="button"
-                    onClick={() => setEditing(false)}
+                    onClick={cancelEditing}
+                    disabled={saving}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
-                    style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+                    style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.4 : 1 }}
                   >
                     <X size={13} /> Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleSave}
+                    disabled={saving}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-semibold transition-colors"
-                    style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.2)" }}
+                    style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.2)", cursor: saving ? "not-allowed" : "pointer" }}
                   >
-                    <Check size={13} /> Save
+                    {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    {saving ? "Saving…" : "Save"}
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setReadOnlyNotice(READ_ONLY_NOTICE)}
-                  title={READ_ONLY_NOTICE}
+                  onClick={() => { setEditing(true); setSaveError(null); }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
                   style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.15)" }}
                 >
@@ -211,9 +246,9 @@ export default function ProductDetailPage() {
               {product.slug}
             </span>
           </div>
-          {readOnlyNotice && (
-            <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
-              {readOnlyNotice}
+          {saveError && (
+            <p className="text-[12px] flex items-center gap-1.5" style={{ color: "#fca5a5" }}>
+              <AlertTriangle size={12} /> {saveError}
             </p>
           )}
         </div>

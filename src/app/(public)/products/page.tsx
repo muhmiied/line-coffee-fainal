@@ -64,6 +64,7 @@ function ProductsHero() {
         alt="Line Coffee Products"
         fill
         priority
+        sizes="100vw"
         className="object-cover object-center brightness-[0.58] contrast-[1.14] saturate-[1.08]"
       />
       <div className="absolute inset-0 bg-black/60" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -31,7 +31,6 @@ import {
   type AdminCategoryStatus,
   type AdminProduct,
   type AdminProductCategory,
-  type AdminProductMeta,
   type ProductStatus,
 } from "@/lib/admin/admin-catalog";
 import ProductDrawer from "@/components/admin/products/ProductDrawer";
@@ -954,36 +953,36 @@ export default function ProductsPage() {
   const [categoryNotice,   setCategoryNotice]   = useState<string | null>(null);
   const router = useRouter();
 
+  // Re-reads products + categories from Supabase without toggling the full-page
+  // loader — used after a drawer save so the drawer stays mounted (no flash).
+  const reloadCatalog = useCallback(async () => {
+    setCatalogError(null);
+    try {
+      const [nextProducts, nextCategories] = await Promise.all([
+        getAdminProductsWithVariants(),
+        getAdminCategories(),
+      ]);
+      setProducts(nextProducts);
+      setCategories([...nextCategories].sort((a, b) => a.sortOrder - b.sortOrder || a.nameEn.localeCompare(b.nameEn)));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to read admin catalog data.";
+      setCatalogError(message);
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-
-    async function loadCatalog() {
+    async function initialLoad() {
       setIsLoading(true);
-      setCatalogError(null);
-      try {
-        const [nextProducts, nextCategories] = await Promise.all([
-          getAdminProductsWithVariants(),
-          getAdminCategories(),
-        ]);
-        if (!mounted) return;
-        setProducts(nextProducts);
-        setCategories([...nextCategories].sort((a, b) => a.sortOrder - b.sortOrder || a.nameEn.localeCompare(b.nameEn)));
-      } catch (error) {
-        if (!mounted) return;
-        const message =
-          error instanceof Error ? error.message : "Unable to read admin catalog data.";
-        setCatalogError(message);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
+      await reloadCatalog();
+      if (mounted) setIsLoading(false);
     }
-
-    void loadCatalog();
-
+    void initialLoad();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reloadCatalog]);
 
   const allProducts = products;
 
@@ -1047,10 +1046,10 @@ export default function ProductsPage() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const handleSave = (slug: string, meta: Partial<AdminProductMeta>) => {
-    void slug;
-    void meta;
-    setCategoryNotice(READ_ONLY_NOTICE);
+  // Refresh from Supabase after a drawer save. Re-target the drawer if the slug changed.
+  const handleProductSaved = async (newSlug?: string) => {
+    await reloadCatalog();
+    if (newSlug) setDrawerSlug(newSlug);
   };
 
   const handleSaveCategory = (next: AdminProductCategory) => {
@@ -1388,8 +1387,7 @@ export default function ProductsPage() {
         product={drawerProduct}
         isOpen={!!drawerSlug}
         onClose={() => setDrawerSlug(null)}
-        onSave={handleSave}
-        readOnly
+        onSaved={handleProductSaved}
       />
 
       {/* Category drawer */}

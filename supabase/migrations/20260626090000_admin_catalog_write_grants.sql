@@ -1,0 +1,53 @@
+-- =====================================================================
+-- Migration:  20260626090000_admin_catalog_write_grants
+-- Project:    Line Coffee V3
+-- Phase:      Admin Product Basic Write Layer
+-- Runs after: 20260625203528_admin_catalog_read_grants
+-- =====================================================================
+--
+-- PURPOSE
+--   Let an authenticated admin browser session UPDATE the product catalog base
+--   tables it already reads, so the Admin Product drawer/detail can save basic
+--   product fields (name, description, variant prices, per-kg sale price, website
+--   visibility, featured / best seller, slug, SEO meta) directly to Supabase.
+--
+-- WHY ONLY A GRANT (no new RLS policy)
+--   GRANT (table privilege) and RLS (row policy) are two separate layers; a role
+--   must pass BOTH. Migration 1 already created the row policies:
+--       products_admin_all          for all using (is_admin()) with check (is_admin())
+--       product_variants_admin_all  for all using (is_admin()) with check (is_admin())
+--   `for all` already covers UPDATE for admins, so NO new policy is needed — the
+--   only missing layer is the table-level UPDATE privilege. The prior read-grants
+--   migration granted SELECT only; this migration adds UPDATE.
+--
+--   This project leaves `auto_expose_new_tables` unset, so base-table privileges
+--   are not auto-granted to the Data API roles and must be granted explicitly.
+--
+-- SECURITY — WHAT THIS DOES AND DOES NOT DO
+--   * anon is NEVER granted anything here. Only the logged-in `authenticated`
+--     role gets UPDATE, and the existing is_admin() RLS policies still restrict
+--     the actual writes to active admin/super_admin users. A signed-in non-admin
+--     passes the GRANT layer but is blocked by RLS (is_admin() = false) and can
+--     update zero rows.
+--   * RLS remains ENABLED on both tables. No policy is created, dropped, or
+--     altered. No DISABLE/BYPASS of RLS anywhere.
+--   * Only UPDATE is granted — no INSERT, no DELETE. Product/variant create and
+--     delete stay out of scope for this phase.
+--   * Scope is limited to products + product_variants. categories is intentionally
+--     NOT granted UPDATE here: this task does not write categories (the Categories
+--     tab stays read-only). Add a categories grant deliberately when category
+--     editing is implemented.
+--   * Public website reads continue to flow only through the public_* views.
+--
+-- IDEMPOTENT: re-granting an existing privilege is a no-op, so this migration is
+--   safe to re-run and safe on a db reset.
+--
+-- THIS FILE IS AUTHORED ONLY. It is NOT applied here. No database / Supabase
+-- commands are run as part of producing this file. Apply it with your normal
+-- migration workflow (e.g. supabase db push) before testing admin writes.
+-- =====================================================================
+
+grant usage on schema public to authenticated;
+
+grant update on table public.products to authenticated;
+grant update on table public.product_variants to authenticated;

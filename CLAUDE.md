@@ -155,6 +155,31 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-26] — Phase A Image-Warning Cleanup + Phase B Admin Product Basic Write Layer
+
+**Goal:** Two-phase, scoped pass. Phase A: clear visible Next.js image performance warnings without any visual change. Phase B: enable real Supabase saving of basic product fields from the Admin Product drawer/detail. No public/admin redesign, no broad refactor, no DB commands.
+
+**Phase A — image warnings (no visual/layout/crop change):**
+- `src/app/(public)/products/page.tsx` — added `sizes="100vw"` to the full-bleed `/products` hero (had `priority`, was missing `sizes`).
+- `src/components/admin/dashboard/WelcomeHero.tsx` — added `priority` to the admin dashboard hero background (the above-the-fold LCP image on `/admin/dashboard`).
+- `src/app/admin/products/[slug]/page.tsx` — added `sizes="(max-width: 640px) 100vw, 128px"` to the product detail thumbnail.
+- `src/components/admin/products/ProductDrawer.tsx` — added `sizes="44px"` (header thumb) and `sizes="200px"` (main image) to the two `fill` images.
+- Audited all 61 `<Image>` usages; these 4 were the only `fill`-without-`sizes` cases. All public route heroes already had `priority`.
+
+**Phase B — admin product basic write layer:**
+- `src/lib/admin/admin-catalog.ts` — added `AdminCatalogWriteError`, `updateAdminProduct(productId, input)` and `updateAdminProductVariantPrices(productId, prices)` using the shared Supabase browser client (no new client). `updated_at` is left to the DB `before update` triggers (never set in app). Writes are partial/guarded; per-kg and variant prices validated `>= 0`.
+- `src/components/admin/products/ProductDrawer.tsx` — removed the read-only gate; `onSave` → `onSaved(newSlug?)`. Save now writes to Supabase: General (name → `name_*`, description → `notes_*`), Pricing (250g/500g/1kg → existing variant `price`, 1kg also syncs `sale_price_per_kg`), Visibility (`hidden` → `show_on_website` + `visibility`; `featured`; `best_seller`), SEO (`slug`, `seo_title_*`, `seo_description_*`). Added `dirty`/`saving`/`errorMsg` state: Save enables only after an edit, shows Saving…/✓ Saved/exact error. **Media tab disabled** with "Media upload will be implemented in the Media/Storage layer." **Inventory tab disabled** with "Inventory will be handled by the inventory movement layer." (no fake media/stock writes).
+- `src/app/admin/products/page.tsx` — refactored catalog load into a reusable `reloadCatalog()`; `handleProductSaved(newSlug?)` refreshes from Supabase after save and re-targets the drawer when the slug changed. Removed the no-op read-only `handleSave`. Categories tab + Add Product stay read-only (out of scope).
+- `src/app/admin/products/[slug]/page.tsx` — "Edit Prices" now really edits; Save writes variant prices + `sale_price_per_kg`, refetches, with saving/error states. Cancel reverts unsaved prices.
+
+**Migration created (authored only, NOT applied):** `supabase/migrations/20260626090000_admin_catalog_write_grants.sql` — `GRANT UPDATE ON public.products, public.product_variants TO authenticated`. RLS already covers admin UPDATE (Migration 1 `products_admin_all` / `product_variants_admin_all` are `for all ... is_admin()`), so **no new RLS policy is needed** — only the missing UPDATE privilege layer. No categories grant (categories not written), no INSERT/DELETE, anon never granted, RLS not disabled/bypassed.
+
+**Out of scope / intentionally still disabled:** product/category create & delete, category edits, media/gallery/Storage, inventory/stock writes, SKU generation, packaging, orders/accounting. `purchase_cost_per_kg` left display-only (not editable in the UI).
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/0 warnings · concurrent `npm run build` intentionally skipped (live `next dev` on :3000 shares `.next`; a concurrent prod build risks ChunkLoadError) — validated instead by per-route dev compilation: `/`, `/products`, `/products/heavy-crema`, `/admin/dashboard`, `/admin/products`, `/admin/products/heavy-crema` all HTTP 200, no Build/Chunk/runtime errors. No Supabase/DB commands run, no seed changes, no commit. **Manual admin write test is pending: the migration must be applied first, and it needs the owner's authenticated admin session.**
+
+---
+
 ### [2026-06-25] — Fix Supabase Admin Auth/Guard Infinite Loading + Public Header Admin Awareness
 
 **Goal:** The real Supabase admin login worked, but `/admin/dashboard` hung forever on "Loading admin workspace… / Verifying your Supabase session.", the public account dropdown ignored admin identity, and login didn't reliably route admins to the dashboard. Targeted auth/guard stability fix — no DB/migration/seed/catalog/visual changes.
