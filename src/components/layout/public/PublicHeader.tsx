@@ -8,6 +8,7 @@ import {
   Bell,
   Globe,
   Heart,
+  LayoutDashboard,
   LayoutList,
   LogOut,
   Menu,
@@ -23,6 +24,12 @@ import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
 import { useWishlist } from "@/lib/hooks/useWishlist";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
+import {
+  formatAdminRole,
+  getAdminDisplayName,
+  getAdminInitials,
+} from "@/lib/auth/admin";
 import { catalogProducts } from "@/lib/mock-data/product-catalog";
 import { cn } from "@/lib/utils/cn";
 
@@ -55,13 +62,23 @@ type CommercePanel = "wishlist" | "cart";
 function UserMenu({ onClose }: { onClose: () => void }) {
   const { t } = useLanguage();
   const { user, isLoggedIn, signOut } = useAuth();
+  const { isAdmin, admin } = useCurrentAdmin();
   const router = useRouter();
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     onClose();
-    router.push("/");
+    router.replace("/");
   };
+
+  // When the signed-in user is an active admin, surface their real admin_users
+  // identity (display name, email, role) instead of the bare auth email.
+  const showAdmin = isAdmin && admin !== null;
+  const displayName = showAdmin ? getAdminDisplayName(admin) : user?.name;
+  const displayEmail = showAdmin ? admin.email : user?.email;
+  const avatarText = showAdmin
+    ? getAdminInitials(admin)
+    : (user?.name?.[0]?.toUpperCase() ?? "M");
 
   return (
     <div className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-64 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl">
@@ -73,14 +90,33 @@ function UserMenu({ onClose }: { onClose: () => void }) {
           <div className="border-b border-[#B6885E]/12 px-4 py-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#B6885E]/18 text-sm font-bold text-[#D6A373]">
-                {user?.name?.[0] ?? "M"}
+                {avatarText}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#F5E6D8]">{user?.name}</p>
-                <p className="truncate text-xs text-[#B79B85]/60">{user?.email}</p>
+                <p className="truncate text-sm font-semibold text-[#F5E6D8]">{displayName}</p>
+                <p className="truncate text-xs text-[#B79B85]/60">{displayEmail}</p>
+                {showAdmin && (
+                  <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
+                    {formatAdminRole(admin.role)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Admin Dashboard — only for active admins */}
+          {showAdmin && (
+            <div className="border-b border-[#B6885E]/10 py-2">
+              <Link
+                href="/admin/dashboard"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#D6A373] transition-colors hover:bg-[#B6885E]/10"
+              >
+                <LayoutDashboard className="h-4 w-4 shrink-0" />
+                {t({ en: "Admin Dashboard", ar: "لوحة التحكم" })}
+              </Link>
+            </div>
+          )}
 
           {/* Account links */}
           <div className="py-2">
@@ -147,14 +183,22 @@ function UserMenu({ onClose }: { onClose: () => void }) {
 function MobileMenu({ onClose }: { onClose: () => void }) {
   const { t, dir } = useLanguage();
   const { isLoggedIn, user, signOut } = useAuth();
+  const { isAdmin, admin } = useCurrentAdmin();
   const pathname = usePathname();
   const router = useRouter();
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     onClose();
-    router.push("/");
+    router.replace("/");
   };
+
+  const showAdmin = isAdmin && admin !== null;
+  const displayName = showAdmin ? getAdminDisplayName(admin) : user?.name;
+  const displayEmail = showAdmin ? admin.email : user?.email;
+  const avatarText = showAdmin
+    ? getAdminInitials(admin)
+    : (user?.name?.[0]?.toUpperCase() ?? "M");
 
   return (
     <div className="fixed inset-0 z-[60] flex" dir={dir}>
@@ -187,11 +231,16 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
           <div className="border-b border-[#B6885E]/10 px-5 py-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#B6885E]/15 text-sm font-bold text-[#D6A373]">
-                {user?.name?.[0] ?? "M"}
+                {avatarText}
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#F5E6D8]">{user?.name}</p>
-                <p className="text-xs text-[#B79B85]/55">{user?.email}</p>
+                <p className="text-sm font-semibold text-[#F5E6D8]">{displayName}</p>
+                <p className="text-xs text-[#B79B85]/55">{displayEmail}</p>
+                {showAdmin && (
+                  <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
+                    {formatAdminRole(admin.role)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -227,6 +276,16 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
           </p>
           {isLoggedIn ? (
             <>
+              {showAdmin && (
+                <Link
+                  href="/admin/dashboard"
+                  onClick={onClose}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#D6A373] transition-colors hover:bg-[#B6885E]/10"
+                >
+                  <LayoutDashboard className="h-4 w-4 shrink-0" />
+                  {t({ en: "Admin Dashboard", ar: "لوحة التحكم" })}
+                </Link>
+              )}
               {accountLinks.map(({ href, icon: Icon, label }) => (
                 <Link
                   key={href}

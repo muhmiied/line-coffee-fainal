@@ -18,6 +18,12 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import {
+  formatAdminRole,
+  getAdminDisplayName,
+  getAdminInitials,
+  type CurrentAdmin,
+} from "@/lib/auth/admin";
 import { ADMIN_NOTIFICATIONS, type NotifType } from "@/lib/mock-data/admin/dashboard-mock";
 
 const NOTIF_BG: Record<NotifType, string> = {
@@ -57,13 +63,15 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 export default function AdminTopBar({
+  admin,
   onMenuToggle,
 }: {
+  admin: CurrentAdmin;
   onMenuToggle: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen,   setNotifOpen]   = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -73,14 +81,10 @@ export default function AdminTopBar({
 
   const pageTitle = PAGE_TITLES[pathname] ?? "Admin Dashboard";
 
-  const userInitials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "AD";
+  const adminName = getAdminDisplayName(admin);
+  const adminFirstName = adminName.split(" ")[0] || admin.email;
+  const adminInitials = getAdminInitials(admin);
+  const adminRoleLabel = formatAdminRole(admin.role);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -96,8 +100,8 @@ export default function AdminTopBar({
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, []);
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     router.replace("/auth/login");
   };
 
@@ -269,14 +273,14 @@ export default function AdminTopBar({
                 color: "var(--coffee-black)",
               }}
             >
-              {userInitials}
+              {adminInitials}
             </div>
 
             <span
               className="hidden sm:block text-[13px] truncate max-w-[96px]"
               style={{ color: "var(--cream)" }}
             >
-              {user?.name?.split(" ")[0] ?? "Admin"}
+              {adminFirstName}
             </span>
 
             <ChevronDown
@@ -305,13 +309,13 @@ export default function AdminTopBar({
                   className="text-sm font-medium leading-tight truncate"
                   style={{ color: "var(--cream)" }}
                 >
-                  {user?.name ?? "Administrator"}
+                  {adminName}
                 </p>
                 <p
                   className="text-[11px] truncate mt-0.5"
                   style={{ color: "var(--cream-dim)" }}
                 >
-                  {user?.email ?? "admin@linecoffee.eg"}
+                  {admin.email}
                 </p>
                 <span
                   className="inline-flex mt-2 px-2 py-0.5 rounded-full text-[10px] font-semibold"
@@ -320,7 +324,7 @@ export default function AdminTopBar({
                     color: "var(--gold)",
                   }}
                 >
-                  Administrator
+                  {adminRoleLabel}
                 </span>
               </div>
 

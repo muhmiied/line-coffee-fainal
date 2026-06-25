@@ -1,0 +1,100 @@
+-- =====================================================================
+-- SECTION 1 — MIGRATION HEADER
+-- =====================================================================
+--
+-- Migration:  20260625130000_p0_migration_2_admin_users_authenticated_grant
+-- Project:    Line Coffee V3
+-- Phase:      Phase 9/10 — Admin Auth Foundation (RLS grant preservation)
+-- Runs after: 20260625120000_p0_migration_1_catalog_customers_orders_admin
+--
+-- PURPOSE
+--   Preserve, as a versioned migration, the table-level privilege that lets an
+--   authenticated browser session read ITS OWN row in public.admin_users. This
+--   is what makes the admin auth gate resolve: useCurrentAdmin() ->
+--   getAdminForUser() runs
+--       select ... from public.admin_users where auth_user_id = auth.uid()
+--   through PostgREST as the `authenticated` role. Without a table-level SELECT
+--   grant to `authenticated`, that read returns "permission denied for table
+--   admin_users" and the admin shell can never authorize.
+--
+-- WHY MIGRATION 1 IS NOT ENOUGH ON ITS OWN
+--   Migration 1 creates admin_users, enables RLS, and adds the row policy
+--   `admin_users_self_read (using auth_user_id = auth.uid())`. But RLS and
+--   GRANTs are TWO SEPARATE PERMISSION LAYERS in PostgreSQL:
+--
+--     1. GRANT (table privilege) — "may this role touch this table AT ALL?"
+--     2. RLS policy             — "WHICH ROWS may it touch?"
+--
+--   A role must pass BOTH. RLS only ever FILTERS rows from a table the role is
+--   already privileged to read; it never grants access on its own. Migration 1
+--   granted SELECT on the public-safe VIEWS (Section 13) and EXECUTE on the
+--   is_admin()/is_super_admin() helpers, but it never granted SELECT on the
+--   admin_users BASE TABLE to `authenticated`.
+--
+--   On this Supabase project that grant is required because
+--   `supabase/config.toml` leaves `auto_expose_new_tables` UNSET — the new cloud
+--   default — so new objects created in `public` are NOT auto-exposed to the Data
+--   API roles (anon / authenticated / service_role) without an explicit GRANT.
+--   (Older Supabase projects auto-granted these privileges, which is why this gap
+--   is easy to miss.) This migration encodes the GRANT so a fresh environment or
+--   a `db reset` reproduces the working state instead of silently breaking admin
+--   auth — matching the manual SQL the owner ran in the SQL Editor:
+--       grant usage on schema public to authenticated;
+--       grant select on table public.admin_users to authenticated;
+--
+-- SECURITY — WHAT THIS DOES AND DOES NOT DO
+--   * It does NOT open all admin rows publicly. `anon` is NOT granted anything
+--     here; only the logged-in `authenticated` role gets SELECT.
+--   * RLS still governs row visibility. With both Migration 1 policies in force:
+--       - `admin_users_self_read`      -> a normal authenticated user can read
+--                                          ONLY the row where auth_user_id =
+--                                          auth.uid() (their own admin row, if any).
+--       - `admin_users_super_admin_all`-> a super_admin can read all admin rows.
+--     A signed-in non-admin sees zero rows (no matching row passes RLS), which is
+--     exactly the "forbidden" outcome the app already handles.
+--   * authenticated users can only ever read what RLS allows — the GRANT widens
+--     the privilege layer, NOT the row-visibility layer.
+--   * RLS is NOT disabled and remains enabled on admin_users.
+--   * No existing policy is created, dropped, or altered.
+--   * Only SELECT is granted. No INSERT / UPDATE / DELETE — admin-management
+--     writes (super_admin editing other admins) stay deferred until the
+--     multi-staff admin module is built; super_admin write access will be added
+--     deliberately then, alongside its own table privileges.
+--
+-- THIS FILE IS AUTHORED ONLY. It is NOT applied here. No database / Supabase
+-- commands are run as part of producing this file.
+-- =====================================================================
+
+
+-- =====================================================================
+-- SECTION 2 — GRANTS (idempotent)
+-- =====================================================================
+-- Both statements are idempotent: re-granting an existing privilege is a no-op,
+-- so this migration is safe to re-run and safe on a db reset.
+
+-- Schema-level USAGE: a role cannot reference any object inside `public` without
+-- USAGE on the schema. `authenticated` normally already holds this on a Supabase
+-- project; granting it explicitly makes a fresh/reset environment self-contained
+-- and mirrors the manual fix verbatim.
+grant usage on schema public to authenticated;
+
+-- Table-level SELECT on the admin identity table for logged-in sessions. This is
+-- the privilege the admin auth gate needs; row visibility remains constrained by
+-- the Migration 1 RLS policies (self-row for admins, all-rows for super_admin,
+-- zero rows for non-admins). anon is intentionally NOT granted.
+grant select on table public.admin_users to authenticated;
+
+
+-- =====================================================================
+-- FOOTER — SCOPE NOTES
+-- =====================================================================
+--   - This migration touches ONLY admin_users privileges. It does not seed data,
+--     create tables, change schema, or modify RLS policies.
+--   - When the admin modules begin reading/writing the OTHER base tables
+--     (products, orders, customers, ...) directly from the browser as the
+--     `authenticated` role, those tables will likewise need explicit privileges
+--     granted to `authenticated` for the same `auto_expose_new_tables`-unset
+--     reason. That is future work, intentionally out of scope here — today the
+--     only base table the browser reads is admin_users (the auth gate); public
+--     catalog reads already go through the granted public_* views.
+-- =====================================================================

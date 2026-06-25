@@ -155,6 +155,28 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-25] — Fix Supabase Admin Auth/Guard Infinite Loading + Public Header Admin Awareness
+
+**Goal:** The real Supabase admin login worked, but `/admin/dashboard` hung forever on "Loading admin workspace… / Verifying your Supabase session.", the public account dropdown ignored admin identity, and login didn't reliably route admins to the dashboard. Targeted auth/guard stability fix — no DB/migration/seed/catalog/visual changes.
+
+**Root cause:** The admin resolver had no guaranteed terminal state. `useCurrentAdmin` called `getCurrentAdmin()` (which called `supabase.auth.getUser()`) **inside its `onAuthStateChange` callback** via `void refresh()`, and `refresh()` reset status to `"loading"` on every auth event. `getCurrentAdmin()` could also reject without a `.catch()` (no try/catch; mount path used `.then()` only). Any stall/rejection/re-entry pinned the hook at `"loading"` → `AdminShell` spun forever. `useAuth` was unaffected because it derives its user from the callback's `session` (never re-calling an auth method), which is why the public header still saw the email. **Not an RLS problem** — `admin_users_self_read (using auth_user_id = auth.uid())` already lets an authenticated browser read its own row.
+
+**`src/lib/auth/admin.ts`** — `getCurrentAdmin()` now reads `getSession()` (local, no `/auth/v1/user` network stall) and is fully wrapped so it never throws. New `getAdminForUser(user)` does the RLS-protected `admin_users` read (by `auth_user_id`, `.maybeSingle()`) and maps every outcome to `signed_out | forbidden | authorized | error`. Dev-only `console.warn` explains non-authorization without leaking secrets.
+
+**`src/lib/hooks/useCurrentAdmin.ts`** — Rewritten as an always-settling state machine: initial `getCurrentAdmin()` + a 10s watchdog that flips a hung load to `error`; the `onAuthStateChange` callback resolves from the `session` arg via `getAdminForUser` (PostgREST read only — **never** `supabase.auth.*` inside the callback). Exposes `refresh()` for retry.
+
+**`src/components/admin/layout/AdminShell.tsx`** — Each status renders a concrete screen (loading / redirecting / error card with "Try again" + Back to site + Sign out / access-denied card / authorized shell). No more infinite spinner; `error` is shown, not silently redirected.
+
+**`src/lib/hooks/useAuth.ts`** — `signOut()` is best-effort (clears legacy `line-user-v1`, ignores Supabase signOut network errors, always nulls local user) so a failed network call can't strand a stale identity or block redirect.
+
+**`src/components/layout/public/PublicHeader.tsx`** — `UserMenu` + `MobileMenu` now use `useCurrentAdmin`: for an active admin they show real `admin_users` identity (display name, email, role badge, initials) and an "Admin Dashboard" link; non-admins keep normal customer behavior. The admin read only runs when the menu opens.
+
+**RLS:** No migration created/needed — the self-read policy already permits the browser SELECT. Login redirect (`resolvePostLoginDestination`) now works because the resolver settles.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ all routes. No Supabase/DB commands run, no migration applied, no seed/catalog/visual changes, no commit.
+
+---
+
 ### [2026-06-22] - Documentation Source-of-Truth Cleanup
 
 **Goal:** Make `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` the current source of truth and prevent older planning/changelog entries from overriding current decisions.
