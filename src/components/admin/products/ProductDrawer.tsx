@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Upload, ImageIcon } from "lucide-react";
-import type { AdminProduct, AdminProductMeta, ProductStatus } from "@/lib/mock-data/admin/products-admin-mock";
+import type { AdminProduct, AdminProductMeta, ProductStatus } from "@/lib/admin/admin-catalog";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,7 @@ interface ProductDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (slug: string, meta: Partial<AdminProductMeta>) => void;
+  readOnly?: boolean;
 }
 
 // ── Form state shape ──────────────────────────────────────────────────────────
@@ -122,7 +123,7 @@ const NUM_INPUT: React.CSSProperties = {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function ProductDrawer({ product, isOpen, onClose, onSave }: ProductDrawerProps) {
+export default function ProductDrawer({ product, isOpen, onClose, onSave, readOnly = false }: ProductDrawerProps) {
   const [form, setForm] = useState<DrawerForm>(EMPTY_FORM);
 
   const set = <K extends keyof DrawerForm>(key: K, val: DrawerForm[K]) =>
@@ -137,6 +138,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave }: Prod
 
   const handleSave = () => {
     if (!product) return;
+    if (readOnly) return;
     const status = computeStatus(form.stockQty, form.threshold);
     onSave(product.slug, {
       stockQty: form.stockQty,
@@ -477,7 +479,11 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave }: Prod
               borderTop: "1px solid rgba(182,136,94,0.10)",
               display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
             }}>
-              {form.saved ? (
+              {readOnly ? (
+                <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55, marginRight: "auto" }}>
+                  Read-only until write layer is implemented.
+                </span>
+              ) : form.saved ? (
                 <span style={{ fontSize: 12, color: "#4ade80", marginRight: "auto" }}>✓ Saved</span>
               ) : (
                 <span style={{ flex: 1 }} />
@@ -497,10 +503,14 @@ export default function ProductDrawer({ product, isOpen, onClose, onSave }: Prod
               <button
                 type="button"
                 onClick={handleSave}
+                disabled={readOnly}
+                title={readOnly ? "Read-only until write layer is implemented" : undefined}
                 style={{
                   padding: "9px 22px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                  background: "rgba(182,136,94,0.15)", color: "var(--gold)",
+                  background: readOnly ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
+                  color: readOnly ? "rgba(245,232,209,0.30)" : "var(--gold)",
                   border: "1px solid rgba(182,136,94,0.30)",
+                  cursor: readOnly ? "not-allowed" : "pointer",
                 }}
               >
                 Save Changes

@@ -26,34 +26,28 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
-  adminProductCategories as BASE_CATEGORIES,
-  adminProducts as BASE_PRODUCTS,
+  getAdminCategories,
+  getAdminProductsWithVariants,
   type AdminCategoryStatus,
   type AdminProduct,
   type AdminProductCategory,
   type AdminProductMeta,
   type ProductStatus,
-} from "@/lib/mock-data/admin/products-admin-mock";
-import {
-  catalogCategories,
-  type CatalogCategorySlug,
-} from "@/lib/mock-data/product-catalog";
+} from "@/lib/admin/admin-catalog";
 import ProductDrawer from "@/components/admin/products/ProductDrawer";
 
-const CAT_LABEL: Record<CatalogCategorySlug, string> = {
-  "turkish-blends": "Turkish",
-  "espresso-blends": "Espresso",
-  "easy-coffee": "Easy Coffee",
-  "coffee-mix": "Coffee Mix",
-  "cappuccino": "Cappuccino",
-  "hot-chocolate": "Hot Chocolate",
-  "flavor-coffee": "Flavor Coffee",
-};
+const READ_ONLY_NOTICE = "Read-only until the admin catalog write layer is implemented.";
 
 const STATUS_STYLE: Record<ProductStatus, { bg: string; color: string }> = {
   "In Stock": { bg: "rgba(74,222,128,0.12)", color: "#4ade80" },
   "Low Stock": { bg: "rgba(251,191,36,0.12)", color: "#fbbf24" },
   "Out of Stock": { bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
+};
+
+const LIFECYCLE_STATUS_STYLE: Record<AdminProduct["catalogStatus"], { bg: string; color: string; label: string }> = {
+  active:   { bg: "rgba(74,222,128,0.12)",  color: "#4ade80", label: "Active" },
+  draft:    { bg: "rgba(251,191,36,0.12)",  color: "#fbbf24", label: "Draft" },
+  archived: { bg: "rgba(239,68,68,0.12)",   color: "#ef4444", label: "Archived" },
 };
 
 const CATEGORY_STATUS_STYLE: Record<AdminCategoryStatus, { bg: string; color: string; label: string }> = {
@@ -190,6 +184,7 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
   const ss  = STATUS_STYLE[product.status];
   const s250 = product.sizes.find((sz) => sz.label === "250g");
   const s500 = product.sizes.find((sz) => sz.label === "500g");
+  const s1kg = product.sizes.find((sz) => sz.label === "1kg");
 
   return (
     <button
@@ -213,11 +208,13 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
         <p className="truncate" style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-playfair)", color: "var(--cream)", lineHeight: 1.25 }}>{product.name.en}</p>
         <p className="truncate" style={{ fontSize: 10.5, direction: "rtl", textAlign: "right", color: "var(--cream-dim)", opacity: 0.38 }}>{product.name.ar}</p>
         <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 5 }}>
-          {s250 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>{s250.salePrice}</span>}
-          {s500 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>{s500.salePrice}</span>}
-          <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.05)", color: "var(--cream-dim)" }}>{product.salePricePerKg}/kg</span>
+          {s250 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>250g {s250.salePrice}</span>}
+          {s500 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>500g {s500.salePrice}</span>}
+          {s1kg && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.05)", color: "var(--cream-dim)" }}>1kg {s1kg.salePrice}</span>}
         </div>
-        <p style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 3 }}>{product.stockQty} in stock - {product.sku}</p>
+        <p style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 3 }}>
+          {product.catalogStatus} - {product.showOnWebsite ? "on website" : "hidden"} - {product.sku}
+        </p>
       </div>
     </button>
   );
@@ -727,7 +724,7 @@ function CategoryDrawer({
           {/* Info note */}
           <div className="rounded-xl p-3" style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.14)" }}>
             <p style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.65 }}>
-              A category appears on the website only when it is visible and Visible on Website is enabled.
+              A category appears on the website only when it is visible and Visible on Website is enabled. {READ_ONLY_NOTICE}
             </p>
           </div>
         </div>
@@ -749,7 +746,7 @@ function CategoryDrawer({
             className="rounded-lg px-4 py-2 text-[12.5px] font-semibold"
             style={{ background: errors.length > 0 ? "rgba(182,136,94,0.07)" : "rgba(182,136,94,0.18)", color: errors.length > 0 ? "rgba(245,232,209,0.32)" : "var(--gold)", border: "1px solid rgba(182,136,94,0.22)", cursor: errors.length > 0 ? "not-allowed" : "pointer" }}
           >
-            Save Category
+            Read-only
           </button>
         </div>
       </div>
@@ -760,29 +757,40 @@ function CategoryDrawer({
 // ─── AddProductDrawer ─────────────────────────────────────────────────────────
 
 type AddProductForm = {
-  nameEn:     string;
-  nameAr:     string;
-  category:   CatalogCategorySlug;
-  price250:   string;
-  price500:   string;
+  nameEn: string;
+  nameAr: string;
+  category: string;
+  price250: string;
+  price500: string;
   pricePerKg: string;
-  costPerKg:  string;
-  stockQty:   string;
-  hidden:     boolean;
+  costPerKg: string;
+  stockQty: string;
+  hidden: boolean;
 };
 
 const ADD_PRODUCT_EMPTY: AddProductForm = {
-  nameEn: "", nameAr: "", category: "turkish-blends",
-  price250: "", price500: "", pricePerKg: "",
-  costPerKg: "", stockQty: "10", hidden: true,
+  nameEn: "",
+  nameAr: "",
+  category: "turkish-blends",
+  price250: "",
+  price500: "",
+  pricePerKg: "",
+  costPerKg: "",
+  stockQty: "10",
+  hidden: true,
 };
 
-const SKU_PREFIXES: Record<CatalogCategorySlug, string> = {
-  "turkish-blends":  "TRK", "espresso-blends": "ESP", "easy-coffee": "ECO",
-  "coffee-mix":      "MIX", "cappuccino":       "CAP", "hot-chocolate": "CHO",
-  "flavor-coffee":   "FLV",
+const SKU_PREFIXES: Record<string, string> = {
+  "turkish-blends": "TRK",
+  "espresso-blends": "ESP",
+  "easy-coffee": "ECO",
+  "coffee-mix": "MIX",
+  cappuccino: "CAP",
+  "hot-chocolate": "CHO",
+  "flavor-coffee": "FLV",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Add product writes stay disabled in this read-only Supabase pass.
 function AddProductDrawer({
   isOpen, onClose, onAdd, existingProducts,
 }: {
@@ -811,10 +819,10 @@ function AddProductDrawer({
     const baseSlug = slugifyCategoryName(form.nameEn) || "new-product";
     let slug = baseSlug, n = 2;
     while (existingProducts.some((p) => p.slug === slug)) { slug = `${baseSlug}-${n++}`; }
-    const prefix   = SKU_PREFIXES[form.category];
+    const prefix   = SKU_PREFIXES[form.category] ?? "PRD";
     const catCount = existingProducts.filter((p) => p.category === form.category).length + 1;
     const sku      = `${prefix}-${String(catCount).padStart(3, "0")}`;
-    const image    = BASE_PRODUCTS.find((p) => p.category === form.category)?.image ?? BASE_PRODUCTS[0].image;
+    const image    = existingProducts.find((p) => p.category === form.category)?.image ?? existingProducts[0]?.image ?? "/assets/products/classic-pouch.png";
     const p250 = Number(form.price250); const p500 = Number(form.price500); const pkg = Number(form.pricePerKg);
     const sizes: { label: string; salePrice: number }[] = [];
     if (p250 > 0) sizes.push({ label: "250g", salePrice: p250 });
@@ -871,10 +879,10 @@ function AddProductDrawer({
 
           {/* Category */}
           {fieldLabel("Category *", (
-            <select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value as CatalogCategorySlug }))} style={{ ...inp, cursor: "pointer" }}>
-              {catalogCategories.map((c) => (
-                <option key={c.slug} value={c.slug} style={{ background: "#0f0a07" }}>
-                  {CAT_LABEL[c.slug]} — {c.name.ar}
+            <select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} style={{ ...inp, cursor: "pointer" }}>
+              {Array.from(new Set(existingProducts.map((product) => product.category))).map((slug) => (
+                <option key={slug} value={slug} style={{ background: "#0f0a07" }}>
+                  {slug.replace(/-/g, " ")}
                 </option>
               ))}
             </select>
@@ -934,31 +942,54 @@ export default function ProductsPage() {
   const [activeTab,        setActiveTab]        = useState<ProductAdminTab>("products");
   const [view,             setView]             = useState<"cards" | "table">("cards");
   const [search,           setSearch]           = useState("");
-  const [category,         setCategory]         = useState<CatalogCategorySlug | "all">("all");
+  const [category,         setCategory]         = useState<string>("all");
   const [drawerSlug,       setDrawerSlug]       = useState<string | null>(null);
-  const [metaOverrides,    setMetaOverrides]    = useState<Record<string, Partial<AdminProductMeta>>>({});
-  const [categories,       setCategories]       = useState<AdminProductCategory[]>(() =>
-    [...BASE_CATEGORIES].sort((a, b) => a.sortOrder - b.sortOrder)
-  );
+  const [products,         setProducts]         = useState<AdminProduct[]>([]);
+  const [categories,       setCategories]       = useState<AdminProductCategory[]>([]);
+  const [isLoading,        setIsLoading]        = useState(true);
+  const [catalogError,     setCatalogError]     = useState<string | null>(null);
   const [categorySearch,   setCategorySearch]   = useState("");
   const [categoryFilter,   setCategoryFilter]   = useState<CategoryFilter>("all");
   const [categoryDrawer,   setCategoryDrawer]   = useState<CategoryDrawerState | null>(null);
   const [categoryNotice,   setCategoryNotice]   = useState<string | null>(null);
-  const [addProductOpen,   setAddProductOpen]   = useState(false);
-  const [addedProducts,    setAddedProducts]    = useState<AdminProduct[]>([]);
   const router = useRouter();
 
-  const allProducts = useMemo<AdminProduct[]>(
-    () => [
-      ...BASE_PRODUCTS.map((p) => ({ ...p, ...(metaOverrides[p.slug] ?? {}) })),
-      ...addedProducts.map((p) => ({ ...p, ...(metaOverrides[p.slug] ?? {}) })),
-    ],
-    [metaOverrides, addedProducts]
-  );
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCatalog() {
+      setIsLoading(true);
+      setCatalogError(null);
+      try {
+        const [nextProducts, nextCategories] = await Promise.all([
+          getAdminProductsWithVariants(),
+          getAdminCategories(),
+        ]);
+        if (!mounted) return;
+        setProducts(nextProducts);
+        setCategories([...nextCategories].sort((a, b) => a.sortOrder - b.sortOrder || a.nameEn.localeCompare(b.nameEn)));
+      } catch (error) {
+        if (!mounted) return;
+        const message =
+          error instanceof Error ? error.message : "Unable to read admin catalog data.";
+        setCatalogError(message);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    void loadCatalog();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const allProducts = products;
 
   const kpis = useMemo(() => ({
     total:       allProducts.length,
-    active:      allProducts.filter((p) => !p.hidden).length,
+    active:      allProducts.filter((p) => p.isActive).length,
     lowStock:    allProducts.filter((p) => p.status === "Low Stock").length,
     outOfStock:  allProducts.filter((p) => p.status === "Out of Stock").length,
     bestSellers: allProducts.filter((p) => p.bestSeller).length,
@@ -988,6 +1019,14 @@ export default function ProductsPage() {
     [categories]
   );
 
+  const categoryBySlug = useMemo(
+    () => new Map(sortedCategories.map((item) => [item.slug, item])),
+    [sortedCategories]
+  );
+
+  const getCategoryLabel = (slug: string) =>
+    categoryBySlug.get(slug)?.nameEn ?? slug.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
   const filteredCategories = useMemo(
     () => sortedCategories.filter((item) => {
       const q = categorySearch.trim().toLowerCase();
@@ -1009,68 +1048,32 @@ export default function ProductsPage() {
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleSave = (slug: string, meta: Partial<AdminProductMeta>) => {
-    setMetaOverrides((prev) => ({ ...prev, [slug]: { ...(prev[slug] ?? {}), ...meta } }));
+    void slug;
+    void meta;
+    setCategoryNotice(READ_ONLY_NOTICE);
   };
 
   const handleSaveCategory = (next: AdminProductCategory) => {
-    setCategories((prev) => {
-      const exists = prev.some((c) => c.id === next.id);
-      const updated = exists ? prev.map((c) => c.id === next.id ? next : c) : [...prev, next];
-      return updated.sort((a, b) => a.sortOrder - b.sortOrder || a.nameEn.localeCompare(b.nameEn));
-    });
-    setCategoryNotice(`${next.nameEn} saved locally.`);
+    setCategoryNotice(`${next.nameEn}: ${READ_ONLY_NOTICE}`);
   };
 
   const handleArchiveCategory = (item: AdminProductCategory) => {
-    const now = new Date().toISOString();
-    setCategories((prev) => prev.map((c) => c.id === item.id
-      ? { ...c, status: "archived", featured: false, showOnWebsite: false, updatedAt: now }
-      : c
-    ));
-    setCategoryNotice(
-      item.productCount > 0
-        ? `${item.nameEn} archived. Products remain linked.`
-        : `${item.nameEn} archived locally.`
-    );
+    setCategoryNotice(`${item.nameEn}: ${READ_ONLY_NOTICE}`);
   };
 
   const handleRestoreCategory = (item: AdminProductCategory) => {
-    const now = new Date().toISOString();
-    setCategories((prev) => prev.map((c) => c.id === item.id
-      ? { ...c, status: "hidden", showOnWebsite: false, updatedAt: now }
-      : c
-    ));
-    setCategoryNotice(`${item.nameEn} restored as hidden.`);
+    setCategoryNotice(`${item.nameEn}: ${READ_ONLY_NOTICE}`);
   };
 
   const handleMoveCategory = (categoryId: string, direction: "up" | "down") => {
-    setCategories((prev) => {
-      const sorted = [...prev].sort((a, b) => a.sortOrder - b.sortOrder || a.nameEn.localeCompare(b.nameEn));
-      const ci = sorted.findIndex((c) => c.id === categoryId);
-      const ti = direction === "up" ? ci - 1 : ci + 1;
-      if (ci < 0 || ti < 0 || ti >= sorted.length) return prev;
-      const curr = sorted[ci];
-      const targ = sorted[ti];
-      return prev
-        .map((c) => {
-          if (c.id === curr.id) return { ...c, sortOrder: targ.sortOrder, updatedAt: new Date().toISOString() };
-          if (c.id === targ.id) return { ...c, sortOrder: curr.sortOrder, updatedAt: new Date().toISOString() };
-          return c;
-        })
-        .sort((a, b) => a.sortOrder - b.sortOrder || a.nameEn.localeCompare(b.nameEn));
-    });
-    setCategoryNotice("Category order updated locally.");
+    void categoryId;
+    void direction;
+    setCategoryNotice(READ_ONLY_NOTICE);
   };
 
   const handleToggleShowOnWebsite = (item: AdminProductCategory) => {
     if (item.status === "archived" || item.status === "draft") return;
-    const now  = new Date().toISOString();
-    const next = !item.showOnWebsite;
-    setCategories((prev) => prev.map((c) => c.id === item.id
-      ? { ...c, showOnWebsite: next, updatedAt: now }
-      : c
-    ));
-    setCategoryNotice(`${item.nameEn} ${next ? "now visible" : "hidden"} on website.`);
+    setCategoryNotice(`${item.nameEn}: ${READ_ONLY_NOTICE}`);
   };
 
   const handleViewProductsFromCategory = (slug: string) => {
@@ -1082,13 +1085,41 @@ export default function ProductsPage() {
       router.push("/admin/flavor-manager");
       return;
     }
-    const matched = catalogCategories.find((c) => c.slug === slug);
     setActiveTab("products");
-    setCategory(matched ? (matched.slug as CatalogCategorySlug) : "all");
+    setCategory(categoryBySlug.has(slug) ? slug : "all");
   };
 
   const calcMargin = (sale: number, cost: number) =>
-    Math.round(((sale - cost) / sale) * 100);
+    sale > 0 ? Math.round(((sale - cost) / sale) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="admin-surface flex items-center gap-3" style={{ padding: "18px 20px" }}>
+        <Package size={18} style={{ color: "var(--gold)" }} />
+        <div>
+          <p style={{ color: "var(--cream)", fontSize: 14, fontWeight: 700 }}>Loading admin catalog</p>
+          <p style={{ color: "var(--cream-dim)", opacity: 0.52, fontSize: 12 }}>
+            Reading products, categories, and variants from Supabase.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (catalogError) {
+    return (
+      <div className="admin-surface flex items-start gap-3" style={{ padding: "18px 20px", borderColor: "rgba(239,68,68,0.22)" }}>
+        <AlertTriangle size={18} style={{ color: "#f87171", marginTop: 2 }} />
+        <div>
+          <p style={{ color: "var(--cream)", fontSize: 14, fontWeight: 700 }}>Admin catalog read failed</p>
+          <p style={{ color: "#fca5a5", fontSize: 12, marginTop: 4 }}>{catalogError}</p>
+          <p style={{ color: "var(--cream-dim)", opacity: 0.55, fontSize: 12, marginTop: 8 }}>
+            The admin screen is intentionally not falling back to mock data.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -1103,22 +1134,23 @@ export default function ProductsPage() {
             </h1>
             <p className="text-[13px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
               {activeTab === "products"
-                ? `${allProducts.length} products across ${catalogCategories.length} catalog filters`
+                ? `${allProducts.length} products across ${categories.length} catalog filters`
                 : `${categories.length} categories — manage website visibility and sort order`}
             </p>
           </div>
           {activeTab === "products" ? (
             <button
               type="button"
-              onClick={() => setAddProductOpen(true)}
-              style={{ padding: "8px 18px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.14)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.28)" }}
+              disabled
+              title={READ_ONLY_NOTICE}
+              style={{ padding: "8px 18px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.08)", color: "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.14)", cursor: "not-allowed" }}
             >
               + Add Product
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => { setCategoryNotice(null); setCategoryDrawer({ mode: "add" }); }}
+              onClick={() => setCategoryNotice(READ_ONLY_NOTICE)}
               className="inline-flex items-center gap-2"
               style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.30)" }}
             >
@@ -1216,7 +1248,7 @@ export default function ProductsPage() {
                 </span>
               </button>
 
-              {catalogCategories.map((cat) => {
+              {sortedCategories.map((cat) => {
                 const active = category === cat.slug;
                 return (
                   <button
@@ -1226,7 +1258,7 @@ export default function ProductsPage() {
                     className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium transition-all flex items-center gap-1.5"
                     style={{ background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
                   >
-                    {CAT_LABEL[cat.slug]}
+                    {cat.nameEn}
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 99, background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.06)", color: active ? "var(--gold)" : "var(--cream-dim)" }}>
                       {counts[cat.slug] ?? 0}
                     </span>
@@ -1271,8 +1303,10 @@ export default function ProductsPage() {
                 {filtered.map((p, i) => {
                   const s250 = p.sizes.find((sz) => sz.label === "250g");
                   const s500 = p.sizes.find((sz) => sz.label === "500g");
+                  const s1kg = p.sizes.find((sz) => sz.label === "1kg");
                   const mgn  = calcMargin(p.salePricePerKg, p.purchaseCostPerKg);
                   const ss   = STATUS_STYLE[p.status];
+                  const lifecycle = LIFECYCLE_STATUS_STYLE[p.catalogStatus];
                   const isLast = i === filtered.length - 1;
 
                   return (
@@ -1293,15 +1327,15 @@ export default function ProductsPage() {
                           </div>
                         </div>
                         <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: "rgba(182,136,94,0.08)", color: "var(--gold)", width: "fit-content" }}>
-                          {CAT_LABEL[p.category]}
+                          {getCategoryLabel(p.category)}
                         </span>
                         <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{s250?.salePrice ?? "-"}</span>
                         <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{s500?.salePrice ?? "-"}</span>
-                        <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{p.salePricePerKg}</span>
+                        <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{s1kg?.salePrice ?? "-"}</span>
                         <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>{p.purchaseCostPerKg}</span>
                         <span className="text-[12px] font-semibold tabular-nums" style={{ color: mgn >= 40 ? "#4ade80" : mgn >= 30 ? "var(--gold)" : "#ef4444" }}>{mgn}%</span>
-                        <span className="text-[12px] tabular-nums" style={{ color: p.stockQty === 0 ? "#ef4444" : p.stockQty <= p.lowStockThreshold ? "#fbbf24" : "var(--cream-dim)" }}>{p.stockQty}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: ss.bg, color: ss.color, width: "fit-content" }}>{p.status}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: lifecycle.bg, color: lifecycle.color, width: "fit-content" }}>{lifecycle.label}</span>
                         <span className="w-5 h-5 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[12px]" style={{ color: "var(--gold)" }}>&gt;</span>
                       </button>
 
@@ -1316,7 +1350,7 @@ export default function ProductsPage() {
                         <div className="flex-1 min-w-0">
                           <p className="truncate text-[13px] font-medium" style={{ color: "var(--cream)" }}>{p.name.en}</p>
                           <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-                            {s250?.salePrice} / {s500?.salePrice} EGP - margin {mgn}%
+                            {s250?.salePrice} / {s500?.salePrice} EGP - {p.status} - margin {mgn}%
                           </p>
                         </div>
                         <span style={{ color: "var(--gold)", opacity: 0.6, fontSize: 16 }}>&gt;</span>
@@ -1349,23 +1383,13 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* Add product drawer */}
-      <AddProductDrawer
-        isOpen={addProductOpen}
-        onClose={() => setAddProductOpen(false)}
-        onAdd={(product) => {
-          setAddedProducts((prev) => [...prev, product]);
-          setCategory(product.category);
-        }}
-        existingProducts={allProducts}
-      />
-
       {/* Product drawer */}
       <ProductDrawer
         product={drawerProduct}
         isOpen={!!drawerSlug}
         onClose={() => setDrawerSlug(null)}
         onSave={handleSave}
+        readOnly
       />
 
       {/* Category drawer */}

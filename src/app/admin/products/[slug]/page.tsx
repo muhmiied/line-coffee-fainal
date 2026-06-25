@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Check, Edit2, X } from "lucide-react";
-import { catalogProducts } from "@/lib/mock-data/product-catalog";
+import { AlertTriangle, ArrowLeft, Check, Edit2, Package, X } from "lucide-react";
+import { getAdminProductBySlug, type AdminProduct } from "@/lib/admin/admin-catalog";
+
+const READ_ONLY_NOTICE = "Read-only until the admin catalog write layer is implemented.";
 
 function margin(salePricePerKg: number, costPerKg: number) {
+  if (salePricePerKg <= 0) return 0;
   return Math.round(((salePricePerKg - costPerKg) / salePricePerKg) * 100);
 }
 
@@ -25,14 +28,74 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const slug = params.slug as string;
-  const product = catalogProducts.find((p) => p.slug === slug);
+  const rawSlug = params.slug;
+  const slug = (Array.isArray(rawSlug) ? rawSlug[0] : rawSlug) ?? "";
 
   const [editing, setEditing]   = useState(false);
   const [saved, setSaved]       = useState(false);
-  const [prices, setPrices]     = useState<Record<string, number>>(
-    Object.fromEntries((product?.sizes ?? []).map((s) => [s.label, s.salePrice]))
-  );
+  const [product, setProduct]   = useState<AdminProduct | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [readError, setReadError] = useState<string | null>(null);
+  const [readOnlyNotice, setReadOnlyNotice] = useState<string | null>(null);
+  const [prices, setPrices]     = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!slug) return;
+    let mounted = true;
+
+    async function loadProduct() {
+      setIsLoading(true);
+      setReadError(null);
+      try {
+        const nextProduct = await getAdminProductBySlug(slug);
+        if (!mounted) return;
+        setProduct(nextProduct);
+        setPrices(Object.fromEntries((nextProduct?.sizes ?? []).map((s) => [s.label, s.salePrice])));
+      } catch (error) {
+        if (!mounted) return;
+        const message =
+          error instanceof Error ? error.message : "Unable to read admin product.";
+        setReadError(message);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    void loadProduct();
+
+    return () => {
+      mounted = false;
+    };
+  }, [slug]);
+
+  if (isLoading) {
+    return (
+      <div className="admin-surface flex items-center gap-3" style={{ padding: "18px 20px" }}>
+        <Package size={18} style={{ color: "var(--gold)" }} />
+        <div>
+          <p style={{ color: "var(--cream)", fontSize: 14, fontWeight: 700 }}>Loading product</p>
+          <p style={{ color: "var(--cream-dim)", opacity: 0.52, fontSize: 12 }}>
+            Reading product and variants from Supabase.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (readError) {
+    return (
+      <div className="admin-surface flex items-start gap-3" style={{ padding: "18px 20px", borderColor: "rgba(239,68,68,0.22)" }}>
+        <AlertTriangle size={18} style={{ color: "#f87171", marginTop: 2 }} />
+        <div>
+          <p style={{ color: "var(--cream)", fontSize: 14, fontWeight: 700 }}>Admin product read failed</p>
+          <p style={{ color: "#fca5a5", fontSize: 12, marginTop: 4 }}>{readError}</p>
+          <Link href="/admin/products" className="text-sm" style={{ color: "var(--gold)", display: "inline-block", marginTop: 12 }}>
+            Back to Products
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -50,9 +113,9 @@ export default function ProductDetailPage() {
   const mgn = margin(product.salePricePerKg, product.purchaseCostPerKg);
 
   const handleSave = () => {
+    setReadOnlyNotice(READ_ONLY_NOTICE);
     setEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaved(false);
   };
 
   return (
@@ -120,7 +183,8 @@ export default function ProductDetailPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => setEditing(true)}
+                  onClick={() => setReadOnlyNotice(READ_ONLY_NOTICE)}
+                  title={READ_ONLY_NOTICE}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
                   style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.15)" }}
                 >
@@ -137,10 +201,21 @@ export default function ProductDetailPage() {
             >
               {product.category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
             </span>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.10)", color: product.isActive ? "#4ade80" : "#fbbf24" }}>
+              {product.catalogStatus}
+            </span>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.05)", color: "var(--cream-dim)" }}>
+              {product.showOnWebsite ? "On website" : "Hidden from website"}
+            </span>
             <span className="text-[11px] font-mono" style={{ color: "var(--cream-dim)", opacity: 0.4 }}>
               {product.slug}
             </span>
           </div>
+          {readOnlyNotice && (
+            <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
+              {readOnlyNotice}
+            </p>
+          )}
         </div>
       </div>
 
