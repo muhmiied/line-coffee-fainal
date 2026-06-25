@@ -24,7 +24,7 @@ export type CatalogCategory = {
 };
 
 export type CatalogSize = {
-  label: "250g" | "500g";
+  label: "250g" | "500g" | "1kg";
   salePrice: number;
 };
 
@@ -97,6 +97,7 @@ function packed(
     sizes: [
       { label: "250g", salePrice: size250 },
       { label: "500g", salePrice: size500 },
+      { label: "1kg", salePrice: size500 * 2 },
     ],
     image,
   };
@@ -210,7 +211,7 @@ export const catalogProducts: CatalogProduct[] = [
   packed("gold-line",    "easy-coffee", "Gold Line",    "جولد لاين",   1500, 700, 375, 750, img.espressoPouch),
 
   // ── Coffee Mix ──────────────────────────────────────────────────────────────
-  packed("original-coffee-mix",       "coffee-mix", "Original Coffee Mix",       "كوفي ميكس اورجينال",   500, 300, 125, 250, img.classicPouch),
+  packed("original-coffee-mix",       "coffee-mix", "Original Coffee Mix",       "كوفي ميكس أوريجينال",  500, 300, 125, 250, img.classicPouch),
   packed("strawberry-coffee-mix",     "coffee-mix", "Strawberry Coffee Mix",     "كوفي ميكس فراولة",     520, 320, 130, 260, img.classicPouch),
   packed("banana-coffee-mix",         "coffee-mix", "Banana Coffee Mix",         "كوفي ميكس موز",        520, 320, 130, 260, img.classicPouch),
   packed("mango-coffee-mix",          "coffee-mix", "Mango Coffee Mix",          "كوفي ميكس مانجو",      520, 320, 130, 260, img.classicPouch),
@@ -229,10 +230,10 @@ export const catalogProducts: CatalogProduct[] = [
   packed("chocolate-coffee-mix",      "coffee-mix", "Chocolate Coffee Mix",      "كوفي ميكس شيكولاتة",   520, 320, 130, 260, img.classicPouch),
   packed("nutella-coffee-mix",        "coffee-mix", "Nutella Coffee Mix",        "كوفي ميكس نوتيلا",     520, 320, 130, 260, img.classicPouch),
   packed("oreo-coffee-mix",           "coffee-mix", "Oreo Coffee Mix",           "كوفي ميكس أوريو",      520, 320, 130, 260, img.classicPouch),
-  packed("lotus-coffee-mix",          "coffee-mix", "Lotus Coffee Mix",          "كوفي ميكس لونس",       520, 320, 130, 260, img.classicPouch),
+  packed("lotus-coffee-mix",          "coffee-mix", "Lotus Coffee Mix",          "كوفي ميكس لوتس",       520, 320, 130, 260, img.classicPouch),
   packed("cinnamon-roll-coffee-mix",  "coffee-mix", "Cinnamon Roll Coffee Mix",  "كوفي ميكس سينابون",    520, 320, 130, 260, img.classicPouch),
   packed("coconut-coffee-mix",        "coffee-mix", "Coconut Coffee Mix",        "كوفي ميكس جوز الهند",  520, 320, 130, 260, img.classicPouch),
-  packed("vilaella-coffee-mix",       "coffee-mix", "Vilaella Coffee Mix",       "كوفي ميكس فيلايلا",    520, 320, 130, 260, img.classicPouch),
+  packed("vanilla-coffee-mix",        "coffee-mix", "Vanilla Coffee Mix",        "كوفي ميكس فانيلا",     520, 320, 130, 260, img.classicPouch),
   packed("caramel-coffee-mix",        "coffee-mix", "Caramel Coffee Mix",        "كوفي ميكس كراميل",     520, 320, 130, 260, img.classicPouch),
   packed("mocha-coffee-mix",          "coffee-mix", "Mocha Coffee Mix",          "كوفي ميكس موكا",       520, 320, 130, 260, img.classicPouch),
   packed("apple-shisha-coffee-mix",   "coffee-mix", "Apple Shisha Coffee Mix",   "كوفي ميكس شيشة تفاح",  520, 320, 130, 260, img.classicPouch),
@@ -270,7 +271,7 @@ export const catalogProducts: CatalogProduct[] = [
   packed("hot-cider-cappuccino",      "cappuccino", "Hot Cider Cappuccino",      "كابتشينو هوت سيدر",    560, 350, 140, 280, img.cappuccinoSachets),
 
   // ── Hot Chocolate ───────────────────────────────────────────────────────────
-  packed("original-hot-chocolate",       "hot-chocolate", "Original Hot Chocolate",       "هوت شوكليت أوريجينال",  350, 230,  90, 180, img.cappuccinoSachets),
+  packed("original-hot-chocolate",       "hot-chocolate", "Original Hot Chocolate",       "هوت شوكليت أوريجينال",  360, 230,  90, 180, img.cappuccinoSachets),
   packed("strawberry-hot-chocolate",     "hot-chocolate", "Strawberry Hot Chocolate",     "هوت شوكليت فراولة",     400, 250, 100, 200, img.cappuccinoSachets),
   packed("banana-hot-chocolate",         "hot-chocolate", "Banana Hot Chocolate",         "هوت شوكليت موز",        400, 250, 100, 200, img.cappuccinoSachets),
   packed("mango-hot-chocolate",          "hot-chocolate", "Mango Hot Chocolate",          "هوت شوكليت مانجو",      400, 250, 100, 200, img.cappuccinoSachets),
@@ -301,35 +302,35 @@ export const catalogProducts: CatalogProduct[] = [
   packed("hot-cider-hot-chocolate",      "hot-chocolate", "Hot Cider Hot Chocolate",      "هوت شوكليت هوت سيدر",   400, 250, 100, 200, img.cappuccinoSachets),
 
   // ── Flavor Coffee ───────────────────────────────────────────────────────────
-  packed("french-coffee",              "flavor-coffee", "French Coffee",              "قهوة فرنساوي",       390, 230, 100, 200, img.flavorPouch),
-  packed("strawberry-coffee",          "flavor-coffee", "Strawberry Coffee",          "قهوة فراولة",        390, 230, 100, 200, img.flavorPouch),
-  packed("banana-coffee",              "flavor-coffee", "Banana Coffee",              "قهوة موز",           390, 230, 100, 200, img.flavorPouch),
-  packed("mango-coffee",               "flavor-coffee", "Mango Coffee",               "قهوة مانجو",         390, 230, 100, 200, img.flavorPouch),
-  packed("peach-coffee",               "flavor-coffee", "Peach Coffee",               "قهوة خوخ",           390, 230, 100, 200, img.flavorPouch),
-  packed("raspberry-coffee",           "flavor-coffee", "Raspberry Coffee",           "قهوة توت",           390, 230, 100, 200, img.flavorPouch),
-  packed("cherry-coffee",              "flavor-coffee", "Cherry Coffee",              "قهوة كريز",          390, 230, 100, 200, img.flavorPouch),
-  packed("apple-coffee",               "flavor-coffee", "Apple Coffee",               "قهوة تفاح",          390, 230, 100, 200, img.flavorPouch),
-  packed("grape-coffee",               "flavor-coffee", "Grape Coffee",               "قهوة عنب",           390, 230, 100, 200, img.flavorPouch),
-  packed("watermelon-coffee",          "flavor-coffee", "Watermelon Coffee",          "قهوة بطيخ",          390, 230, 100, 200, img.flavorPouch),
-  packed("guava-coffee",               "flavor-coffee", "Guava Coffee",               "قهوة جوافة",         390, 230, 100, 200, img.flavorPouch),
-  packed("pineapple-coffee",           "flavor-coffee", "Pineapple Coffee",           "قهوة أناناس",        390, 230, 100, 200, img.flavorPouch),
-  packed("orange-coffee",              "flavor-coffee", "Orange Coffee",              "قهوة برتقال",        390, 230, 100, 200, img.flavorPouch),
-  packed("hazelnut-coffee",            "flavor-coffee", "Hazelnut Coffee",            "قهوة بندق",          390, 230, 100, 200, img.flavorPouch),
-  packed("almond-coffee",              "flavor-coffee", "Almond Coffee",              "قهوة لوز",           390, 230, 100, 200, img.flavorPouch),
-  packed("pistachio-coffee",           "flavor-coffee", "Pistachio Coffee",           "قهوة فستق",          390, 230, 100, 200, img.flavorPouch),
-  packed("chocolate-coffee",           "flavor-coffee", "Chocolate Coffee",           "قهوة شيكولاتة",      390, 230, 100, 200, img.flavorPouch),
-  packed("nutella-coffee",             "flavor-coffee", "Nutella Coffee",             "قهوة نوتيلا",        390, 230, 100, 200, img.flavorPouch),
-  packed("oreo-coffee",                "flavor-coffee", "Oreo Coffee",                "قهوة أوريو",         390, 230, 100, 200, img.flavorPouch),
-  packed("lotus-coffee",               "flavor-coffee", "Lotus Coffee",               "قهوة لوتس",          390, 230, 100, 200, img.flavorPouch),
-  packed("cinnamon-roll-coffee",       "flavor-coffee", "Cinnamon Roll Coffee",       "قهوة سينابون",       390, 230, 100, 200, img.flavorPouch),
-  packed("coconut-coffee",             "flavor-coffee", "Coconut Coffee",             "قهوة جوز الهند",     390, 230, 100, 200, img.flavorPouch),
-  packed("vanilla-coffee",             "flavor-coffee", "Vanilla Coffee",             "قهوة فانيلا",        390, 230, 100, 200, img.flavorPouch),
-  packed("caramel-coffee",             "flavor-coffee", "Caramel Coffee",             "قهوة كراميل",        390, 230, 100, 200, img.flavorPouch),
-  packed("mocha-coffee",               "flavor-coffee", "Mocha Coffee",               "قهوة موكا",          390, 230, 100, 200, img.flavorPouch),
-  packed("apple-shisha-coffee",        "flavor-coffee", "Apple Shisha Coffee",        "قهوة شيشة تفاح",     390, 230, 100, 200, img.flavorPouch),
-  packed("grape-shisha-coffee",        "flavor-coffee", "Grape Shisha Coffee",        "قهوة شيشة عنب",      390, 230, 100, 200, img.flavorPouch),
-  packed("hot-cider-coffee",           "flavor-coffee", "Hot Cider Coffee",           "قهوة هوت سيدر",      390, 230, 100, 200, img.flavorPouch),
-  packed("hazelnut-chunk-coffee",      "flavor-coffee", "Hazelnut Chunk Coffee",      "قهوة بندق قطع",      390, 230, 100, 200, img.flavorPouch),
-  packed("chocolate-chunk-coffee",     "flavor-coffee", "Chocolate Chunk Coffee",     "قهوة شيكولاتة قطع",  390, 230, 100, 200, img.flavorPouch),
+  packed("french-coffee",              "flavor-coffee", "French Coffee",              "قهوة فرنساوي",       400, 230, 100, 200, img.flavorPouch),
+  packed("strawberry-coffee",          "flavor-coffee", "Strawberry Coffee",          "قهوة فراولة",        400, 230, 100, 200, img.flavorPouch),
+  packed("banana-coffee",              "flavor-coffee", "Banana Coffee",              "قهوة موز",           400, 230, 100, 200, img.flavorPouch),
+  packed("mango-coffee",               "flavor-coffee", "Mango Coffee",               "قهوة مانجو",         400, 230, 100, 200, img.flavorPouch),
+  packed("peach-coffee",               "flavor-coffee", "Peach Coffee",               "قهوة خوخ",           400, 230, 100, 200, img.flavorPouch),
+  packed("raspberry-coffee",           "flavor-coffee", "Raspberry Coffee",           "قهوة توت",           400, 230, 100, 200, img.flavorPouch),
+  packed("cherry-coffee",              "flavor-coffee", "Cherry Coffee",              "قهوة كريز",          400, 230, 100, 200, img.flavorPouch),
+  packed("apple-coffee",               "flavor-coffee", "Apple Coffee",               "قهوة تفاح",          400, 230, 100, 200, img.flavorPouch),
+  packed("grape-coffee",               "flavor-coffee", "Grape Coffee",               "قهوة عنب",           400, 230, 100, 200, img.flavorPouch),
+  packed("watermelon-coffee",          "flavor-coffee", "Watermelon Coffee",          "قهوة بطيخ",          400, 230, 100, 200, img.flavorPouch),
+  packed("guava-coffee",               "flavor-coffee", "Guava Coffee",               "قهوة جوافة",         400, 230, 100, 200, img.flavorPouch),
+  packed("pineapple-coffee",           "flavor-coffee", "Pineapple Coffee",           "قهوة أناناس",        400, 230, 100, 200, img.flavorPouch),
+  packed("orange-coffee",              "flavor-coffee", "Orange Coffee",              "قهوة برتقال",        400, 230, 100, 200, img.flavorPouch),
+  packed("hazelnut-coffee",            "flavor-coffee", "Hazelnut Coffee",            "قهوة بندق",          400, 230, 100, 200, img.flavorPouch),
+  packed("almond-coffee",              "flavor-coffee", "Almond Coffee",              "قهوة لوز",           400, 230, 100, 200, img.flavorPouch),
+  packed("pistachio-coffee",           "flavor-coffee", "Pistachio Coffee",           "قهوة فستق",          400, 230, 100, 200, img.flavorPouch),
+  packed("chocolate-coffee",           "flavor-coffee", "Chocolate Coffee",           "قهوة شيكولاتة",      400, 230, 100, 200, img.flavorPouch),
+  packed("nutella-coffee",             "flavor-coffee", "Nutella Coffee",             "قهوة نوتيلا",        400, 230, 100, 200, img.flavorPouch),
+  packed("oreo-coffee",                "flavor-coffee", "Oreo Coffee",                "قهوة أوريو",         400, 230, 100, 200, img.flavorPouch),
+  packed("lotus-coffee",               "flavor-coffee", "Lotus Coffee",               "قهوة لوتس",          400, 230, 100, 200, img.flavorPouch),
+  packed("cinnamon-roll-coffee",       "flavor-coffee", "Cinnamon Roll Coffee",       "قهوة سينابون",       400, 230, 100, 200, img.flavorPouch),
+  packed("coconut-coffee",             "flavor-coffee", "Coconut Coffee",             "قهوة جوز الهند",     400, 230, 100, 200, img.flavorPouch),
+  packed("vanilla-coffee",             "flavor-coffee", "Vanilla Coffee",             "قهوة فانيلا",        400, 230, 100, 200, img.flavorPouch),
+  packed("caramel-coffee",             "flavor-coffee", "Caramel Coffee",             "قهوة كراميل",        400, 230, 100, 200, img.flavorPouch),
+  packed("mocha-coffee",               "flavor-coffee", "Mocha Coffee",               "قهوة موكا",          400, 230, 100, 200, img.flavorPouch),
+  packed("apple-shisha-coffee",        "flavor-coffee", "Apple Shisha Coffee",        "قهوة شيشة تفاح",     400, 230, 100, 200, img.flavorPouch),
+  packed("grape-shisha-coffee",        "flavor-coffee", "Grape Shisha Coffee",        "قهوة شيشة عنب",      400, 230, 100, 200, img.flavorPouch),
+  packed("hot-cider-coffee",           "flavor-coffee", "Hot Cider Coffee",           "قهوة هوت سيدر",      400, 230, 100, 200, img.flavorPouch),
+  packed("hazelnut-chunk-coffee",      "flavor-coffee", "Hazelnut Chunk Coffee",      "قهوة بندق قطع",      400, 230, 100, 200, img.flavorPouch),
+  packed("chocolate-chunk-coffee",     "flavor-coffee", "Chocolate Chunk Coffee",     "قهوة شيكولاتة قطع",  400, 230, 100, 200, img.flavorPouch),
 
 ];
