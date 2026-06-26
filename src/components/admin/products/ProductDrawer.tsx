@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Upload, ImageIcon, Loader2, AlertTriangle, Boxes, ExternalLink } from "lucide-react";
+import { X, Upload, ImageIcon, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw } from "lucide-react";
 import {
+  archiveAdminProduct,
+  restoreAdminProduct,
   updateAdminProduct,
   updateAdminProductVariantPrices,
   type AdminProduct,
+  type AdminProductLifecycleStatus,
   type AdminVariantPriceInput,
 } from "@/lib/admin/admin-catalog";
 
@@ -134,6 +137,15 @@ const NUM_INPUT: React.CSSProperties = {
 export default function ProductDrawer({ product, isOpen, onClose, onSaved }: ProductDrawerProps) {
   const [form, setForm] = useState<DrawerForm>(EMPTY_FORM);
 
+  // Archive / restore is a separate one-shot write (not part of the form Save /
+  // dirty flow), so it gets its own state. confirmArchive gates the destructive
+  // action behind a second click.
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+
+  const isArchived = product?.catalogStatus === "archived";
+
   // Editing a content field marks the form dirty (enables Save). Tab/flag changes don't.
   const set = <K extends keyof DrawerForm>(key: K, val: DrawerForm[K]) =>
     setForm((prev) => ({
@@ -143,11 +155,13 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
       errorMsg: key === "activeTab" ? prev.errorMsg : null,
     }));
 
-  // Reset form to product values each time the drawer opens for a product.
+  // Reset form + lifecycle state to product values each time the drawer opens for a product.
   useEffect(() => {
     if (!isOpen || !product) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(initForm(product));
+    setConfirmArchive(false);
+    setLifecycleError(null);
   }, [product?.slug, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
@@ -172,6 +186,16 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
         ? new Date(Date.now() + 40 * 24 * 60 * 60 * 1000).toISOString()
         : null;
 
+      // Lifecycle status driven by the Active/Hidden toggle:
+      //   Showing (Active)  → publish: status='active'
+      //   Hiding            → preserve the current lifecycle status (draft stays
+      //                        draft, active stays active-but-off-site, archived
+      //                        stays archived). Un-archiving is done via Restore,
+      //                        not by hiding/showing.
+      const nextStatus: AdminProductLifecycleStatus = form.hidden
+        ? product.catalogStatus
+        : "active";
+
       await updateAdminProduct(product.id, {
         name: { en: form.nameEn, ar: form.nameAr },
         note: { en: form.descEn, ar: form.descAr },
@@ -179,6 +203,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
         salePricePerKg: form.price1kg,
         showOnWebsite: !form.hidden,
         visibility: form.hidden ? "hidden" : "public",
+        catalogStatus: nextStatus,
         featured: form.featured,
         bestSeller: form.bestSeller,
         newUntil,
@@ -197,6 +222,43 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     } catch (error) {
       const message = error instanceof Error ? error.message : "Save failed. Please try again.";
       setForm((prev) => ({ ...prev, saving: false, errorMsg: message }));
+    }
+  };
+
+  // Archive: hide from the public site, keep the row + variants + history.
+  // Reloads the catalog so the card/status reflects the change; drawer stays open.
+  const handleArchive = async () => {
+    if (!product || lifecycleBusy) return;
+    setLifecycleBusy(true);
+    setLifecycleError(null);
+    try {
+      await archiveAdminProduct(product.id);
+      setConfirmArchive(false);
+      // Sync the form to the new hidden state so a later edit+Save can't
+      // accidentally re-publish via a stale Active toggle. Not dirty by itself.
+      setForm((prev) => ({ ...prev, hidden: true, dirty: false }));
+      await onSaved();
+    } catch (error) {
+      setLifecycleError(error instanceof Error ? error.message : "Could not archive. Please try again.");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
+  // Restore: bring an archived product back as a safe draft (still off the site).
+  const handleRestore = async () => {
+    if (!product || lifecycleBusy) return;
+    setLifecycleBusy(true);
+    setLifecycleError(null);
+    try {
+      await restoreAdminProduct(product.id);
+      // Restored product comes back as draft + hidden — reflect that in the form.
+      setForm((prev) => ({ ...prev, hidden: true, dirty: false }));
+      await onSaved();
+    } catch (error) {
+      setLifecycleError(error instanceof Error ? error.message : "Could not restore. Please try again.");
+    } finally {
+      setLifecycleBusy(false);
     }
   };
 
@@ -525,6 +587,100 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                           ? "Will be active for 40 days after saving."
                           : ""}
                     </p>
+                  </div>
+
+                  {/* ── Lifecycle: Archive / Restore ─────────────────────────── */}
+                  <div style={{
+                    marginTop: 18, paddingTop: 16,
+                    borderTop: "1px solid rgba(182,136,94,0.12)",
+                  }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--cream)" }}>
+                      {isArchived ? "Archived product" : "Archive product"}
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, marginTop: 3, lineHeight: 1.55 }}>
+                      {isArchived
+                        ? "This product is hidden from the entire public website but kept here with its prices and variants. Restore it to bring it back as a draft for review — it will not go public until you set it Active and save."
+                        : "Archiving removes this product from the website (products page, category pages, best sellers, and its direct link) but keeps the row, variants, and order history. It stays here under the Archived filter and can be restored anytime. No data is deleted."}
+                    </p>
+
+                    {lifecycleError && (
+                      <div style={{
+                        display: "flex", alignItems: "flex-start", gap: 6, marginTop: 10,
+                        padding: "9px 11px", borderRadius: 9,
+                        background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)",
+                      }}>
+                        <AlertTriangle size={13} style={{ color: "#f87171", marginTop: 1, flexShrink: 0 }} />
+                        <p style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.45 }}>{lifecycleError}</p>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                      {isArchived ? (
+                        <button
+                          type="button"
+                          onClick={handleRestore}
+                          disabled={lifecycleBusy}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 7,
+                            padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
+                            background: lifecycleBusy ? "rgba(74,222,128,0.08)" : "rgba(74,222,128,0.14)",
+                            color: lifecycleBusy ? "rgba(74,222,128,0.5)" : "#4ade80",
+                            border: "1px solid rgba(74,222,128,0.30)",
+                            cursor: lifecycleBusy ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {lifecycleBusy
+                            ? <><Loader2 size={13} className="animate-spin" /> Restoring…</>
+                            : <><RotateCcw size={13} /> Restore as draft</>}
+                        </button>
+                      ) : confirmArchive ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleArchive}
+                            disabled={lifecycleBusy}
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 7,
+                              padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
+                              background: lifecycleBusy ? "rgba(239,68,68,0.08)" : "rgba(239,68,68,0.16)",
+                              color: lifecycleBusy ? "rgba(248,113,113,0.5)" : "#f87171",
+                              border: "1px solid rgba(239,68,68,0.32)",
+                              cursor: lifecycleBusy ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            {lifecycleBusy
+                              ? <><Loader2 size={13} className="animate-spin" /> Archiving…</>
+                              : <><Archive size={13} /> Confirm archive</>}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmArchive(false)}
+                            disabled={lifecycleBusy}
+                            style={{
+                              padding: "9px 14px", borderRadius: 9, fontSize: 12.5,
+                              color: "var(--cream-dim)", opacity: lifecycleBusy ? 0.3 : 0.6,
+                              border: "1px solid rgba(182,136,94,0.12)",
+                              cursor: lifecycleBusy ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setLifecycleError(null); setConfirmArchive(true); }}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 7,
+                            padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
+                            background: "rgba(239,68,68,0.10)", color: "#f87171",
+                            border: "1px solid rgba(239,68,68,0.24)", cursor: "pointer",
+                          }}
+                        >
+                          <Archive size={13} /> Archive product
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

@@ -737,6 +737,13 @@ export interface AdminProductUpdateInput {
   salePricePerKg?: number;
   showOnWebsite?: boolean;
   visibility?: AdminProductVisibility;
+  /**
+   * Lifecycle status (the products.status column): 'active' | 'draft' | 'archived'.
+   * The public_products view requires status='active' (plus public + show_on_website),
+   * so 'draft'/'archived' both keep a product off the public site. undefined = leave
+   * untouched. Used by archiveAdminProduct/restoreAdminProduct and the drawer publish path.
+   */
+  catalogStatus?: AdminProductLifecycleStatus;
   featured?: boolean;
   bestSeller?: boolean;
   /**
@@ -781,6 +788,7 @@ export async function updateAdminProduct(productId: string, input: AdminProductU
   }
   if (input.showOnWebsite !== undefined) patch.show_on_website = input.showOnWebsite;
   if (input.visibility !== undefined) patch.visibility = input.visibility;
+  if (input.catalogStatus !== undefined) patch.status = input.catalogStatus;
   if (input.featured !== undefined) patch.featured = input.featured;
   if (input.bestSeller !== undefined) patch.best_seller = input.bestSeller;
   if (input.newUntil !== undefined) patch.new_until = input.newUntil; // null clears; ISO string sets
@@ -818,6 +826,39 @@ export async function updateAdminProductVariantPrices(
       .eq("size", size);
     if (error) throw writeError("product_variants", error);
   }
+}
+
+/**
+ * Archive a product: remove it from the public website but keep the row (and all
+ * its variants + order history) intact for a future restore. One UPDATE sets all
+ * three guards the public_products view checks:
+ *   status='archived' + visibility='hidden' + show_on_website=false
+ * NEVER a hard delete. product_variants are untouched (own table, never deleted),
+ * and order_items keep their product snapshot + ON DELETE SET NULL FK, so order
+ * history is unaffected. Safe to call on an already-archived product (idempotent).
+ */
+export async function archiveAdminProduct(productId: string) {
+  return updateAdminProduct(productId, {
+    catalogStatus: "archived",
+    visibility: "hidden",
+    showOnWebsite: false,
+  });
+}
+
+/**
+ * Restore an archived product back to a SAFE review state — never auto-publishes:
+ *   status='draft' + visibility='hidden' + show_on_website=false
+ * The product reappears in admin (Draft filter) for review but stays off the
+ * public site until an admin explicitly flips it Active and saves (which sets
+ * status='active'). Returning to 'draft' (not 'active') is the deliberate guard
+ * that restore can never silently surface a product publicly.
+ */
+export async function restoreAdminProduct(productId: string) {
+  return updateAdminProduct(productId, {
+    catalogStatus: "draft",
+    visibility: "hidden",
+    showOnWebsite: false,
+  });
 }
 
 // ─── WRITE LAYER — admin category management ─────────────────────────────────

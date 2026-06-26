@@ -155,6 +155,33 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-27] — Admin Product Archive / Restore Flow
+
+**Goal:** Let admins archive products safely (no hard delete) so they vanish from the public site but stay in admin for a future restore. Mirrors the existing category archive/restore.
+
+**`src/lib/admin/admin-catalog.ts`**
+- `AdminProductUpdateInput` — added `catalogStatus?: AdminProductLifecycleStatus` ('active'|'draft'|'archived'). `updateAdminProduct` now writes `patch.status` when provided. This was the missing piece: the write layer previously never touched `products.status`, so draft/restored products had no path to 'active'.
+- `archiveAdminProduct(productId)` — one UPDATE: `status='archived'` + `visibility='hidden'` + `show_on_website=false`. Never deletes; variants + order history untouched. Idempotent.
+- `restoreAdminProduct(productId)` — one UPDATE: `status='draft'` + `visibility='hidden'` + `show_on_website=false`. Returns to a SAFE review state — deliberately 'draft' (not 'active') so restore never auto-publishes.
+
+**`src/components/admin/products/ProductDrawer.tsx`**
+- Added Archive/Restore zone at the bottom of the **Visibility** tab (separate one-shot write, not part of the form Save/dirty flow). Own state: `lifecycleBusy` / `lifecycleError` / `confirmArchive` (reset on drawer open). Archive is two-click (Archive product → Confirm archive + Cancel); shows Archiving…/Restoring… spinners and a red error banner; only calls `onSaved()` (catalog reload) on success — never fakes success. Archived products show a "Restore as draft" button instead.
+- **Publish path wired:** Save now sets `catalogStatus = form.hidden ? product.catalogStatus : "active"`. Showing (Active toggle) publishes → status='active'; hiding preserves the current lifecycle status (draft stays draft, active stays active-but-off-site, archived stays archived — un-archiving is done via Restore). This makes both restored products and freshly-created drafts actually publishable.
+
+**`src/app/admin/products/page.tsx`**
+- Added a lifecycle **status filter** (All / Active / Draft / Archived, with live counts) on the Products tab next to the search — this is how admin reaches archived products. `filtered` now also matches `catalogStatus`.
+- `AdminProductCard` badge is status-aware: ARCHIVED (red) / DRAFT (amber) / HIDDEN (gray) instead of only HIDDEN.
+
+**Supabase / RLS — NO migration needed.** Archive/restore are plain column UPDATEs on `public.products`. The UPDATE grant to `authenticated` already exists (`20260626090000_admin_catalog_write_grants.sql`, table-wide so it covers `status`), and RLS `products_admin_all` (`for all using is_admin()`) already gates the row. No hard delete, no service-role code.
+
+**Public behavior (already correct, verified):** `public_products` view filters `status='active' AND visibility='public' AND show_on_website=true` (preserved through the `new_until` view recreate). All public reads (`/products`, `/products/[slug]`, Best Sellers, `/products/category/[slug]`) go only through the `public_*` views, so an archived product disappears everywhere and its direct slug returns null → not-found. No public-side code changed.
+
+**Limitations:** an admin can still publish an archived product directly by toggling Active + Save (explicit bypass of restore→draft); product is visually marked ARCHIVED and Restore is the offered safe path. Hard delete remains out of scope (archive instead). No bulk archive.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/0 warnings · concurrent `npm run build` intentionally skipped (live `next dev` on :3000 shares `.next` — ChunkLoadError risk per the 2026-06-26 entry); validated instead by dev route compilation: `/admin/products`, `/products`, `/products?category=…` all HTTP 200. No Supabase/DB commands run, no commit. **Manual admin test needs the owner's authenticated admin session; no migration to apply first.**
+
+---
+
 ### [2026-06-27] — Admin Product Create + Admin Category Create
 
 **Goal:** Wire the previously-disabled "+ Add Product" / "+ Add Category" buttons to real Supabase create flows.

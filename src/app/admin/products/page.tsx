@@ -60,8 +60,16 @@ const CATEGORY_STATUS_STYLE: Record<AdminCategoryStatus, { bg: string; color: st
   archived: { bg: "rgba(239,68,68,0.12)",    color: "#f87171",  label: "Archived" },
 };
 
-type ProductAdminTab   = "products" | "categories";
-type CategoryFilter    = "all" | "visible" | "hidden" | "draft" | "archived";
+type ProductAdminTab        = "products" | "categories";
+type ProductLifecycleFilter = "all" | "active" | "draft" | "archived";
+type CategoryFilter         = "all" | "visible" | "hidden" | "draft" | "archived";
+
+const PRODUCT_STATUS_FILTERS: { key: ProductLifecycleFilter; label: string }[] = [
+  { key: "all",      label: "All"      },
+  { key: "active",   label: "Active"   },
+  { key: "draft",    label: "Draft"    },
+  { key: "archived", label: "Archived" },
+];
 type CategoryDrawerState =
   | { mode: "add" }
   | { mode: "edit"; category: AdminProductCategory };
@@ -206,7 +214,13 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
         <div style={{ position: "absolute", top: 7, right: 7, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
           {product.bestSeller && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(182,136,94,0.88)", color: "#0b0806" }}>BEST</span>}
           {product.featured   && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(96,165,250,0.88)",  color: "#0b0806" }}>FEAT</span>}
-          {product.hidden     && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(156,163,175,0.7)",   color: "#0b0806" }}>HIDDEN</span>}
+          {product.catalogStatus === "archived" ? (
+            <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(248,113,113,0.9)", color: "#0b0806" }}>ARCHIVED</span>
+          ) : product.catalogStatus === "draft" ? (
+            <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(251,191,36,0.9)", color: "#0b0806" }}>DRAFT</span>
+          ) : product.hidden ? (
+            <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(156,163,175,0.7)", color: "#0b0806" }}>HIDDEN</span>
+          ) : null}
         </div>
       </div>
       <div style={{ padding: "10px 11px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
@@ -858,6 +872,7 @@ export default function ProductsPage() {
   const [activeTab,        setActiveTab]        = useState<ProductAdminTab>("products");
   const [search,           setSearch]           = useState("");
   const [category,         setCategory]         = useState<string>("all");
+  const [statusFilter,     setStatusFilter]     = useState<ProductLifecycleFilter>("all");
   const [drawerSlug,       setDrawerSlug]       = useState<string | null>(null);
   const [productCreateOpen, setProductCreateOpen] = useState(false);
   const [products,         setProducts]         = useState<AdminProduct[]>([]);
@@ -919,9 +934,17 @@ export default function ProductsPage() {
     return next;
   }, [allProducts]);
 
+  const statusCounts = useMemo(() => ({
+    all:      allProducts.length,
+    active:   allProducts.filter((p) => p.catalogStatus === "active").length,
+    draft:    allProducts.filter((p) => p.catalogStatus === "draft").length,
+    archived: allProducts.filter((p) => p.catalogStatus === "archived").length,
+  }), [allProducts]);
+
   const filtered = useMemo(
     () => allProducts.filter((p) => {
       if (category !== "all" && p.category !== category) return false;
+      if (statusFilter !== "all" && p.catalogStatus !== statusFilter) return false;
       const q = search.toLowerCase();
       return !q
         || p.name.en.toLowerCase().includes(q)
@@ -929,7 +952,7 @@ export default function ProductsPage() {
         || p.slug.includes(q)
         || p.sku.toLowerCase().includes(q);
     }),
-    [allProducts, category, search]
+    [allProducts, category, statusFilter, search]
   );
 
   const sortedCategories = useMemo(
@@ -1203,6 +1226,26 @@ export default function ProductsPage() {
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl text-[12.5px] outline-none"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream)" }}
                 />
+              </div>
+              {/* Lifecycle status filter — All / Active / Draft / Archived */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {PRODUCT_STATUS_FILTERS.map((item) => {
+                  const active = statusFilter === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setStatusFilter(item.key)}
+                      className="px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all flex items-center gap-1.5"
+                      style={{ background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
+                    >
+                      {item.label}
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 99, background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.06)", color: active ? "var(--gold)" : "var(--cream-dim)" }}>
+                        {statusCounts[item.key]}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
