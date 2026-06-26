@@ -261,7 +261,7 @@ export default function ProductsPage() {
                     type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder={t({ en: "Search productsâ€¦", ar: "Ø§Ø¨Ø­Ø« Ø¹Ù† Ù…Ù†ØªØ¬â€¦" })}
+                    placeholder={t({ en: "Search products...", ar: "ابحث عن منتج..." })}
                     className="line-input line-input-search w-full"
                   />
                 </div>
