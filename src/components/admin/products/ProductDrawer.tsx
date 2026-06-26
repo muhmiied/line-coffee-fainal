@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { X, Upload, ImageIcon, Loader2, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { X, Upload, ImageIcon, Loader2, AlertTriangle, Boxes, ExternalLink } from "lucide-react";
 import {
   updateAdminProduct,
   updateAdminProductVariantPrices,
@@ -24,7 +25,7 @@ const TABS: { key: DrawerTab; label: string }[] = [
 ];
 
 const MEDIA_NOTICE = "Media upload will be implemented in the Media/Storage layer.";
-const INVENTORY_NOTICE = "Inventory will be handled by the inventory movement layer.";
+const INVENTORY_NOTICE = "Inventory is managed through the Inventory module using stock movements.";
 
 interface ProductDrawerProps {
   product: AdminProduct | null;
@@ -409,7 +410,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                 </div>
               )}
 
-              {/* INVENTORY (disabled — handled by the inventory movement layer) */}
+              {/* INVENTORY (read-only summary — managed by the Inventory module) */}
               {form.activeTab === "inventory" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{
@@ -420,12 +421,44 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     <AlertTriangle size={14} style={{ color: "#fbbf24", marginTop: 1, flexShrink: 0 }} />
                     <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{INVENTORY_NOTICE}</p>
                   </div>
-                  <div><FL>Current Stock (bags / units)</FL>
-                    <input type="number" value={form.stockQty} disabled title={INVENTORY_NOTICE} readOnly style={{ ...NUM_INPUT, opacity: 0.4, cursor: "not-allowed" }} />
+
+                  {/* Read-only stock snapshot — not editable here */}
+                  <div style={{
+                    borderRadius: 10, overflow: "hidden",
+                    border: "1px solid rgba(182,136,94,0.12)",
+                  }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "12px 14px", borderBottom: "1px solid rgba(182,136,94,0.08)",
+                    }}>
+                      <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>Current stock (bags / units)</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--cream)" }}>{form.stockQty}</span>
+                    </div>
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "12px 14px",
+                    }}>
+                      <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>Low stock threshold</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--cream)" }}>{form.threshold}</span>
+                    </div>
                   </div>
-                  <div><FL>Low Stock Threshold</FL>
-                    <input type="number" value={form.threshold} disabled title={INVENTORY_NOTICE} readOnly style={{ ...NUM_INPUT, opacity: 0.4, cursor: "not-allowed" }} />
-                  </div>
+
+                  <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.45, lineHeight: 1.5 }}>
+                    These values are read-only here. Stock changes are recorded as movements in the Inventory module.
+                  </p>
+
+                  <Link
+                    href="/admin/inventory"
+                    className="inline-flex items-center justify-center gap-2"
+                    style={{
+                      padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
+                      background: "rgba(182,136,94,0.15)", color: "var(--gold)",
+                      border: "1px solid rgba(182,136,94,0.30)", width: "fit-content",
+                    }}
+                  >
+                    <Boxes size={14} /> Open Inventory module
+                    <ExternalLink size={12} style={{ opacity: 0.7 }} />
+                  </Link>
                 </div>
               )}
 
@@ -482,6 +515,13 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                       style={{ ...INPUT, fontFamily: "monospace", fontSize: 12, color: "var(--gold)" }} />
                     <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.32, marginTop: 4 }}>
                       linecoffee.eg/products/{form.slugVal}
+                    </p>
+                    <p style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      fontSize: 10.5, color: "#fbbf24", opacity: 0.85, marginTop: 6, lineHeight: 1.4,
+                    }}>
+                      <AlertTriangle size={11} style={{ flexShrink: 0 }} />
+                      Changing the slug changes the public product URL.
                     </p>
                   </div>
                   <div><FL>Meta Title (EN)</FL>

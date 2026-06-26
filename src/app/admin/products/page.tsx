@@ -12,8 +12,6 @@ import {
   Eye,
   EyeOff,
   Globe2,
-  LayoutGrid,
-  List,
   Package,
   Pencil,
   Plus,
@@ -36,17 +34,12 @@ import {
 import ProductDrawer from "@/components/admin/products/ProductDrawer";
 
 const READ_ONLY_NOTICE = "Read-only until the admin catalog write layer is implemented.";
+const PRODUCT_CREATE_NOTICE = "Product create flow is not implemented yet.";
 
 const STATUS_STYLE: Record<ProductStatus, { bg: string; color: string }> = {
   "In Stock": { bg: "rgba(74,222,128,0.12)", color: "#4ade80" },
   "Low Stock": { bg: "rgba(251,191,36,0.12)", color: "#fbbf24" },
   "Out of Stock": { bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
-};
-
-const LIFECYCLE_STATUS_STYLE: Record<AdminProduct["catalogStatus"], { bg: string; color: string; label: string }> = {
-  active:   { bg: "rgba(74,222,128,0.12)",  color: "#4ade80", label: "Active" },
-  draft:    { bg: "rgba(251,191,36,0.12)",  color: "#fbbf24", label: "Draft" },
-  archived: { bg: "rgba(239,68,68,0.12)",   color: "#ef4444", label: "Archived" },
 };
 
 const CATEGORY_STATUS_STYLE: Record<AdminCategoryStatus, { bg: string; color: string; label: string }> = {
@@ -939,7 +932,6 @@ function AddProductDrawer({
 
 export default function ProductsPage() {
   const [activeTab,        setActiveTab]        = useState<ProductAdminTab>("products");
-  const [view,             setView]             = useState<"cards" | "table">("cards");
   const [search,           setSearch]           = useState("");
   const [category,         setCategory]         = useState<string>("all");
   const [drawerSlug,       setDrawerSlug]       = useState<string | null>(null);
@@ -1023,9 +1015,6 @@ export default function ProductsPage() {
     [sortedCategories]
   );
 
-  const getCategoryLabel = (slug: string) =>
-    categoryBySlug.get(slug)?.nameEn ?? slug.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-
   const filteredCategories = useMemo(
     () => sortedCategories.filter((item) => {
       const q = categorySearch.trim().toLowerCase();
@@ -1088,9 +1077,6 @@ export default function ProductsPage() {
     setCategory(categoryBySlug.has(slug) ? slug : "all");
   };
 
-  const calcMargin = (sale: number, cost: number) =>
-    sale > 0 ? Math.round(((sale - cost) / sale) * 100) : 0;
-
   if (isLoading) {
     return (
       <div className="admin-surface flex items-center gap-3" style={{ padding: "18px 20px" }}>
@@ -1141,10 +1127,13 @@ export default function ProductsPage() {
             <button
               type="button"
               disabled
-              title={READ_ONLY_NOTICE}
-              style={{ padding: "8px 18px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.08)", color: "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.14)", cursor: "not-allowed" }}
+              title={PRODUCT_CREATE_NOTICE}
+              aria-label={PRODUCT_CREATE_NOTICE}
+              className="inline-flex items-center gap-2"
+              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.08)", color: "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.14)", cursor: "not-allowed" }}
             >
-              + Add Product
+              <Plus size={14} />
+              Add Product — coming soon
             </button>
           ) : (
             <button
@@ -1209,28 +1198,12 @@ export default function ProductsPage() {
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--cream-dim)", opacity: 0.35 }} />
                 <input
                   type="text"
-                  placeholder="Search by name, SKU..."
+                  placeholder="Search products..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl text-[12.5px] outline-none"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream)" }}
                 />
-              </div>
-              <div className="flex items-center gap-px p-[3px] rounded-lg" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(182,136,94,0.1)", flexShrink: 0 }}>
-                {([
-                  { key: "cards" as const, Icon: LayoutGrid, title: "Cards" },
-                  { key: "table" as const, Icon: List,        title: "Table" },
-                ]).map(({ key, Icon, title }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    title={title}
-                    onClick={() => setView(key)}
-                    style={{ width: 30, height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: view === key ? "rgba(182,136,94,0.2)" : "transparent", color: view === key ? "var(--gold)" : "var(--cream-dim)", opacity: view === key ? 1 : 0.5, transition: "all 0.15s" }}
-                  >
-                    <Icon size={14} />
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -1279,84 +1252,11 @@ export default function ProductsPage() {
               </div>
             )}
 
-            {view === "cards" && filtered.length > 0 && (
+            {filtered.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filtered.map((product) => (
                   <AdminProductCard key={product.slug} product={product} onClick={() => setDrawerSlug(product.slug)} />
                 ))}
-              </div>
-            )}
-
-            {view === "table" && filtered.length > 0 && (
-              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(182,136,94,0.10)" }}>
-                <div
-                  className="hidden md:grid items-center gap-3 px-4 py-2.5 text-[10.5px] font-semibold uppercase"
-                  style={{ gridTemplateColumns: "2fr 1fr 0.65fr 0.65fr 0.65fr 0.65fr 0.6fr 0.55fr 1fr auto", background: "rgba(182,136,94,0.05)", color: "var(--cream-dim)", opacity: 0.7, borderBottom: "1px solid rgba(182,136,94,0.08)" }}
-                >
-                  <span>Product</span><span>Category</span>
-                  <span>250g</span><span>500g</span><span>1kg</span>
-                  <span>Cost</span><span>Margin</span><span>Stock</span>
-                  <span>Status</span><span />
-                </div>
-
-                {filtered.map((p, i) => {
-                  const s250 = p.sizes.find((sz) => sz.label === "250g");
-                  const s500 = p.sizes.find((sz) => sz.label === "500g");
-                  const s1kg = p.sizes.find((sz) => sz.label === "1kg");
-                  const mgn  = calcMargin(p.salePricePerKg, p.purchaseCostPerKg);
-                  const ss   = STATUS_STYLE[p.status];
-                  const lifecycle = LIFECYCLE_STATUS_STYLE[p.catalogStatus];
-                  const isLast = i === filtered.length - 1;
-
-                  return (
-                    <div key={p.slug} style={!isLast ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}>
-                      <button
-                        type="button"
-                        onClick={() => setDrawerSlug(p.slug)}
-                        className="w-full hidden md:grid items-center gap-3 px-4 py-3 hover:bg-white/[0.025] transition-colors text-left group"
-                        style={{ gridTemplateColumns: "2fr 1fr 0.65fr 0.65fr 0.65fr 0.65fr 0.6fr 0.55fr 1fr auto" }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="relative w-8 h-8 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "rgba(182,136,94,0.07)" }}>
-                            <Image src={p.image} alt={p.name.en} fill sizes="32px" className="object-contain p-1" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--cream)" }}>{p.name.en}</p>
-                            <p className="truncate text-[10px]" style={{ color: "var(--cream-dim)", opacity: 0.35, direction: "rtl", textAlign: "left" }}>{p.name.ar}</p>
-                          </div>
-                        </div>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: "rgba(182,136,94,0.08)", color: "var(--gold)", width: "fit-content" }}>
-                          {getCategoryLabel(p.category)}
-                        </span>
-                        <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{s250?.salePrice ?? "-"}</span>
-                        <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{s500?.salePrice ?? "-"}</span>
-                        <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{s1kg?.salePrice ?? "-"}</span>
-                        <span className="text-[12px] tabular-nums" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>{p.purchaseCostPerKg}</span>
-                        <span className="text-[12px] font-semibold tabular-nums" style={{ color: mgn >= 40 ? "#4ade80" : mgn >= 30 ? "var(--gold)" : "#ef4444" }}>{mgn}%</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: ss.bg, color: ss.color, width: "fit-content" }}>{p.status}</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: lifecycle.bg, color: lifecycle.color, width: "fit-content" }}>{lifecycle.label}</span>
-                        <span className="w-5 h-5 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[12px]" style={{ color: "var(--gold)" }}>&gt;</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setDrawerSlug(p.slug)}
-                        className="md:hidden w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors text-left"
-                      >
-                        <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "rgba(182,136,94,0.07)" }}>
-                          <Image src={p.image} alt={p.name.en} fill sizes="40px" className="object-contain p-1.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate text-[13px] font-medium" style={{ color: "var(--cream)" }}>{p.name.en}</p>
-                          <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
-                            {s250?.salePrice} / {s500?.salePrice} EGP - {p.status} - margin {mgn}%
-                          </p>
-                        </div>
-                        <span style={{ color: "var(--gold)", opacity: 0.6, fontSize: 16 }}>&gt;</span>
-                      </button>
-                    </div>
-                  );
-                })}
               </div>
             )}
           </>

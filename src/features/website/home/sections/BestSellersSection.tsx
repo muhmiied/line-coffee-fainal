@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -37,6 +37,7 @@ export function BestSellersSection({
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const products = suppliedProducts ?? loadedProducts;
   const effectiveLoadState = suppliedProducts ? "ready" : loadState;
+  const marqueeRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (suppliedProducts) return;
@@ -59,6 +60,37 @@ export function BestSellersSection({
       isMounted = false;
     };
   }, [suppliedProducts]);
+
+  // The marquee mounts only after the async catalog read resolves, so the
+  // page-level one-shot scroll-reveal observer (which queries [data-reveal]
+  // at mount) never sees it and the cards stay opacity:0. Self-manage the
+  // reveal here so the cards always become visible once products are ready.
+  useEffect(() => {
+    if (effectiveLoadState !== "ready" || products.length === 0) return;
+    const node = marqueeRef.current;
+    if (!node) return;
+
+    const rect = node.getBoundingClientRect();
+    const alreadyVisible = rect.top < window.innerHeight && rect.bottom > 0;
+    if (alreadyVisible) {
+      node.classList.add("is-visible");
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: "0px 0px -4% 0px", threshold: 0.06 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [effectiveLoadState, products.length]);
 
   return (
     <>
@@ -99,14 +131,14 @@ export function BestSellersSection({
 
         {effectiveLoadState === "error" ? (
           <div className="py-10 text-center text-sm text-[#D6B79A]/55">
-            {t({ en: "Best sellers could not be loaded right now.", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ù‹Ø§ Ø§Ù„Ø¢Ù†." })}
+            {t({ en: "Best sellers could not be loaded right now.", ar: "تعذر تحميل الأكثر مبيعًا الآن." })}
           </div>
         ) : effectiveLoadState === "loading" ? (
           <div className="py-10 text-center text-sm text-[#D6B79A]/55">
-            {t({ en: "Loading best sellers.", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ù‹Ø§." })}
+            {t({ en: "Loading best sellers.", ar: "جاري تحميل الأكثر مبيعًا." })}
           </div>
         ) : products.length > 0 ? (
-          <div className="best-sellers-marquee reveal-on-scroll" data-reveal>
+          <div ref={marqueeRef} className="best-sellers-marquee reveal-on-scroll">
             <div className="best-sellers-marquee-track">
               {[0, 1].map((loop) => (
                 <div
@@ -139,7 +171,11 @@ export function BestSellersSection({
               ))}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="py-10 text-center text-sm text-[#D6B79A]/55">
+            {t({ en: "Best sellers are on their way.", ar: "الأكثر مبيعًا في الطريق." })}
+          </div>
+        )}
       </div>
       </section>
     </>
