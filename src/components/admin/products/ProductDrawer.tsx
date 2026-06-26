@@ -55,6 +55,7 @@ interface DrawerForm {
   featured: boolean;
   hidden: boolean;
   bestSeller: boolean;
+  isNew: boolean;
   slugVal: string;
   metaTitleEn: string;
   metaTitleAr: string;
@@ -67,7 +68,7 @@ const EMPTY_FORM: DrawerForm = {
   nameEn: "", nameAr: "", descEn: "", descAr: "",
   price250: 0, price500: 0, price1kg: 0,
   stockQty: 0, threshold: 5,
-  featured: false, hidden: false, bestSeller: false,
+  featured: false, hidden: false, bestSeller: false, isNew: false,
   slugVal: "", metaTitleEn: "", metaTitleAr: "", metaDescEn: "", metaDescAr: "",
 };
 
@@ -90,6 +91,7 @@ function initForm(product: AdminProduct): DrawerForm {
     featured: product.featured,
     hidden: product.hidden,
     bestSeller: product.bestSeller,
+    isNew: product.isNew,
     slugVal: product.slug,
     metaTitleEn: product.metaTitle.en  || `${product.name.en} | Line Coffee`,
     metaTitleAr: product.metaTitle.ar  || `${product.name.ar} | لاين كوفي`,
@@ -163,6 +165,13 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
           size.label === "500g" ? form.price500 : form.price1kg,
       }));
 
+      // Compute new_until from the isNew toggle:
+      //   on  → now + 40 days (refreshes the timer each save)
+      //   off → null (clears the badge)
+      const newUntil: string | null = form.isNew
+        ? new Date(Date.now() + 40 * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
       await updateAdminProduct(product.id, {
         name: { en: form.nameEn, ar: form.nameAr },
         note: { en: form.descEn, ar: form.descAr },
@@ -172,6 +181,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
         visibility: form.hidden ? "hidden" : "public",
         featured: form.featured,
         bestSeller: form.bestSeller,
+        newUntil,
         metaTitle: { en: form.metaTitleEn, ar: form.metaTitleAr },
         metaDescription: { en: form.metaDescEn, ar: form.metaDescAr },
       });
@@ -470,6 +480,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     { label: "Hidden",      sub: "Hide from all public pages",              value: form.hidden,      key: "hidden"     as const, invert: false },
                     { label: "Featured",    sub: "Show in Featured sections",               value: form.featured,    key: "featured"   as const, invert: false },
                     { label: "Best Seller", sub: "Show in Best Sellers marquee",            value: form.bestSeller,  key: "bestSeller" as const, invert: false },
+                    { label: "New",         sub: "Show New badge on product cards",         value: form.isNew,       key: "isNew"      as const, invert: false },
                   ]).map(({ label, sub, value, key, invert }) => (
                     <div
                       key={label}
@@ -503,6 +514,18 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                       </button>
                     </div>
                   ))}
+
+                  {/* New badge helper */}
+                  <div style={{ paddingTop: 12, paddingBottom: 4 }}>
+                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.42, lineHeight: 1.55 }}>
+                      New badge expires automatically after 40 days.{" "}
+                      {form.isNew && product.isNew && product.newUntil
+                        ? `Current expiry: ${new Date(product.newUntil).toLocaleDateString("en-EG", { month: "short", day: "numeric", year: "numeric" })}.`
+                        : form.isNew && !product.isNew
+                          ? "Will be active for 40 days after saving."
+                          : ""}
+                    </p>
+                  </div>
                 </div>
               )}
 

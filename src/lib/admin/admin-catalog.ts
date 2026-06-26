@@ -22,6 +22,10 @@ export interface AdminProductMeta {
   hidden: boolean;
   featured: boolean;
   bestSeller: boolean;
+  /** Raw DB timestamp. Null if never set. Use isNew for display logic. */
+  newUntil: string | null;
+  /** True while newUntil is in the future. Computed client-side from newUntil. */
+  isNew: boolean;
   stockQty: number;
   lowStockThreshold: number;
   sku: string;
@@ -124,6 +128,8 @@ type AdminProductRow = {
   show_on_website: boolean;
   featured: boolean | null;
   best_seller: boolean | null;
+  /** Raw timestamptz from the DB. Null if never set. */
+  new_until: string | null;
   pricing_model: string | null;
   sale_price_per_kg: number | string | null;
   purchase_cost_per_kg: number | string | null;
@@ -412,6 +418,8 @@ function mapProductRows(
       hidden,
       featured: Boolean(row.featured),
       bestSeller: Boolean(row.best_seller),
+      newUntil: row.new_until ?? null,
+      isNew: row.new_until != null && new Date(row.new_until) > new Date(),
       stockQty: 0,
       lowStockThreshold: 0,
       sku,
@@ -474,6 +482,7 @@ async function fetchProductRows() {
         "show_on_website",
         "featured",
         "best_seller",
+        "new_until",
         "pricing_model",
         "sale_price_per_kg",
         "purchase_cost_per_kg",
@@ -518,6 +527,7 @@ async function fetchProductRowById(id: string) {
         "show_on_website",
         "featured",
         "best_seller",
+        "new_until",
         "pricing_model",
         "sale_price_per_kg",
         "purchase_cost_per_kg",
@@ -562,6 +572,7 @@ async function fetchProductRowBySlug(slug: string) {
         "show_on_website",
         "featured",
         "best_seller",
+        "new_until",
         "pricing_model",
         "sale_price_per_kg",
         "purchase_cost_per_kg",
@@ -728,6 +739,16 @@ export interface AdminProductUpdateInput {
   visibility?: AdminProductVisibility;
   featured?: boolean;
   bestSeller?: boolean;
+  /**
+   * Controls the New badge lifetime:
+   *   - string (ISO 8601) → set new_until to that timestamp (badge active until then)
+   *   - null              → clear new_until (badge off)
+   *   - undefined         → do not touch new_until
+   *
+   * ProductDrawer computes: isNew=true → now + 40 days, isNew=false → null.
+   * Product Create (not yet implemented) should default to now() + 40 days.
+   */
+  newUntil?: string | null;
   metaTitle?: LocalizedValue;
   metaDescription?: LocalizedValue;
 }
@@ -762,6 +783,7 @@ export async function updateAdminProduct(productId: string, input: AdminProductU
   if (input.visibility !== undefined) patch.visibility = input.visibility;
   if (input.featured !== undefined) patch.featured = input.featured;
   if (input.bestSeller !== undefined) patch.best_seller = input.bestSeller;
+  if (input.newUntil !== undefined) patch.new_until = input.newUntil; // null clears; ISO string sets
   if (input.metaTitle) {
     patch.seo_title_en = input.metaTitle.en.trim();
     patch.seo_title_ar = input.metaTitle.ar.trim();
