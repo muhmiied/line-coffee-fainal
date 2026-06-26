@@ -155,6 +155,40 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-26] — Berry Cleanup Follow-up: Hard-Delete Hot Chocolate + Remove Builder "Berries"
+
+**Owner decision (follow-up to the entry below):** the plain berry Hot Chocolate must be gone from the admin dashboard too (not just archived), and the Make Your Flavor builder should keep "Blueberry / توت أزرق" only.
+
+**`supabase/migrations/20260626150000_delete_raspberry_hot_chocolate.sql`** (new — authored) — `DELETE FROM public.products WHERE slug = 'raspberry-hot-chocolate'`. Follows the archive migration (`20260626140000`, already applied by owner). Variants removed via `ON DELETE CASCADE`; `order_items` preserved via `ON DELETE SET NULL` + slug snapshot. Deterministic (exact slug), idempotent. After applying, the product disappears from the admin Products list as well as the public site.
+
+**`src/features/website/make-your-flavor/data/flavorData.ts`** — removed the `id: "berries"` flavor (Berries / توت). The `blueberry` flavor (توت أزرق) is kept. Verified no preset (`flavorIds`) or other code referenced the `"berries"` id — grep for `berries`/`Berries` across `src` is now clean.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings. New delete migration is authored — owner to run `supabase db push` to apply it to the live DB.
+
+---
+
+### [2026-06-26] — Berry → Blueberry Catalog Cleanup (Hot Chocolate + Flavor Coffee)
+
+**Business decision (owner):** No more plain berry/raspberry products. Hot Chocolate keeps Blueberry only; Flavor Coffee's plain berry becomes Blueberry / توت أزرق.
+
+**Affected products (exactly 2, deterministic by slug):**
+- `raspberry-hot-chocolate` (Raspberry Hot Chocolate / هوت شوكليت توت) — **archived** (DB) + **removed** from seed/source. `blueberry-hot-chocolate` already exists and is kept.
+- `raspberry-coffee` (Raspberry Coffee / قهوة توت) — **renamed** → slug `blueberry-coffee`, "Blueberry Coffee" / "قهوة توت أزرق".
+
+**`src/lib/mock-data/product-catalog.ts`** — removed the `raspberry-hot-chocolate` `packed(...)` line; renamed the `raspberry-coffee` line to `blueberry-coffee` / Blueberry Coffee / قهوة توت أزرق.
+
+**`supabase/seeds/20260625_catalog_seed.sql`** — removed the `raspberry-hot-chocolate` product row + its 3 variant rows (250g/500g/1kg); renamed the `raspberry-coffee` product row and its 3 variant rows to `blueberry-coffee`. (Variant inserts join `products.slug = seed_variants.product_slug`, so the renamed rows resolve correctly.)
+
+**`supabase/migrations/20260626140000_cleanup_berry_blueberry.sql`** (new — authored, NOT applied) — two exact-slug `UPDATE`s: (1) archive `raspberry-hot-chocolate` (`status='archived'`, `visibility='hidden'`, `show_on_website=false`); (2) rename `raspberry-coffee` → `blueberry-coffee` with name_en/name_ar, guarded by `NOT EXISTS (blueberry-coffee)` for idempotency/no slug collision. No `updated_at` set (trigger handles it). No text-pattern/bulk replacements.
+
+**Safety:** `product_variants.product_id` is a UUID FK (`on delete cascade`) — slug rename does not detach variants. `order_items` soft-reference products (slug snapshot + `on delete set null`) — archive/rename leaves history intact. `public_products`/`public_product_variants` views filter on active+public+show_on_website, so the archived product drops from `/products` and the Hot Chocolate category. Grep confirmed the two slugs were referenced only in the seed + source (no routes, no best-seller migration). Best Sellers/Featured/New logic untouched.
+
+**Out of scope (flagged, not changed):** Make Your Flavor builder (`src/features/website/make-your-flavor/data/flavorData.ts`) still has a separate "Berries / توت" add-on flavor alongside "Blueberry / توت أزرق" — static builder config, not a Supabase catalog product. Owner decision needed if the builder should also drop plain berry.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ 39 routes. Migration authored only — apply with `supabase db push` before manual testing.
+
+---
+
 ### [2026-06-26] — Multi-Badge ProductCard + Best Sellers Supabase Source + Adaptive Marquee
 
 **`src/lib/catalog/public-catalog.ts`** — added `fetchProductRowsBestSellers()` (private, `.eq("best_seller", true)`) and `getPublicBestSellers()` (public export using the new fetch function).
