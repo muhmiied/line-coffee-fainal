@@ -24,17 +24,26 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
+  archiveAdminCategory,
   getAdminCategories,
   getAdminProductsWithVariants,
+  reorderAdminCategories,
+  restoreAdminCategory,
+  updateAdminCategory,
   type AdminCategoryStatus,
+  type AdminCategoryUpdateInput,
   type AdminProduct,
   type AdminProductCategory,
   type ProductStatus,
 } from "@/lib/admin/admin-catalog";
 import ProductDrawer from "@/components/admin/products/ProductDrawer";
 
-const READ_ONLY_NOTICE = "Read-only until the admin catalog write layer is implemented.";
 const PRODUCT_CREATE_NOTICE = "Product create flow is not implemented yet.";
+const CATEGORY_CREATE_NOTICE = "Category create flow is not implemented yet — you can edit existing categories.";
+
+function writeErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 const STATUS_STYLE: Record<ProductStatus, { bg: string; color: string }> = {
   "In Stock": { bg: "rgba(74,222,128,0.12)", color: "#4ade80" },
@@ -59,6 +68,8 @@ type CategoryFormState = {
   nameEn:        string;
   nameAr:        string;
   slug:          string;
+  descriptionEn: string;
+  descriptionAr: string;
   status:        AdminCategoryStatus;
   sortOrder:     string;
   showOnWebsite: boolean;
@@ -217,6 +228,7 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
 function CategoryCard({
   category,
   sortedCategories,
+  busy,
   onEdit,
   onArchive,
   onRestore,
@@ -226,6 +238,7 @@ function CategoryCard({
 }: {
   category: AdminProductCategory;
   sortedCategories: AdminProductCategory[];
+  busy: boolean;
   onEdit: (c: AdminProductCategory) => void;
   onArchive: (c: AdminProductCategory) => void;
   onRestore: (c: AdminProductCategory) => void;
@@ -234,11 +247,11 @@ function CategoryCard({
   onViewProducts: (slug: string) => void;
 }) {
   const idx          = sortedCategories.findIndex((c) => c.id === category.id);
-  const canMoveUp    = idx > 0;
-  const canMoveDown  = idx >= 0 && idx < sortedCategories.length - 1;
+  const canMoveUp    = idx > 0 && !busy;
+  const canMoveDown  = idx >= 0 && idx < sortedCategories.length - 1 && !busy;
   const isArchived   = category.status === "archived";
   const isDraft      = category.status === "draft";
-  const canToggleWeb = !isArchived && !isDraft;
+  const canToggleWeb = !isArchived && !isDraft && !busy;
   const webActive    = category.showOnWebsite && !isArchived;
 
   return (
@@ -357,11 +370,11 @@ function CategoryCard({
             <ArrowDown size={12} />
           </IconAction>
           {isArchived ? (
-            <IconAction title="Restore category" onClick={() => onRestore(category)}>
+            <IconAction title="Restore category" onClick={() => onRestore(category)} disabled={busy}>
               <RotateCcw size={12} />
             </IconAction>
           ) : (
-            <IconAction title="Archive category" onClick={() => onArchive(category)}>
+            <IconAction title="Archive category" onClick={() => onArchive(category)} disabled={busy}>
               <Archive size={12} />
             </IconAction>
           )}
@@ -379,6 +392,8 @@ function CategoryManagementTab({
   search,
   filter,
   notice,
+  error,
+  busyId,
   onSearchChange,
   onFilterChange,
   onEdit,
@@ -393,6 +408,8 @@ function CategoryManagementTab({
   search:             string;
   filter:             CategoryFilter;
   notice:             string | null;
+  error:              string | null;
+  busyId:             string | null;
   onSearchChange:     (v: string) => void;
   onFilterChange:     (v: CategoryFilter) => void;
   onEdit:             (c: AdminProductCategory) => void;
@@ -419,8 +436,16 @@ function CategoryManagementTab({
         <SummaryCard label="Archived"          value={summary.archived}   Icon={Archive}       color="#f87171"     />
       </div>
 
+      {/* Error flash */}
+      {error && (
+        <div className="admin-surface flex items-center gap-2" style={{ padding: "10px 12px", borderColor: "rgba(239,68,68,0.28)" }}>
+          <AlertTriangle size={14} style={{ color: "#f87171" }} />
+          <p style={{ fontSize: 12, color: "#fca5a5" }}>{error}</p>
+        </div>
+      )}
+
       {/* Notice flash */}
-      {notice && (
+      {notice && !error && (
         <div className="admin-surface flex items-center gap-2" style={{ padding: "10px 12px", borderColor: "rgba(74,222,128,0.20)" }}>
           <Check size={14} style={{ color: "#4ade80" }} />
           <p style={{ fontSize: 12, color: "var(--cream-dim)" }}>{notice}</p>
@@ -474,6 +499,7 @@ function CategoryManagementTab({
               key={cat.id}
               category={cat}
               sortedCategories={sortedCategories}
+              busy={busyId === cat.id}
               onEdit={onEdit}
               onArchive={onArchive}
               onRestore={onRestore}
@@ -490,6 +516,19 @@ function CategoryManagementTab({
 
 // ─── CategoryDrawer (simplified) ─────────────────────────────────────────────
 
+function buildCategoryForm(category: AdminProductCategory | null, fallbackSortOrder: number): CategoryFormState {
+  return {
+    nameEn:        category?.nameEn        ?? "",
+    nameAr:        category?.nameAr        ?? "",
+    slug:          category?.slug          ?? "",
+    descriptionEn: category?.descriptionEn ?? "",
+    descriptionAr: category?.descriptionAr ?? "",
+    status:        category?.status        ?? "draft",
+    sortOrder:     String(category?.sortOrder ?? fallbackSortOrder),
+    showOnWebsite: category?.showOnWebsite ?? false,
+  };
+}
+
 function CategoryDrawer({
   state,
   categories,
@@ -499,19 +538,19 @@ function CategoryDrawer({
   state:      CategoryDrawerState;
   categories: AdminProductCategory[];
   onClose:    () => void;
-  onSave:     (category: AdminProductCategory) => void;
+  onSave:     (id: string, payload: AdminCategoryUpdateInput) => Promise<void>;
 }) {
   const editing          = state.mode === "edit";
   const existingCategory = editing ? state.category : null;
+  const initialForm      = useMemo(
+    () => buildCategoryForm(existingCategory, categories.length * 10 + 10),
+    [existingCategory, categories.length],
+  );
   const [slugTouched, setSlugTouched] = useState(editing);
-  const [form, setForm]  = useState<CategoryFormState>(() => ({
-    nameEn:        existingCategory?.nameEn        ?? "",
-    nameAr:        existingCategory?.nameAr        ?? "",
-    slug:          existingCategory?.slug          ?? "",
-    status:        existingCategory?.status        ?? "draft",
-    sortOrder:     String(existingCategory?.sortOrder ?? categories.length * 10 + 10),
-    showOnWebsite: existingCategory?.showOnWebsite ?? false,
-  }));
+  const [form, setForm]  = useState<CategoryFormState>(initialForm);
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const normalizedSlug = form.slug.trim().toLowerCase();
 
@@ -525,11 +564,29 @@ function CategoryDrawer({
       errs.push("Slug must use lowercase letters, numbers, and hyphens only.");
     if (normalizedSlug && categories.some((c) => c.id !== existingCategory?.id && c.slug === normalizedSlug))
       errs.push("Slug must be locally unique.");
-    if (!Number.isFinite(sortNum)) errs.push("Sort order must be numeric.");
+    if (!Number.isFinite(sortNum) || sortNum < 0) errs.push("Sort order must be a non-negative number.");
     if (form.status === "archived" && form.showOnWebsite)
       errs.push("Archived categories cannot show on website.");
     return errs;
   }, [categories, existingCategory?.id, form, normalizedSlug]);
+
+  // Only what actually changed vs. the loaded row — keeps the Save honest and
+  // avoids firing the slug-sync trigger when the slug was not touched.
+  const changedPayload = useMemo<AdminCategoryUpdateInput>(() => {
+    const payload: AdminCategoryUpdateInput = {};
+    if (form.nameEn.trim() !== initialForm.nameEn.trim()) payload.nameEn = form.nameEn;
+    if (form.nameAr.trim() !== initialForm.nameAr.trim()) payload.nameAr = form.nameAr;
+    if (normalizedSlug !== initialForm.slug.trim().toLowerCase()) payload.slug = normalizedSlug;
+    if (form.descriptionEn.trim() !== initialForm.descriptionEn.trim()) payload.descriptionEn = form.descriptionEn;
+    if (form.descriptionAr.trim() !== initialForm.descriptionAr.trim()) payload.descriptionAr = form.descriptionAr;
+    if (form.status !== initialForm.status) payload.status = form.status;
+    if (form.showOnWebsite !== initialForm.showOnWebsite) payload.showOnWebsite = form.showOnWebsite;
+    if (Number(form.sortOrder) !== Number(initialForm.sortOrder)) payload.sortOrder = Number(form.sortOrder);
+    return payload;
+  }, [form, initialForm, normalizedSlug]);
+
+  const dirty = Object.keys(changedPayload).length > 0;
+  const canSave = editing && dirty && errors.length === 0 && !saving;
 
   const inputStyle = {
     background: "rgba(255,255,255,0.045)",
@@ -538,6 +595,7 @@ function CategoryDrawer({
   };
 
   const setNameEn = (value: string) => {
+    setErrorMsg(null);
     setForm((prev) => ({
       ...prev,
       nameEn: value,
@@ -546,6 +604,7 @@ function CategoryDrawer({
   };
 
   const setStatus = (status: AdminCategoryStatus) => {
+    setErrorMsg(null);
     setForm((prev) => ({
       ...prev,
       status,
@@ -553,28 +612,19 @@ function CategoryDrawer({
     }));
   };
 
-  const saveCategory = () => {
-    if (errors.length > 0) return;
-    const now = new Date().toISOString();
-    onSave({
-      id:             existingCategory?.id ?? `cat-${normalizedSlug}-${Date.now()}`,
-      nameEn:         form.nameEn.trim(),
-      nameAr:         form.nameAr.trim(),
-      slug:           normalizedSlug,
-      descriptionEn:  existingCategory?.descriptionEn ?? "",
-      descriptionAr:  existingCategory?.descriptionAr ?? "",
-      status:         form.status,
-      visibility:     existingCategory?.visibility ?? "public",
-      sortOrder:      Number(form.sortOrder),
-      productCount:   existingCategory?.productCount ?? 0,
-      featured:       existingCategory?.featured ?? false,
-      showOnWebsite:  form.status === "archived" ? false : form.showOnWebsite,
-      source:         existingCategory?.source ?? "manual",
-      createdAt:      existingCategory?.createdAt ?? now,
-      updatedAt:      now,
-      notes:          existingCategory?.notes,
-    });
-    onClose();
+  const saveCategory = async () => {
+    if (!canSave || !existingCategory) return;
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      await onSave(existingCategory.id, changedPayload);
+      setSaved(true);
+      setTimeout(() => onClose(), 700);
+    } catch (error) {
+      setErrorMsg(writeErrorMessage(error, "Could not save category. Please try again."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -669,13 +719,36 @@ function CategoryDrawer({
             ]}
           />
 
+          {/* Descriptions */}
+          <FieldLabel>
+            Description (English)
+            <textarea
+              value={form.descriptionEn}
+              onChange={(e) => { setErrorMsg(null); setForm((prev) => ({ ...prev, descriptionEn: e.target.value })); }}
+              rows={2}
+              className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none resize-y"
+              style={inputStyle}
+            />
+          </FieldLabel>
+          <FieldLabel>
+            Description (Arabic)
+            <textarea
+              value={form.descriptionAr}
+              onChange={(e) => { setErrorMsg(null); setForm((prev) => ({ ...prev, descriptionAr: e.target.value })); }}
+              dir="rtl"
+              rows={2}
+              className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none resize-y"
+              style={inputStyle}
+            />
+          </FieldLabel>
+
           {/* Sort order */}
           <FieldLabel>
             Sort order
             <input
               type="number"
               value={form.sortOrder}
-              onChange={(e) => setForm((prev) => ({ ...prev, sortOrder: e.target.value }))}
+              onChange={(e) => { setErrorMsg(null); setForm((prev) => ({ ...prev, sortOrder: e.target.value })); }}
               className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none"
               style={inputStyle}
             />
@@ -713,32 +786,43 @@ function CategoryDrawer({
             </div>
           )}
 
+          {/* Save error */}
+          {errorMsg && (
+            <div className="rounded-xl p-3" style={{ background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)" }}>
+              <p style={{ fontSize: 11.5, color: "#fca5a5" }}>{errorMsg}</p>
+            </div>
+          )}
+
           {/* Info note */}
           <div className="rounded-xl p-3" style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.14)" }}>
             <p style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.65 }}>
-              A category appears on the website only when it is visible and Visible on Website is enabled. {READ_ONLY_NOTICE}
+              A category appears on the website only when its status is <strong>Visible</strong> and Visible on Website is enabled.
+              Renaming the slug updates this category&rsquo;s product links automatically.
             </p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderTop: "1px solid rgba(182,136,94,0.12)" }}>
+          {saved && <span style={{ marginRight: "auto", fontSize: 12, color: "#4ade80", fontWeight: 600 }}>✓ Saved</span>}
+          {!saved && dirty && !saving && <span style={{ marginRight: "auto", fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.5 }}>Unsaved changes</span>}
           <button
             type="button"
             onClick={onClose}
+            disabled={saving}
             className="rounded-lg px-4 py-2 text-[12.5px] font-semibold"
-            style={{ background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)" }}
+            style={{ background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)", cursor: saving ? "not-allowed" : "pointer" }}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={saveCategory}
-            disabled={errors.length > 0}
+            disabled={!canSave}
             className="rounded-lg px-4 py-2 text-[12.5px] font-semibold"
-            style={{ background: errors.length > 0 ? "rgba(182,136,94,0.07)" : "rgba(182,136,94,0.18)", color: errors.length > 0 ? "rgba(245,232,209,0.32)" : "var(--gold)", border: "1px solid rgba(182,136,94,0.22)", cursor: errors.length > 0 ? "not-allowed" : "pointer" }}
+            style={{ background: canSave ? "rgba(182,136,94,0.18)" : "rgba(182,136,94,0.07)", color: canSave ? "var(--gold)" : "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.22)", cursor: canSave ? "pointer" : "not-allowed" }}
           >
-            Read-only
+            {saving ? "Saving…" : "Save changes"}
           </button>
         </div>
       </div>
@@ -943,6 +1027,8 @@ export default function ProductsPage() {
   const [categoryFilter,   setCategoryFilter]   = useState<CategoryFilter>("all");
   const [categoryDrawer,   setCategoryDrawer]   = useState<CategoryDrawerState | null>(null);
   const [categoryNotice,   setCategoryNotice]   = useState<string | null>(null);
+  const [categoryError,    setCategoryError]    = useState<string | null>(null);
+  const [categoryBusyId,   setCategoryBusyId]   = useState<string | null>(null);
   const router = useRouter();
 
   // Re-reads products + categories from Supabase without toggling the full-page
@@ -1041,27 +1127,82 @@ export default function ProductsPage() {
     if (newSlug) setDrawerSlug(newSlug);
   };
 
-  const handleSaveCategory = (next: AdminProductCategory) => {
-    setCategoryNotice(`${next.nameEn}: ${READ_ONLY_NOTICE}`);
+  // Persists the drawer edit, then refreshes from Supabase. Throws on failure so
+  // the drawer can surface the exact error and stay open.
+  const handleSaveCategory = async (id: string, payload: AdminCategoryUpdateInput) => {
+    setCategoryError(null);
+    await updateAdminCategory(id, payload);
+    await reloadCatalog();
+    setCategoryNotice("Category saved.");
   };
 
-  const handleArchiveCategory = (item: AdminProductCategory) => {
-    setCategoryNotice(`${item.nameEn}: ${READ_ONLY_NOTICE}`);
+  const handleArchiveCategory = async (item: AdminProductCategory) => {
+    setCategoryNotice(null);
+    setCategoryError(null);
+    setCategoryBusyId(item.id);
+    try {
+      await archiveAdminCategory(item.id);
+      await reloadCatalog();
+      setCategoryNotice(`${item.nameEn} archived — hidden from the website, still here in admin.`);
+    } catch (error) {
+      setCategoryError(writeErrorMessage(error, `Could not archive ${item.nameEn}.`));
+    } finally {
+      setCategoryBusyId(null);
+    }
   };
 
-  const handleRestoreCategory = (item: AdminProductCategory) => {
-    setCategoryNotice(`${item.nameEn}: ${READ_ONLY_NOTICE}`);
+  const handleRestoreCategory = async (item: AdminProductCategory) => {
+    setCategoryNotice(null);
+    setCategoryError(null);
+    setCategoryBusyId(item.id);
+    try {
+      await restoreAdminCategory(item.id);
+      await reloadCatalog();
+      setCategoryNotice(`${item.nameEn} restored. It stays off the website until you press Show.`);
+    } catch (error) {
+      setCategoryError(writeErrorMessage(error, `Could not restore ${item.nameEn}.`));
+    } finally {
+      setCategoryBusyId(null);
+    }
   };
 
-  const handleMoveCategory = (categoryId: string, direction: "up" | "down") => {
-    void categoryId;
-    void direction;
-    setCategoryNotice(READ_ONLY_NOTICE);
+  const handleMoveCategory = async (categoryId: string, direction: "up" | "down") => {
+    const ordered = [...sortedCategories];
+    const idx = ordered.findIndex((c) => c.id === categoryId);
+    if (idx === -1) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= ordered.length) return;
+    [ordered[idx], ordered[swapWith]] = [ordered[swapWith], ordered[idx]];
+
+    setCategoryNotice(null);
+    setCategoryError(null);
+    setCategoryBusyId(categoryId);
+    try {
+      await reorderAdminCategories(ordered.map((c) => c.id));
+      await reloadCatalog();
+      setCategoryNotice("Category order updated.");
+    } catch (error) {
+      setCategoryError(writeErrorMessage(error, "Could not reorder categories."));
+    } finally {
+      setCategoryBusyId(null);
+    }
   };
 
-  const handleToggleShowOnWebsite = (item: AdminProductCategory) => {
+  const handleToggleShowOnWebsite = async (item: AdminProductCategory) => {
     if (item.status === "archived" || item.status === "draft") return;
-    setCategoryNotice(`${item.nameEn}: ${READ_ONLY_NOTICE}`);
+    const next = !item.showOnWebsite;
+    setCategoryNotice(null);
+    setCategoryError(null);
+    setCategoryBusyId(item.id);
+    try {
+      await updateAdminCategory(item.id, { showOnWebsite: next });
+      await reloadCatalog();
+      setCategoryNotice(`${item.nameEn} ${next ? "is now visible on" : "is now hidden from"} the website.`);
+    } catch (error) {
+      setCategoryError(writeErrorMessage(error, `Could not update ${item.nameEn}.`));
+    } finally {
+      setCategoryBusyId(null);
+    }
   };
 
   const handleViewProductsFromCategory = (slug: string) => {
@@ -1138,12 +1279,14 @@ export default function ProductsPage() {
           ) : (
             <button
               type="button"
-              onClick={() => setCategoryNotice(READ_ONLY_NOTICE)}
+              disabled
+              title={CATEGORY_CREATE_NOTICE}
+              aria-label={CATEGORY_CREATE_NOTICE}
               className="inline-flex items-center gap-2"
-              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.30)" }}
+              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.08)", color: "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.14)", cursor: "not-allowed" }}
             >
               <Plus size={14} />
-              Add Category
+              Add Category — coming soon
             </button>
           )}
         </div>
@@ -1270,9 +1413,11 @@ export default function ProductsPage() {
             search={categorySearch}
             filter={categoryFilter}
             notice={categoryNotice}
+            error={categoryError}
+            busyId={categoryBusyId}
             onSearchChange={setCategorySearch}
             onFilterChange={setCategoryFilter}
-            onEdit={(c) => { setCategoryNotice(null); setCategoryDrawer({ mode: "edit", category: c }); }}
+            onEdit={(c) => { setCategoryNotice(null); setCategoryError(null); setCategoryDrawer({ mode: "edit", category: c }); }}
             onArchive={handleArchiveCategory}
             onRestore={handleRestoreCategory}
             onMove={handleMoveCategory}

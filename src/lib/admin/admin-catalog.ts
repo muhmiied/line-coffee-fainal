@@ -819,3 +819,117 @@ export async function updateAdminProductVariantPrices(
     if (error) throw writeError("product_variants", error);
   }
 }
+
+// ─── WRITE LAYER — admin category management ─────────────────────────────────
+// Scope: update existing categories only (name, slug, description, status,
+// website visibility, sort order) + archive/restore + reorder. No create/delete.
+// RLS (categories_admin_all `for all ... is_admin()`) already gates these writes
+// to admins; the matching table-level UPDATE grant + the category_slug sync
+// trigger are added in the admin_categories_write migration.
+// updated_at is set automatically by trg_categories_updated_at — never set here.
+//
+// SLUG SAFETY: products.category_slug is a denormalized mirror used by the
+// public_products view and /products/category/[slug]. When a category slug
+// changes, the DB trigger trg_categories_sync_slug rewrites every child
+// product's category_slug in the SAME transaction, so the public catalog never
+// points at a stale slug. The app therefore only writes the category row.
+
+export interface AdminCategoryUpdateInput {
+  nameEn?: string;
+  nameAr?: string;
+  slug?: string;
+  /** null clears the column; string sets it; undefined leaves it untouched. */
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
+  status?: AdminCategoryStatus;
+  showOnWebsite?: boolean;
+  sortOrder?: number;
+}
+
+/** Update the editable columns of a single category row. */
+export async function updateAdminCategory(
+  categoryId: string,
+  input: AdminCategoryUpdateInput,
+) {
+  if (!categoryId) throw new AdminCatalogWriteError("Missing category id for update.");
+
+  const patch: Record<string, unknown> = {};
+
+  if (input.nameEn !== undefined) {
+    const value = input.nameEn.trim();
+    if (!value) throw new AdminCatalogWriteError("Category English name cannot be empty.");
+    patch.name_en = value;
+  }
+  if (input.nameAr !== undefined) {
+    const value = input.nameAr.trim();
+    if (!value) throw new AdminCatalogWriteError("Category Arabic name cannot be empty.");
+    patch.name_ar = value;
+  }
+  if (input.slug !== undefined) {
+    const value = input.slug.trim().toLowerCase();
+    if (!value) throw new AdminCatalogWriteError("Category slug cannot be empty.");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
+      throw new AdminCatalogWriteError(
+        "Category slug must use lowercase letters, numbers, and single hyphens.",
+      );
+    }
+    patch.slug = value;
+  }
+  if (input.descriptionEn !== undefined) {
+    patch.description_en = input.descriptionEn?.trim() || null;
+  }
+  if (input.descriptionAr !== undefined) {
+    patch.description_ar = input.descriptionAr?.trim() || null;
+  }
+  if (input.status !== undefined) patch.status = input.status;
+  if (input.showOnWebsite !== undefined) patch.show_on_website = input.showOnWebsite;
+  if (input.sortOrder !== undefined) {
+    if (!Number.isFinite(input.sortOrder) || input.sortOrder < 0) {
+      throw new AdminCatalogWriteError("Sort order must be a non-negative number.");
+    }
+    patch.sort_order = Math.round(input.sortOrder);
+  }
+
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase.from("categories").update(patch).eq("id", categoryId);
+  if (error) throw writeError("categories", error);
+}
+
+/**
+ * Archive a category: hide it everywhere public but keep it in the admin list.
+ * status='archived' fails the public_categories filter (status='visible'); we
+ * also clear show_on_website so a later restore does not silently republish it.
+ */
+export async function archiveAdminCategory(categoryId: string) {
+  return updateAdminCategory(categoryId, { status: "archived", showOnWebsite: false });
+}
+
+/**
+ * Restore an archived category back to admin-visible. It returns as status
+ * 'visible' but stays OFF the website (show_on_website was cleared on archive)
+ * until an admin explicitly toggles "Show" — restore never auto-publishes.
+ */
+export async function restoreAdminCategory(categoryId: string) {
+  return updateAdminCategory(categoryId, { status: "visible" });
+}
+
+/**
+ * Persist a new category display order. Writes sequential sort_order values
+ * (10, 20, 30 …) for the given id list so the order is unambiguous and survives
+ * refresh. sort_order is non-unique, so there are no collisions. Pass the FULL
+ * ordered id list (move up/down should reorder the complete sorted set).
+ */
+export async function reorderAdminCategories(orderedCategoryIds: string[]) {
+  if (orderedCategoryIds.length === 0) return;
+
+  for (let index = 0; index < orderedCategoryIds.length; index += 1) {
+    const id = orderedCategoryIds[index];
+    if (!id) continue;
+    const { error } = await supabase
+      .from("categories")
+      .update({ sort_order: (index + 1) * 10 })
+      .eq("id", id);
+    if (error) throw writeError("categories", error);
+  }
+}

@@ -155,6 +155,28 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-26] — Admin Categories Write Layer (edit / visibility / reorder / archive-restore)
+
+**Goal:** Make the Admin Products → Categories tab actually persist to Supabase. Previously the whole tab was wired to a "Read-only until the admin catalog write layer is implemented" notice — edit, archive/restore, move up/down, and show/hide all did nothing.
+
+**`src/lib/admin/admin-catalog.ts`** — added the category write layer alongside the existing product writes:
+- `AdminCategoryUpdateInput` + `updateAdminCategory(categoryId, payload)` — patches only provided columns: `name_en/name_ar`, `slug` (validated lowercase/hyphen), `description_en/ar` (trim→null when empty), `status`, `show_on_website`, `sort_order` (≥0). Empty patch is a no-op. `updated_at` left to `trg_categories_updated_at`.
+- `archiveAdminCategory(id)` — `status='archived'` + `show_on_website=false` (never hard delete).
+- `restoreAdminCategory(id)` — `status='visible'`; intentionally does NOT auto-republish (show_on_website stays false until admin presses Show).
+- `reorderAdminCategories(orderedIds)` — writes sequential `sort_order` (10,20,30…) for the full ordered list so order is unambiguous and survives refresh.
+
+**`src/app/admin/products/page.tsx`** — replaced all category stub handlers with real async Supabase calls + `reloadCatalog()`; added `categoryError` + `categoryBusyId` state. CategoryDrawer rebuilt into a real editor: added Description EN/AR fields, dirty tracking (Save enables only on change), Save/Saving…/✓ Saved/error states, and it sends only changed fields (so the slug-sync trigger only fires when the slug actually changes). Per-card action buttons disable while that card's write is in flight; green success + red error banners. "Add Category" is now an honest disabled "coming soon" (create is out of scope, matching Add Product).
+
+**`supabase/migrations/20260626160000_admin_categories_write.sql`** (new — authored, NOT applied) — (1) `grant update on public.categories to authenticated` (the read-grants migration only granted SELECT; the product write-grants migration deliberately skipped categories). RLS `categories_admin_all` (`for all … is_admin()`) already covers the row policy, so no new policy. (2) **`trg_categories_sync_slug`** trigger + `sync_products_category_slug()` (SECURITY INVOKER): when a category's slug changes it rewrites every child `products.category_slug` in the SAME transaction — `products.category_slug` is denormalized and feeds `public_products` / `/products/category/[slug]`, so without this a rename would break the public category page. Fires only on slug change. Idempotent.
+
+**Public impact:** hiding/archiving a category drops it from `public_categories` → gone from `/products` nav and `validCategories`; its products do NOT break (still individually reachable via `/products/[slug]`). Category name/order/visibility on the public site follow the stored Supabase values.
+
+**Limitations (documented):** category create/delete still out of scope (archive instead of delete). Toggling "Show" on a `hidden`-status category won't surface it publicly until status is `visible` (public_categories requires both). A hidden category's direct `/products/category/[slug]` URL still lists its published products (hiding a category ≠ unpublishing products).
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ 39 routes. Migration authored only — run `supabase db push` before testing admin category writes (writes will fail with permission-denied until the UPDATE grant is applied).
+
+---
+
 ### [2026-06-26] — Berry Cleanup Follow-up: Hard-Delete Hot Chocolate + Remove Builder "Berries"
 
 **Owner decision (follow-up to the entry below):** the plain berry Hot Chocolate must be gone from the admin dashboard too (not just archived), and the Make Your Flavor builder should keep "Blueberry / توت أزرق" only.
