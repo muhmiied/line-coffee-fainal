@@ -155,6 +155,30 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-27] — Admin Product Create + Admin Category Create
+
+**Goal:** Wire the previously-disabled "+ Add Product" / "+ Add Category" buttons to real Supabase create flows.
+
+**`src/lib/admin/admin-catalog.ts`** — added the create layer: `generateVariantSku(slug, size)` (`{slug}-{size}`), `checkAdminProductSlugAvailable`, `checkAdminCategorySlugAvailable`, `getNextCategorySortOrder`, `createAdminProduct(input)` (validates, pre-checks slug, computes `new_until = now+40d` when New, calls the `create_admin_product` RPC, returns `{id, slug}`), `createAdminCategory(input)` (validates, pre-checks slug, defaults sort_order to end, client-side insert with `source='admin'`). Plus `AdminProductCreateInput` / `AdminCategoryCreateInput` types.
+
+**`src/components/admin/products/ProductCreateDrawer.tsx`** (new) — create drawer: category select, EN/AR name, auto+editable slug, EN/AR description, 250g/500g/1kg prices (required), purchase cost/kg (optional), New (default on)/Featured/Best Seller/Show-on-website (default off) toggles. Single state object (one setState in the open-reset effect, matching ProductDrawer / the set-state-in-effect rule). Validation, Creating…/✓ Created/error states. On success the page refreshes the grid and opens the new product in the existing ProductDrawer.
+
+**`src/app/admin/products/page.tsx`** — both header buttons now active: Add Product opens ProductCreateDrawer; Add Category opens the shared CategoryDrawer in `add` mode. CategoryDrawer extended to handle create+edit via a discriminated `onSubmit` ({mode:"create",input} | {mode:"edit",id,payload}); create mode enables Save when valid (no dirty requirement) and shows Create category / Creating… / ✓ Created. Added `handleCreateProduct` + `handleCategorySubmit`; removed the dead mock `AddProductDrawer` + its unused constants.
+
+**`supabase/migrations/20260627090000_admin_catalog_create.sql`** (new — authored, NOT applied):
+- `grant insert on public.categories to authenticated` — category create is a single insert gated by the existing `categories_admin_all` RLS; only the table privilege was missing.
+- **`create_admin_product(...)` RPC** (SECURITY DEFINER, guarded by `if not public.is_admin() then raise`) — inserts the product + its 3 variants in ONE transaction (atomic: a product can never exist without variants). Forces public-safe defaults (`status='draft'`, `visibility='hidden'`, `show_on_website=false`) regardless of input, sets `category_slug` from the parent category, stores deterministic SKUs literally, and writes the create-form description into `notes_en/notes_ar` (the columns ProductDrawer reads). Because it's DEFINER, **no INSERT grant on products/product_variants** is given to authenticated — base-table inserts stay locked to the guarded function. `grant execute … to authenticated`, revoked from anon/public.
+
+**Defaults for new rows:** product → draft / hidden / off-website, New on (new_until now+40d), featured/bestSeller off, pricing_model 'fixed', sale_price_per_kg = 1kg price; category → status 'draft', show_on_website false, sort_order = last+10, source 'admin'. Nothing is public until an admin reviews and publishes.
+
+**SKU / variants:** `create_admin_product` always creates exactly 250g/500g/1kg with SKUs `{slug}-250g/-500g/-1kg`, stored literally so a later slug rename does not change them. Slug uniqueness is pre-checked in the data layer (clear error) and enforced by the DB unique constraint.
+
+**Out of scope (unchanged):** no image/gallery upload, no inventory/stock creation, no product/category delete.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ 39 routes. Migration authored only — run `supabase db push` before testing (creates fail with permission-denied until the categories INSERT grant + the RPC are applied).
+
+---
+
 ### [2026-06-26] — Admin Categories Write Layer (edit / visibility / reorder / archive-restore)
 
 **Goal:** Make the Admin Products → Categories tab actually persist to Supabase. Previously the whole tab was wired to a "Read-only until the admin catalog write layer is implemented" notice — edit, archive/restore, move up/down, and show/hide all did nothing.

@@ -25,21 +25,23 @@ import {
 } from "lucide-react";
 import {
   archiveAdminCategory,
+  createAdminCategory,
+  createAdminProduct,
   getAdminCategories,
   getAdminProductsWithVariants,
   reorderAdminCategories,
   restoreAdminCategory,
   updateAdminCategory,
+  type AdminCategoryCreateInput,
   type AdminCategoryStatus,
   type AdminCategoryUpdateInput,
   type AdminProduct,
   type AdminProductCategory,
+  type AdminProductCreateInput,
   type ProductStatus,
 } from "@/lib/admin/admin-catalog";
 import ProductDrawer from "@/components/admin/products/ProductDrawer";
-
-const PRODUCT_CREATE_NOTICE = "Product create flow is not implemented yet.";
-const CATEGORY_CREATE_NOTICE = "Category create flow is not implemented yet — you can edit existing categories.";
+import ProductCreateDrawer from "@/components/admin/products/ProductCreateDrawer";
 
 function writeErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -529,16 +531,20 @@ function buildCategoryForm(category: AdminProductCategory | null, fallbackSortOr
   };
 }
 
+type CategorySubmit =
+  | { mode: "create"; input: AdminCategoryCreateInput }
+  | { mode: "edit"; id: string; payload: AdminCategoryUpdateInput };
+
 function CategoryDrawer({
   state,
   categories,
   onClose,
-  onSave,
+  onSubmit,
 }: {
   state:      CategoryDrawerState;
   categories: AdminProductCategory[];
   onClose:    () => void;
-  onSave:     (id: string, payload: AdminCategoryUpdateInput) => Promise<void>;
+  onSubmit:   (submit: CategorySubmit) => Promise<void>;
 }) {
   const editing          = state.mode === "edit";
   const existingCategory = editing ? state.category : null;
@@ -586,7 +592,7 @@ function CategoryDrawer({
   }, [form, initialForm, normalizedSlug]);
 
   const dirty = Object.keys(changedPayload).length > 0;
-  const canSave = editing && dirty && errors.length === 0 && !saving;
+  const canSave = (editing ? dirty : true) && errors.length === 0 && !saving;
 
   const inputStyle = {
     background: "rgba(255,255,255,0.045)",
@@ -613,11 +619,27 @@ function CategoryDrawer({
   };
 
   const saveCategory = async () => {
-    if (!canSave || !existingCategory) return;
+    if (!canSave) return;
     setSaving(true);
     setErrorMsg(null);
     try {
-      await onSave(existingCategory.id, changedPayload);
+      if (editing && existingCategory) {
+        await onSubmit({ mode: "edit", id: existingCategory.id, payload: changedPayload });
+      } else {
+        await onSubmit({
+          mode: "create",
+          input: {
+            nameEn: form.nameEn,
+            nameAr: form.nameAr,
+            slug: normalizedSlug,
+            descriptionEn: form.descriptionEn,
+            descriptionAr: form.descriptionAr,
+            status: form.status,
+            showOnWebsite: form.showOnWebsite,
+            sortOrder: Number(form.sortOrder),
+          },
+        });
+      }
       setSaved(true);
       setTimeout(() => onClose(), 700);
     } catch (error) {
@@ -804,8 +826,8 @@ function CategoryDrawer({
 
         {/* Footer */}
         <div className="sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderTop: "1px solid rgba(182,136,94,0.12)" }}>
-          {saved && <span style={{ marginRight: "auto", fontSize: 12, color: "#4ade80", fontWeight: 600 }}>✓ Saved</span>}
-          {!saved && dirty && !saving && <span style={{ marginRight: "auto", fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.5 }}>Unsaved changes</span>}
+          {saved && <span style={{ marginRight: "auto", fontSize: 12, color: "#4ade80", fontWeight: 600 }}>{editing ? "✓ Saved" : "✓ Created"}</span>}
+          {!saved && editing && dirty && !saving && <span style={{ marginRight: "auto", fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.5 }}>Unsaved changes</span>}
           <button
             type="button"
             onClick={onClose}
@@ -822,190 +844,8 @@ function CategoryDrawer({
             className="rounded-lg px-4 py-2 text-[12.5px] font-semibold"
             style={{ background: canSave ? "rgba(182,136,94,0.18)" : "rgba(182,136,94,0.07)", color: canSave ? "var(--gold)" : "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.22)", cursor: canSave ? "pointer" : "not-allowed" }}
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? (editing ? "Saving…" : "Creating…") : (editing ? "Save changes" : "Create category")}
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── AddProductDrawer ─────────────────────────────────────────────────────────
-
-type AddProductForm = {
-  nameEn: string;
-  nameAr: string;
-  category: string;
-  price250: string;
-  price500: string;
-  pricePerKg: string;
-  costPerKg: string;
-  stockQty: string;
-  hidden: boolean;
-};
-
-const ADD_PRODUCT_EMPTY: AddProductForm = {
-  nameEn: "",
-  nameAr: "",
-  category: "turkish-blends",
-  price250: "",
-  price500: "",
-  pricePerKg: "",
-  costPerKg: "",
-  stockQty: "10",
-  hidden: true,
-};
-
-const SKU_PREFIXES: Record<string, string> = {
-  "turkish-blends": "TRK",
-  "espresso-blends": "ESP",
-  "easy-coffee": "ECO",
-  "coffee-mix": "MIX",
-  cappuccino: "CAP",
-  "hot-chocolate": "CHO",
-  "flavor-coffee": "FLV",
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Add product writes stay disabled in this read-only Supabase pass.
-function AddProductDrawer({
-  isOpen, onClose, onAdd, existingProducts,
-}: {
-  isOpen:           boolean;
-  onClose:          () => void;
-  onAdd:            (product: AdminProduct) => void;
-  existingProducts: AdminProduct[];
-}) {
-  const [form, setForm] = useState<AddProductForm>(ADD_PRODUCT_EMPTY);
-  const [flash, setFlash] = useState(false);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (isOpen) { setForm(ADD_PRODUCT_EMPTY); setFlash(false); } }, [isOpen]);
-
-  const errors = useMemo(() => {
-    const e: string[] = [];
-    if (!form.nameEn.trim()) e.push("English name required.");
-    if (!form.nameAr.trim()) e.push("Arabic name required.");
-    if (!Number(form.pricePerKg) || Number(form.pricePerKg) <= 0) e.push("Per KG price required.");
-    if (!Number(form.costPerKg)  || Number(form.costPerKg)  <= 0) e.push("Purchase cost required.");
-    return e;
-  }, [form]);
-
-  const handleSave = () => {
-    if (errors.length > 0) return;
-    const baseSlug = slugifyCategoryName(form.nameEn) || "new-product";
-    let slug = baseSlug, n = 2;
-    while (existingProducts.some((p) => p.slug === slug)) { slug = `${baseSlug}-${n++}`; }
-    const prefix   = SKU_PREFIXES[form.category] ?? "PRD";
-    const catCount = existingProducts.filter((p) => p.category === form.category).length + 1;
-    const sku      = `${prefix}-${String(catCount).padStart(3, "0")}`;
-    const image    = existingProducts.find((p) => p.category === form.category)?.image ?? existingProducts[0]?.image ?? "/assets/products/classic-pouch.png";
-    const p250 = Number(form.price250); const p500 = Number(form.price500); const pkg = Number(form.pricePerKg);
-    const sizes: { label: string; salePrice: number }[] = [];
-    if (p250 > 0) sizes.push({ label: "250g", salePrice: p250 });
-    if (p500 > 0) sizes.push({ label: "500g", salePrice: p500 });
-    sizes.push({ label: "1kg", salePrice: pkg });
-    const stockQty = Math.max(0, Number(form.stockQty) || 0);
-    const status   = stockQty === 0 ? "Out of Stock" : stockQty <= 5 ? "Low Stock" : "In Stock";
-    const product = {
-      name: { en: form.nameEn.trim(), ar: form.nameAr.trim() },
-      slug, category: form.category, image, sizes,
-      note: { en: "", ar: "" },
-      pricingModel: "packaged-by-weight" as const,
-      salePricePerKg: pkg, purchaseCostPerKg: Number(form.costPerKg),
-      status, hidden: form.hidden, featured: false, bestSeller: false,
-      stockQty, lowStockThreshold: 5, sku,
-      metaTitle: { en: `${form.nameEn.trim()} | Line Coffee`, ar: `${form.nameAr.trim()} | لاين كوفي` },
-      metaDescription: { en: "", ar: "" }, gallery: [],
-    } as unknown as AdminProduct;
-    setFlash(true);
-    onAdd(product);
-    setTimeout(() => { setFlash(false); onClose(); }, 800);
-  };
-
-  const inp: React.CSSProperties = { background: "rgba(255,255,255,0.045)", border: "1px solid rgba(182,136,94,0.14)", color: "var(--cream)", width: "100%", borderRadius: 10, padding: "9px 12px", fontSize: 12.5, outline: "none" };
-  const fieldLabel = (label: string, children: React.ReactNode) => (
-    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--cream-dim)", opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
-      {children}
-    </label>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[103] flex justify-end" style={{ pointerEvents: isOpen ? "auto" : "none" }}>
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0" style={{ background: isOpen ? "rgba(6,4,3,0.72)" : "transparent", backdropFilter: isOpen ? "blur(8px)" : "none", transition: "all 0.28s" }} />
-      <div className="relative h-full overflow-y-auto" style={{ width: "clamp(320px,42vw,480px)", background: "rgba(15,10,7,0.98)", borderLeft: "1px solid rgba(182,136,94,0.20)", boxShadow: "-24px 0 80px rgba(0,0,0,0.46)", transform: isOpen ? "translateX(0)" : "translateX(100%)", transition: "transform 0.32s cubic-bezier(0.22,1,0.36,1)" }}>
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderBottom: "1px solid rgba(182,136,94,0.12)" }}>
-          <div>
-            <p style={{ fontSize: 10.5, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em" }}>New Product</p>
-            <h3 style={{ marginTop: 3, fontSize: 18, fontWeight: 800, color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>Add a product</h3>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.10)", color: "var(--cream-dim)", flexShrink: 0 }}>
-            <X size={14} />
-          </button>
-        </div>
-
-        {/* Form body */}
-        <div style={{ padding: "20px 20px 100px" }} className="space-y-4">
-          {/* Names */}
-          <div className="grid grid-cols-2 gap-3">
-            {fieldLabel("English Name *", <input type="text" value={form.nameEn} onChange={(e) => setForm((p) => ({ ...p, nameEn: e.target.value }))} style={inp} />)}
-            {fieldLabel("Arabic Name *", <input type="text" value={form.nameAr} onChange={(e) => setForm((p) => ({ ...p, nameAr: e.target.value }))} dir="rtl" style={inp} />)}
-          </div>
-
-          {/* Category */}
-          {fieldLabel("Category *", (
-            <select value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} style={{ ...inp, cursor: "pointer" }}>
-              {Array.from(new Set(existingProducts.map((product) => product.category))).map((slug) => (
-                <option key={slug} value={slug} style={{ background: "#0f0a07" }}>
-                  {slug.replace(/-/g, " ")}
-                </option>
-              ))}
-            </select>
-          ))}
-
-          {/* Prices */}
-          <div className="grid grid-cols-3 gap-3">
-            {fieldLabel("250g (EGP)", <input type="number" min="0" value={form.price250} onChange={(e) => setForm((p) => ({ ...p, price250: e.target.value }))} style={inp} placeholder="optional" />)}
-            {fieldLabel("500g (EGP)", <input type="number" min="0" value={form.price500} onChange={(e) => setForm((p) => ({ ...p, price500: e.target.value }))} style={inp} placeholder="optional" />)}
-            {fieldLabel("Per KG (EGP) *", <input type="number" min="0" value={form.pricePerKg} onChange={(e) => setForm((p) => ({ ...p, pricePerKg: e.target.value }))} style={inp} placeholder="0" />)}
-          </div>
-
-          {/* Cost + Stock */}
-          <div className="grid grid-cols-2 gap-3">
-            {fieldLabel("Cost / KG (EGP) *", <input type="number" min="0" value={form.costPerKg} onChange={(e) => setForm((p) => ({ ...p, costPerKg: e.target.value }))} style={inp} placeholder="0" />)}
-            {fieldLabel("Initial Stock (units)", <input type="number" min="0" value={form.stockQty} onChange={(e) => setForm((p) => ({ ...p, stockQty: e.target.value }))} style={inp} />)}
-          </div>
-
-          {/* Visibility toggle */}
-          <button type="button" onClick={() => setForm((p) => ({ ...p, hidden: !p.hidden }))} className="w-full flex items-center justify-between gap-3 text-left" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", borderRadius: 10, padding: "10px 12px" }}>
-            <span>
-              <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--cream)" }}>Visible on website</span>
-              <span style={{ display: "block", fontSize: 11, color: "var(--cream-dim)", opacity: 0.45 }}>New products are hidden by default.</span>
-            </span>
-            <span style={{ color: !form.hidden ? "#4ade80" : "rgba(245,232,209,0.30)", flexShrink: 0 }}>
-              {!form.hidden ? <Eye size={16} /> : <EyeOff size={16} />}
-            </span>
-          </button>
-
-          {/* Errors */}
-          {errors.length > 0 && (
-            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", borderRadius: 10, padding: "10px 12px" }}>
-              {errors.map((err) => <p key={err} style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.5 }}>{err}</p>)}
-            </div>
-          )}
-
-          {/* Note */}
-          <div style={{ background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.12)", borderRadius: 10, padding: "9px 12px" }}>
-            <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.55 }}>Mock only — resets on refresh. Image is auto-assigned from the selected category.</p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderTop: "1px solid rgba(182,136,94,0.12)" }}>
-          {flash && <span style={{ marginRight: "auto", fontSize: 12, color: "#4ade80", fontWeight: 600 }}>✓ Added</span>}
-          <button type="button" onClick={onClose} style={{ padding: "7px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)" }}>Cancel</button>
-          <button type="button" onClick={handleSave} disabled={errors.length > 0} style={{ padding: "7px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, background: errors.length > 0 ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.18)", color: errors.length > 0 ? "rgba(245,232,209,0.30)" : "var(--gold)", border: "1px solid rgba(182,136,94,0.22)", cursor: errors.length > 0 ? "not-allowed" : "pointer" }}>Add Product</button>
         </div>
       </div>
     </div>
@@ -1019,6 +859,7 @@ export default function ProductsPage() {
   const [search,           setSearch]           = useState("");
   const [category,         setCategory]         = useState<string>("all");
   const [drawerSlug,       setDrawerSlug]       = useState<string | null>(null);
+  const [productCreateOpen, setProductCreateOpen] = useState(false);
   const [products,         setProducts]         = useState<AdminProduct[]>([]);
   const [categories,       setCategories]       = useState<AdminProductCategory[]>([]);
   const [isLoading,        setIsLoading]        = useState(true);
@@ -1127,13 +968,32 @@ export default function ProductsPage() {
     if (newSlug) setDrawerSlug(newSlug);
   };
 
-  // Persists the drawer edit, then refreshes from Supabase. Throws on failure so
-  // the drawer can surface the exact error and stay open.
-  const handleSaveCategory = async (id: string, payload: AdminCategoryUpdateInput) => {
-    setCategoryError(null);
-    await updateAdminCategory(id, payload);
+  // Creates product + 3 variants (atomic RPC), refreshes the grid, and opens the
+  // new product in the existing ProductDrawer. Throws on failure so the create
+  // drawer can show the exact error and stay open.
+  const handleCreateProduct = async (input: AdminProductCreateInput) => {
+    const { slug } = await createAdminProduct(input);
     await reloadCatalog();
-    setCategoryNotice("Category saved.");
+    setProductCreateOpen(false);
+    setActiveTab("products");
+    setCategory("all");
+    setSearch("");
+    setDrawerSlug(slug);
+  };
+
+  // Handles both category create and edit from the shared CategoryDrawer.
+  // Throws on failure so the drawer surfaces the exact error and stays open.
+  const handleCategorySubmit = async (submit: CategorySubmit) => {
+    setCategoryError(null);
+    if (submit.mode === "create") {
+      await createAdminCategory(submit.input);
+      await reloadCatalog();
+      setCategoryNotice("Category created — hidden until you publish it.");
+    } else {
+      await updateAdminCategory(submit.id, submit.payload);
+      await reloadCatalog();
+      setCategoryNotice("Category saved.");
+    }
   };
 
   const handleArchiveCategory = async (item: AdminProductCategory) => {
@@ -1267,26 +1127,22 @@ export default function ProductsPage() {
           {activeTab === "products" ? (
             <button
               type="button"
-              disabled
-              title={PRODUCT_CREATE_NOTICE}
-              aria-label={PRODUCT_CREATE_NOTICE}
+              onClick={() => setProductCreateOpen(true)}
               className="inline-flex items-center gap-2"
-              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.08)", color: "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.14)", cursor: "not-allowed" }}
+              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.30)" }}
             >
               <Plus size={14} />
-              Add Product — coming soon
+              Add Product
             </button>
           ) : (
             <button
               type="button"
-              disabled
-              title={CATEGORY_CREATE_NOTICE}
-              aria-label={CATEGORY_CREATE_NOTICE}
+              onClick={() => { setCategoryNotice(null); setCategoryError(null); setCategoryDrawer({ mode: "add" }); }}
               className="inline-flex items-center gap-2"
-              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 600, background: "rgba(182,136,94,0.08)", color: "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.14)", cursor: "not-allowed" }}
+              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.30)" }}
             >
               <Plus size={14} />
-              Add Category — coming soon
+              Add Category
             </button>
           )}
         </div>
@@ -1427,6 +1283,15 @@ export default function ProductsPage() {
         )}
       </div>
 
+      {/* Product create drawer */}
+      <ProductCreateDrawer
+        isOpen={productCreateOpen}
+        categories={sortedCategories}
+        existingSlugs={allProducts.map((p) => p.slug)}
+        onClose={() => setProductCreateOpen(false)}
+        onCreate={handleCreateProduct}
+      />
+
       {/* Product drawer */}
       <ProductDrawer
         product={drawerProduct}
@@ -1435,14 +1300,14 @@ export default function ProductsPage() {
         onSaved={handleProductSaved}
       />
 
-      {/* Category drawer */}
+      {/* Category drawer (create + edit) */}
       {categoryDrawer && (
         <CategoryDrawer
           key={categoryDrawer.mode === "edit" ? `edit-${categoryDrawer.category.id}` : "add-category"}
           state={categoryDrawer}
           categories={categories}
           onClose={() => setCategoryDrawer(null)}
-          onSave={handleSaveCategory}
+          onSubmit={handleCategorySubmit}
         />
       )}
     </>

@@ -933,3 +933,203 @@ export async function reorderAdminCategories(orderedCategoryIds: string[]) {
     if (error) throw writeError("categories", error);
   }
 }
+
+// ─── WRITE LAYER — admin catalog CREATE (products + categories) ───────────────
+// Scope: create a new product (+ its 3 size variants, atomically via the
+// create_admin_product RPC) and create a new category (single insert). No media,
+// no gallery, no inventory/stock writes. New rows are created public-safe
+// (product: draft/hidden/off-website; category: draft/off-website) so nothing
+// goes live until an admin reviews and publishes it. RLS is_admin() gates both;
+// the INSERT grant (categories) + the SECURITY DEFINER RPC (products) are added
+// in the admin_catalog_create migration.
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const NEW_BADGE_DAYS = 40;
+
+/** Deterministic variant SKU: `{slug}-{size}` (e.g. `almond-cappuccino-250g`). */
+export function generateVariantSku(slug: string, size: PackageSize) {
+  return `${slug.trim().toLowerCase()}-${size}`;
+}
+
+/** True when no existing product owns this slug. */
+export async function checkAdminProductSlugAvailable(slug: string) {
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return false;
+  const { data, error } = await supabase
+    .from("products")
+    .select("id")
+    .eq("slug", normalized)
+    .maybeSingle();
+  if (error) throw readError("products", error);
+  return data == null;
+}
+
+/** True when no existing category owns this slug. */
+export async function checkAdminCategorySlugAvailable(slug: string) {
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return false;
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("slug", normalized)
+    .maybeSingle();
+  if (error) throw readError("categories", error);
+  return data == null;
+}
+
+/** Next sort_order so a new category lands at the end of the list. */
+export async function getNextCategorySortOrder() {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw readError("categories", error);
+  const current = toNumber((data as { sort_order: number | null } | null)?.sort_order, 0);
+  return current + 10;
+}
+
+export interface AdminProductCreateInput {
+  categoryId: string;
+  nameEn: string;
+  nameAr: string;
+  slug: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  price250: number;
+  price500: number;
+  price1kg: number;
+  purchaseCostPerKg?: number | null;
+  featured?: boolean;
+  bestSeller?: boolean;
+  /** When true, new_until = now + 40 days (New badge). When false, no badge. */
+  isNew?: boolean;
+  /** Defaults to false — a new product stays off the public site until reviewed. */
+  showOnWebsite?: boolean;
+}
+
+function assertPrice(label: string, price: number) {
+  if (!Number.isFinite(price) || price < 0) {
+    throw new AdminCatalogWriteError(`Price for ${label} must be a non-negative number.`);
+  }
+}
+
+/**
+ * Create a product + its 250g/500g/1kg variants atomically (DB RPC, one
+ * transaction). Returns the new product id + slug. The product is created
+ * public-safe (draft / hidden / off-website) regardless of input; only the New
+ * badge, featured, best seller, and an optional pre-publish show flag are honored.
+ */
+export async function createAdminProduct(
+  input: AdminProductCreateInput,
+): Promise<{ id: string; slug: string }> {
+  const slug = input.slug.trim().toLowerCase();
+
+  if (!input.categoryId) throw new AdminCatalogWriteError("Category is required.");
+  if (!input.nameEn.trim()) throw new AdminCatalogWriteError("English name is required.");
+  if (!input.nameAr.trim()) throw new AdminCatalogWriteError("Arabic name is required.");
+  if (!slug) throw new AdminCatalogWriteError("Slug is required.");
+  if (!SLUG_PATTERN.test(slug)) {
+    throw new AdminCatalogWriteError(
+      "Slug must use lowercase letters, numbers, and single hyphens.",
+    );
+  }
+  assertPrice("250g", input.price250);
+  assertPrice("500g", input.price500);
+  assertPrice("1kg", input.price1kg);
+  if (
+    input.purchaseCostPerKg != null &&
+    (!Number.isFinite(input.purchaseCostPerKg) || input.purchaseCostPerKg < 0)
+  ) {
+    throw new AdminCatalogWriteError("Purchase cost per kg must be a non-negative number.");
+  }
+
+  if (!(await checkAdminProductSlugAvailable(slug))) {
+    throw new AdminCatalogWriteError(`Slug "${slug}" is already taken. Choose a different slug.`);
+  }
+
+  const newUntil = input.isNew
+    ? new Date(Date.now() + NEW_BADGE_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+
+  const { data, error } = await supabase.rpc("create_admin_product", {
+    p_category_id: input.categoryId,
+    p_slug: slug,
+    p_name_en: input.nameEn.trim(),
+    p_name_ar: input.nameAr.trim(),
+    p_description_en: input.descriptionEn?.trim() || null,
+    p_description_ar: input.descriptionAr?.trim() || null,
+    p_price_250: input.price250,
+    p_price_500: input.price500,
+    p_price_1kg: input.price1kg,
+    p_purchase_cost_per_kg: input.purchaseCostPerKg ?? null,
+    p_featured: input.featured ?? false,
+    p_best_seller: input.bestSeller ?? false,
+    p_new_until: newUntil,
+    p_show_on_website: input.showOnWebsite ?? false,
+  });
+  if (error) throw writeError("products", error);
+
+  const id = typeof data === "string" ? data : ((data as { id?: string } | null)?.id ?? "");
+  return { id, slug };
+}
+
+export interface AdminCategoryCreateInput {
+  nameEn: string;
+  nameAr: string;
+  slug: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  /** Defaults to false — keep a new category off the public site until reviewed. */
+  showOnWebsite?: boolean;
+  /** Defaults to 'draft' (out of the public_categories view). */
+  status?: AdminCategoryStatus;
+  /** Defaults to the next end-of-list slot. */
+  sortOrder?: number;
+}
+
+/** Create a single category row, public-safe by default. Returns id + slug. */
+export async function createAdminCategory(
+  input: AdminCategoryCreateInput,
+): Promise<{ id: string; slug: string }> {
+  const slug = input.slug.trim().toLowerCase();
+
+  if (!input.nameEn.trim()) throw new AdminCatalogWriteError("English name is required.");
+  if (!input.nameAr.trim()) throw new AdminCatalogWriteError("Arabic name is required.");
+  if (!slug) throw new AdminCatalogWriteError("Slug is required.");
+  if (!SLUG_PATTERN.test(slug)) {
+    throw new AdminCatalogWriteError(
+      "Slug must use lowercase letters, numbers, and single hyphens.",
+    );
+  }
+  if (input.sortOrder != null && (!Number.isFinite(input.sortOrder) || input.sortOrder < 0)) {
+    throw new AdminCatalogWriteError("Sort order must be a non-negative number.");
+  }
+
+  if (!(await checkAdminCategorySlugAvailable(slug))) {
+    throw new AdminCatalogWriteError(`Slug "${slug}" is already taken. Choose a different slug.`);
+  }
+
+  const sortOrder = input.sortOrder ?? (await getNextCategorySortOrder());
+
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({
+      slug,
+      name_en: input.nameEn.trim(),
+      name_ar: input.nameAr.trim(),
+      description_en: input.descriptionEn?.trim() || null,
+      description_ar: input.descriptionAr?.trim() || null,
+      status: input.status ?? "draft",
+      show_on_website: input.showOnWebsite ?? false,
+      sort_order: Math.round(sortOrder),
+      source: "admin",
+    })
+    .select("id, slug")
+    .maybeSingle();
+  if (error) throw writeError("categories", error);
+
+  const row = data as { id: string; slug: string } | null;
+  return { id: row?.id ?? "", slug: row?.slug ?? slug };
+}
