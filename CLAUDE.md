@@ -155,6 +155,58 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-26] — Multi-Badge ProductCard + Best Sellers Supabase Source + Adaptive Marquee
+
+**`src/lib/catalog/public-catalog.ts`** — added `fetchProductRowsBestSellers()` (private, `.eq("best_seller", true)`) and `getPublicBestSellers()` (public export using the new fetch function).
+
+**`src/components/product/ProductCard.tsx`** — replaced single `badge` prop with `badgeStack: BadgeEntry[]`. For `CatalogProduct`: stacks New (cream `#FFDCC2`), Best Seller (gold `#D6A373`), Featured (amber `#C9956A`) independently — all three show simultaneously when all flags are true. For `VisualProduct`: visual badge unchanged.
+
+**`src/features/website/home/sections/BestSellersSection.tsx`** — removed `BEST_SELLER_SLUGS` hardcoded array and `getPublicProductsBySlugs` import; now calls `getPublicBestSellers()`. Adaptive layout driven by `MARQUEE_THRESHOLD = 4`: ≤4 products renders a centered `flex-wrap` row (no marquee, no gap); 5+ products renders the scrolling marquee with 2 repetitions per half-loop (down from 4). Both layouts share the same `containerRef` + self-managed `IntersectionObserver` for reliable reveal after async load.
+
+**`supabase/migrations/20260626130000_seed_best_sellers_featured.sql`** (authored, NOT applied) — marks `turkish-silk`, `high-mood`, `heavy-crema`, `black-label`, `classic-line`, `original-cappuccino` as `best_seller = true`; marks `high-mood` and `heavy-crema` as `featured = true`.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ all routes. No Supabase/DB commands run.
+
+---
+
+### [2026-06-26] — New Badge: `new_until` Date-Based Model
+
+**Goal:** Implement the product "New" badge using a `new_until timestamptz` column rather than a plain boolean, so the badge expires automatically after 40 days without any cron job.
+
+**`supabase/migrations/20260626120000_add_new_until_to_products.sql`** (new — authored, NOT applied)
+- `ALTER TABLE public.products ADD COLUMN IF NOT EXISTS new_until timestamptz null` — no default, so all existing rows stay null (not New).
+- `CREATE OR REPLACE VIEW public.public_products` — adds `is_new` computed column: `(p.new_until is not null and p.new_until > now())`. All existing columns preserved. Existing `SELECT` grants to anon/authenticated are preserved by `CREATE OR REPLACE`. No new GRANT needed.
+- **Column comment:** documents that Product Create (not yet implemented) should set `new_until = now() + interval '40 days'` at insert time.
+
+**`src/lib/catalog/public-catalog.ts`**
+- `PublicCatalogProduct`: added `isNew: boolean` field.
+- `PublicProductRow`: added `is_new: boolean | null` DB row type.
+- All four `fetchProductRows*` functions: added `"is_new"` to select lists.
+- `mapProductRows`: maps `row.is_new` → `isNew: Boolean(row.is_new)`.
+
+**`src/lib/admin/admin-catalog.ts`**
+- `AdminProductMeta`: added `newUntil: string | null` (raw DB timestamp) and `isNew: boolean` (computed).
+- `AdminProductRow`: added `new_until: string | null` DB row type.
+- All three admin fetch functions (`fetchProductRows`, `fetchProductRowById`, `fetchProductRowBySlug`): added `"new_until"` to select lists.
+- `mapProductRows`: maps `row.new_until` → `newUntil` and computes `isNew: row.new_until != null && new Date(row.new_until) > new Date()`.
+- `AdminProductUpdateInput`: added `newUntil?: string | null` with JSDoc (`undefined` = don't touch, `null` = clear, ISO string = set).
+- `updateAdminProduct`: added `if (input.newUntil !== undefined) patch.new_until = input.newUntil`.
+
+**`src/components/admin/products/ProductDrawer.tsx`**
+- `DrawerForm`: added `isNew: boolean`.
+- `EMPTY_FORM` / `initForm`: initialized from `product.isNew`.
+- Visibility tab: added **New** toggle row (same style as Featured/Best Seller). Footer helper text: "New badge expires automatically after 40 days." with conditional expiry date (shows current expiry when already active) or "Will be active for 40 days after saving" (when just turned on).
+- `handleSave`: computes `newUntil = isNew ? now + 40 days : null` and passes it to `updateAdminProduct`. The timer refreshes on every save while the toggle is on.
+
+**`src/components/product/ProductCard.tsx`**
+- Badge logic updated: for `PublicCatalogProduct` with `isNew === true`, synthesizes `{ en: "New", ar: "جديد" }` badge. `VisualProduct.badge` still takes precedence. No card redesign.
+
+**Future Product Create note:** When Product Create Flow is implemented, new products should set `new_until = now() + interval '40 days'` at insert time (default or explicit in the INSERT). See the migration comment for the rationale (no DB DEFAULT to avoid accidental silent marking of future rows).
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ all routes. Migration authored only — apply with `supabase db push` before manual testing.
+
+---
+
 ### [2026-06-26] — Phase A Image-Warning Cleanup + Phase B Admin Product Basic Write Layer
 
 **Goal:** Two-phase, scoped pass. Phase A: clear visible Next.js image performance warnings without any visual change. Phase B: enable real Supabase saving of basic product fields from the Admin Product drawer/detail. No public/admin redesign, no broad refactor, no DB commands.

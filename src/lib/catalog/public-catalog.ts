@@ -57,6 +57,8 @@ export type PublicCatalogProduct = {
   gallery: string[];
   featured: boolean;
   bestSeller: boolean;
+  /** True while new_until > now() in the DB. Expires automatically after 40 days. */
+  isNew: boolean;
 };
 
 type PublicCategoryRow = {
@@ -90,6 +92,8 @@ type PublicProductRow = {
   blend: unknown;
   image_url: string | null;
   gallery: unknown;
+  /** Computed by the public_products view: new_until IS NOT NULL AND new_until > now() */
+  is_new: boolean | null;
 };
 
 type PublicVariantRow = {
@@ -306,6 +310,7 @@ function mapProductRows(
       gallery,
       featured: Boolean(row.featured),
       bestSeller: Boolean(row.best_seller),
+      isNew: Boolean(row.is_new),
     };
   });
 }
@@ -345,6 +350,7 @@ async function fetchProductRows() {
         "blend",
         "image_url",
         "gallery",
+        "is_new",
       ].join(", "),
     )
     .order("category_slug", { ascending: true })
@@ -378,6 +384,7 @@ async function fetchProductRowsByCategorySlug(slug: string) {
         "blend",
         "image_url",
         "gallery",
+        "is_new",
       ].join(", "),
     )
     .eq("category_slug", slug)
@@ -413,6 +420,7 @@ async function fetchProductRowsBySlugs(slugs: string[]) {
         "blend",
         "image_url",
         "gallery",
+        "is_new",
       ].join(", "),
     )
     .in("slug", slugs);
@@ -445,6 +453,7 @@ async function fetchProductRowBySlug(slug: string) {
         "blend",
         "image_url",
         "gallery",
+        "is_new",
       ].join(", "),
     )
     .eq("slug", slug)
@@ -503,6 +512,54 @@ export async function getPublicProducts() {
     const [categoryRows, productRows] = await Promise.all([
       fetchCategoryRows(),
       fetchProductRows(),
+    ]);
+    const categories = categoryRows.map(mapCategoryRow);
+    const variants = await fetchVariantRows(productRows.map((product) => product.id));
+    return mapProductRows(productRows, variants, categories);
+  } catch (error) {
+    throw asCatalogError(error);
+  }
+}
+
+async function fetchProductRowsBestSellers() {
+  const { data, error } = await supabase
+    .from("public_products")
+    .select(
+      [
+        "id",
+        "slug",
+        "category_id",
+        "category_slug",
+        "name_en",
+        "name_ar",
+        "subtitle_en",
+        "subtitle_ar",
+        "description_en",
+        "description_ar",
+        "notes_en",
+        "notes_ar",
+        "pricing_model",
+        "sale_price_per_kg",
+        "featured",
+        "best_seller",
+        "blend",
+        "image_url",
+        "gallery",
+        "is_new",
+      ].join(", "),
+    )
+    .eq("best_seller", true)
+    .order("name_en", { ascending: true });
+
+  if (error) throw new PublicCatalogReadError(undefined, error);
+  return (data ?? []) as unknown as PublicProductRow[];
+}
+
+export async function getPublicBestSellers() {
+  try {
+    const [categoryRows, productRows] = await Promise.all([
+      fetchCategoryRows(),
+      fetchProductRowsBestSellers(),
     ]);
     const categories = categoryRows.map(mapCategoryRow);
     const variants = await fetchVariantRows(productRows.map((product) => product.id));

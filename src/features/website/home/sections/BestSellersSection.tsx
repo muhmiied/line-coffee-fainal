@@ -7,27 +7,19 @@ import { ArrowRight } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { assets } from "@/lib/mock-data/visual-content";
 import {
-  getPublicProductsBySlugs,
+  getPublicBestSellers,
   type PublicCatalogProduct,
 } from "@/lib/catalog/public-catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { cn } from "@/lib/utils/cn";
 
-const BEST_SELLER_SLUGS = [
-  "turkish-silk",
-  "high-mood",
-  "heavy-crema",
-  "black-label",
-  "classic-line",
-  "original-cappuccino",
-];
+// Threshold: ≤ this count → centered grid row; above → scrolling marquee
+const MARQUEE_THRESHOLD = 4;
 
 type BestSellersSectionProps = {
   products?: PublicCatalogProduct[];
 };
-
-const BEST_SELLERS_MARQUEE_REPETITIONS = 4;
 
 export function BestSellersSection({
   products: suppliedProducts,
@@ -37,14 +29,14 @@ export function BestSellersSection({
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const products = suppliedProducts ?? loadedProducts;
   const effectiveLoadState = suppliedProducts ? "ready" : loadState;
-  const marqueeRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (suppliedProducts) return;
 
     let isMounted = true;
 
-    getPublicProductsBySlugs(BEST_SELLER_SLUGS)
+    getPublicBestSellers()
       .then((nextProducts) => {
         if (!isMounted) return;
         setLoadedProducts(nextProducts);
@@ -61,13 +53,12 @@ export function BestSellersSection({
     };
   }, [suppliedProducts]);
 
-  // The marquee mounts only after the async catalog read resolves, so the
-  // page-level one-shot scroll-reveal observer (which queries [data-reveal]
-  // at mount) never sees it and the cards stay opacity:0. Self-manage the
-  // reveal here so the cards always become visible once products are ready.
+  // Self-manage scroll reveal: the container mounts after the async fetch resolves,
+  // so the page-level one-shot observer (which queries [data-reveal] at mount)
+  // never sees it. Apply is-visible directly once content is ready.
   useEffect(() => {
     if (effectiveLoadState !== "ready" || products.length === 0) return;
-    const node = marqueeRef.current;
+    const node = containerRef.current;
     if (!node) return;
 
     const rect = node.getBoundingClientRect();
@@ -91,6 +82,8 @@ export function BestSellersSection({
     observer.observe(node);
     return () => observer.disconnect();
   }, [effectiveLoadState, products.length]);
+
+  const useMarquee = products.length > MARQUEE_THRESHOLD;
 
   return (
     <>
@@ -138,39 +131,63 @@ export function BestSellersSection({
             {t({ en: "Loading best sellers.", ar: "جاري تحميل الأكثر مبيعًا." })}
           </div>
         ) : products.length > 0 ? (
-          <div ref={marqueeRef} className="best-sellers-marquee reveal-on-scroll">
-            <div className="best-sellers-marquee-track">
-              {[0, 1].map((loop) => (
-                <div
-                  key={loop}
-                  className="marquee-loop best-sellers-marquee-loop"
-                  aria-hidden={loop === 1 ? "true" : undefined}
-                >
-                  {Array.from({ length: BEST_SELLERS_MARQUEE_REPETITIONS }).map((_, copy) =>
-                    products.map((product, index) => {
-                      const isVisualDuplicate = loop === 1 || copy > 0;
+          useMarquee ? (
+            // ── Marquee layout for 5+ products ──────────────────────────────
+            <div ref={containerRef} className="best-sellers-marquee reveal-on-scroll">
+              <div className="best-sellers-marquee-track">
+                {[0, 1].map((loop) => (
+                  <div
+                    key={loop}
+                    className="marquee-loop best-sellers-marquee-loop"
+                    aria-hidden={loop === 1 ? "true" : undefined}
+                  >
+                    {[0, 1].map((copy) =>
+                      products.map((product, index) => {
+                        const isVisualDuplicate = loop === 1 || copy > 0;
 
-                      return (
-                        <div
-                          key={`${loop}-${copy}-${product.slug}`}
-                          aria-hidden={isVisualDuplicate ? "true" : undefined}
-                          className="w-[13.5rem] shrink-0 min-[380px]:w-[14.25rem] sm:w-[15.5rem] lg:w-[16.5rem]"
-                        >
-                          <ProductCard
-                            product={product}
-                            index={index}
-                            isDuplicate={isVisualDuplicate}
-                            reveal={false}
-                            showBlend={false}
-                          />
-                        </div>
-                      );
-                    }),
-                  )}
+                        return (
+                          <div
+                            key={`${loop}-${copy}-${product.slug}`}
+                            aria-hidden={isVisualDuplicate ? "true" : undefined}
+                            className="w-[13.5rem] shrink-0 min-[380px]:w-[14.25rem] sm:w-[15.5rem] lg:w-[16.5rem]"
+                          >
+                            <ProductCard
+                              product={product}
+                              index={index}
+                              isDuplicate={isVisualDuplicate}
+                              reveal={false}
+                              showBlend={false}
+                            />
+                          </div>
+                        );
+                      }),
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // ── Grid layout for 1–4 products ────────────────────────────────
+            <div
+              ref={containerRef}
+              className="reveal-on-scroll flex flex-wrap justify-center gap-4"
+            >
+              {products.map((product, index) => (
+                <div
+                  key={product.slug}
+                  className="w-[13.5rem] shrink-0 min-[380px]:w-[14.25rem] sm:w-[15.5rem] lg:w-[16.5rem]"
+                >
+                  <ProductCard
+                    product={product}
+                    index={index}
+                    isDuplicate={false}
+                    reveal={false}
+                    showBlend={false}
+                  />
                 </div>
               ))}
             </div>
-          </div>
+          )
         ) : (
           <div className="py-10 text-center text-sm text-[#D6B79A]/55">
             {t({ en: "Best sellers are on their way.", ar: "الأكثر مبيعًا في الطريق." })}

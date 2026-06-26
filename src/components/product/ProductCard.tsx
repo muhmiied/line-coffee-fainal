@@ -94,7 +94,15 @@ export function ProductCard({
     setTimeout(() => setJustAdded(false), 1400);
   };
 
-  const badge = !isCatalogProduct(product) ? product.badge : undefined;
+  type BadgeEntry = { en: string; ar: string; variant: "new" | "best-seller" | "featured" | "visual" };
+  const badgeStack: BadgeEntry[] = [];
+  if (!isCatalogProduct(product)) {
+    if (product.badge) badgeStack.push({ ...product.badge, variant: "visual" });
+  } else {
+    if (product.isNew) badgeStack.push({ en: "New", ar: "جديد", variant: "new" });
+    if (product.bestSeller) badgeStack.push({ en: "Best Seller", ar: "الأكثر مبيعًا", variant: "best-seller" });
+    if (product.featured) badgeStack.push({ en: "Featured", ar: "مميز", variant: "featured" });
+  }
 
   const card = (
     <div
@@ -128,12 +136,22 @@ export function ProductCard({
           <div className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_12%,rgba(214,163,115,0.14),transparent_34%)]" />
         </div>
 
-        {/* Badge */}
-        {badge ? (
-          <div className="absolute left-3 top-3 z-10">
-            <span className="rounded-full bg-[#FFDCC2]/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#522500] backdrop-blur-sm">
-              {t(badge)}
-            </span>
+        {/* Badge stack */}
+        {badgeStack.length > 0 ? (
+          <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1">
+            {badgeStack.map((b) => (
+              <span
+                key={b.variant}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm",
+                  (b.variant === "new" || b.variant === "visual") && "bg-[#FFDCC2]/90 text-[#522500]",
+                  b.variant === "best-seller" && "bg-[#D6A373]/90 text-[#2A1500]",
+                  b.variant === "featured" && "bg-[#C9956A]/88 text-[#1F0F00]",
+                )}
+              >
+                {t(b)}
+              </span>
+            ))}
           </div>
         ) : null}
 
