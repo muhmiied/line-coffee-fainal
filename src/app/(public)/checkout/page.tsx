@@ -8,6 +8,13 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
+import {
+  checkoutResultStorageKey,
+  createCheckoutAttemptId,
+  getOrCreateGuestId,
+  isCheckoutOrderResult,
+} from "@/lib/checkout";
+import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 
@@ -24,6 +31,8 @@ type FormData = {
   building:      string;
   floorApt:      string;
   paymentMethod: "cash" | "instapay" | "e-wallet";
+  paymentReference: string;
+  paymentPhone:     string;
 };
 
 type FormErrors = Partial<Record<keyof FormData, string>>;
@@ -32,6 +41,7 @@ const EMPTY: FormData = {
   name: "", phone: "", whatsapp: "", email: "",
   governorate: "", area: "", street: "", building: "", floorApt: "",
   paymentMethod: "cash",
+  paymentReference: "", paymentPhone: "",
 };
 
 // ── Governorates + Areas ──────────────────────────────────────────────────────
@@ -249,13 +259,6 @@ const PAYMENT_OPTIONS = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function generateOrderNumber(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let result = "LC-";
-  for (let i = 0; i < 6; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return result;
-}
-
 function FieldLabel({ label, required }: { label: string; required?: boolean }) {
   return (
     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/60">
@@ -362,10 +365,12 @@ export default function CheckoutPage() {
   const { t, dir, language } = useLanguage();
   const { items, total, clearCart } = useCart();
   const router = useRouter();
+  const checkoutAttemptId = useRef<string | null>(null);
 
   const [form,       setForm]       = useState<FormData>(EMPTY);
   const [errors,     setErrors]     = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const deliveryFee = total >= 500 ? 0 : 50;
   const grandTotal  = total + deliveryFee;
@@ -382,6 +387,7 @@ export default function CheckoutPage() {
   }));
 
   function update(field: keyof FormData, value: string) {
+    setSubmitError(null);
     if (field === "governorate") {
       setForm((prev) => ({ ...prev, governorate: value, area: "" }));
       setErrors((prev) => ({ ...prev, governorate: undefined, area: undefined }));
@@ -400,18 +406,126 @@ export default function CheckoutPage() {
     if (!form.governorate.trim()) e.governorate = req;
     if (!form.area.trim())        e.area        = req;
     if (!form.street.trim())      e.street      = req;
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      e.email = t({ en: "Enter a valid email", ar: "أدخل بريداً إلكترونياً صحيحاً" });
+    }
     return e;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function getCheckoutError(message?: string) {
+    if (message?.includes("Insufficient stock")) {
+      return t({
+        en: "One of your items does not have enough stock. Please lower its quantity.",
+        ar: "الكمية المطلوبة لأحد المنتجات غير متاحة. يرجى تقليل الكمية.",
+      });
+    }
+    if (message?.includes("not available for purchase") || message?.includes("is not available")) {
+      return t({
+        en: "One of your products is no longer available. Please update your cart.",
+        ar: "أحد المنتجات لم يعد متاحاً. يرجى تحديث سلة التسوق.",
+      });
+    }
+    if (message?.includes("Custom builder checkout")) {
+      return t({
+        en: "Custom blends cannot be checked out yet. Remove them to continue with catalog products.",
+        ar: "لا يمكن إتمام طلب الخلطات المخصصة حالياً. احذفها للمتابعة بمنتجات المتجر.",
+      });
+    }
+    if (message?.includes("Invalid email")) {
+      return t({ en: "Enter a valid email address.", ar: "أدخل بريداً إلكترونياً صحيحاً." });
+    }
+    return t({
+      en: "We could not place your order. Please try again.",
+      ar: "تعذر تسجيل طلبك. يرجى المحاولة مرة أخرى.",
+    });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError(null);
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    const unsupportedItem = items.find((item) => item.kind !== "product");
+    if (unsupportedItem) {
+      setSubmitError(getCheckoutError("Custom builder checkout"));
+      return;
+    }
+
+    const checkoutItems = items.map((item) => ({
+      kind: "product",
+      slug: item.slug,
+      size: item.detail.en,
+      quantity: item.qty,
+    }));
+    if (checkoutItems.some((item) => !item.slug || !["250g", "500g", "1kg"].includes(item.size))) {
+      setSubmitError(t({
+        en: "A cart item is missing its product or size. Remove it and add it again.",
+        ar: "بيانات أحد منتجات السلة غير مكتملة. احذفه ثم أضفه مرة أخرى.",
+      }));
+      return;
+    }
+
     setSubmitting(true);
-    const orderNum = generateOrderNumber();
-    try { window.sessionStorage.setItem("line-order-snapshot", JSON.stringify(items)); } catch { /* noop */ }
-    clearCart();
-    router.push(`/order-success?order=${orderNum}`);
+    let orderPlaced = false;
+    try {
+      checkoutAttemptId.current ??= createCheckoutAttemptId();
+      const { data, error } = await supabase.rpc("create_checkout_order", {
+        p_payload: {
+          guest_id: getOrCreateGuestId(),
+          checkout_attempt_id: checkoutAttemptId.current,
+          customer: {
+            name: form.name.trim(),
+            phone: form.phone.trim(),
+            whatsapp: form.whatsapp.trim(),
+            email: form.email.trim() || null,
+          },
+          address: {
+            governorate: form.governorate,
+            area: form.area,
+            city: form.area,
+            street: form.street.trim(),
+            building: form.building.trim() || null,
+            floor: form.floorApt.trim() || null,
+          },
+          payment: {
+            method: form.paymentMethod,
+            reference: form.paymentReference.trim() || null,
+            phone: form.paymentPhone.trim() || null,
+          },
+          items: checkoutItems,
+        },
+      });
+
+      if (error) {
+        setSubmitError(getCheckoutError(error.message));
+        return;
+      }
+      if (!isCheckoutOrderResult(data)) {
+        setSubmitError(getCheckoutError());
+        return;
+      }
+
+      try {
+        window.sessionStorage.setItem(
+          checkoutResultStorageKey(data.order_id),
+          JSON.stringify(data),
+        );
+      } catch {
+        // The real order code is also carried in the URL as a display fallback.
+      }
+
+      orderPlaced = true;
+      checkoutAttemptId.current = null;
+      clearCart();
+      router.push(
+        `/order-success?id=${encodeURIComponent(data.order_id)}&order=${encodeURIComponent(data.code)}`,
+      );
+    } catch {
+      setSubmitError(getCheckoutError());
+    } finally {
+      if (!orderPlaced) setSubmitting(false);
+    }
   }
 
   if (items.length === 0 && !submitting) {
@@ -630,6 +744,43 @@ export default function CheckoutPage() {
                     );
                   })}
                 </div>
+
+                {form.paymentMethod === "instapay" && (
+                  <div className="mt-4">
+                    <FieldLabel label={t({
+                      en: "InstaPay reference (optional)",
+                      ar: "رقم مرجع إنستا باي (اختياري)",
+                    })} />
+                    <input
+                      type="text"
+                      value={form.paymentReference}
+                      onChange={(e) => update("paymentReference", e.target.value)}
+                      placeholder={t({
+                        en: "Transfer reference or sender name",
+                        ar: "رقم التحويل أو اسم المرسل",
+                      })}
+                      dir={dir}
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+
+                {form.paymentMethod === "e-wallet" && (
+                  <div className="mt-4">
+                    <FieldLabel label={t({
+                      en: "Wallet phone (optional)",
+                      ar: "رقم المحفظة (اختياري)",
+                    })} />
+                    <input
+                      type="tel"
+                      value={form.paymentPhone}
+                      onChange={(e) => update("paymentPhone", e.target.value)}
+                      placeholder="+20 1XX XXX XXXX"
+                      dir="ltr"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
               </div>
 
             </div>
@@ -680,6 +831,16 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                 </div>
+
+                {submitError && (
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="mt-5 rounded-xl border border-red-400/25 bg-red-400/8 px-4 py-3 text-sm leading-6 text-red-200"
+                  >
+                    {submitError}
+                  </div>
+                )}
 
                 <button
                   type="submit"

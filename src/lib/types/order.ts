@@ -41,6 +41,7 @@ export type PaymentMethod =
   | "instapay"
   | "bank_transfer"
   | "card"
+  | "wallet"
   | "unknown";
 
 // Payment settlement state, independent of fulfilment status.
@@ -50,7 +51,9 @@ export type PaymentStatus =
   | "partially_paid"
   | "paid"
   | "refunded"
-  | "failed";
+  | "failed"
+  | "pending"
+  | "pending_review";
 
 // Composition of an order: standard catalog items, a custom builder order, or a
 // mix of both.
