@@ -159,14 +159,6 @@ export const flavorItems: FlavorItem[] = [
     metrics: { sweetness: 3, creaminess: 1, chocolate: 0, fruitiness: 5, nutty: 0, intensity: 2 },
   },
   {
-    id: "berries",
-    name: { en: "Berries", ar: "توت" },
-    hint: { en: "Mixed forest berries, bright and bold", ar: "توت مختلط، حيوي ومنعش" },
-    addOnPerKg: 70,
-    category: "fruits",
-    metrics: { sweetness: 3, creaminess: 0, chocolate: 0, fruitiness: 5, nutty: 0, intensity: 3 },
-  },
-  {
     id: "blueberry",
     name: { en: "Blueberry", ar: "توت أزرق" },
     hint: { en: "Wild berries, deep colour with gentle tartness", ar: "توت بري، لون عميق وحموضة خفيفة" },
