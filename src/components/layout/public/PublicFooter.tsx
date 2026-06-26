@@ -68,6 +68,7 @@ export function PublicFooter() {
         src="/assets/hero/dark-roast.png"
         alt=""
         fill
+        priority
         sizes="100vw"
         className="object-cover opacity-[0.06]"
         aria-hidden="true"
