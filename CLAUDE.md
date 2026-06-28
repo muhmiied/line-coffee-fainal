@@ -155,6 +155,129 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-28] — Customer Account Persistence: Profile / Addresses / Wishlist
+
+**Goal:** Wire the customer account area to real Supabase storage so data survives browser refresh. Three surfaces updated: profile save, address CRUD, wishlist sync.
+
+**`supabase/migrations/20260628110000_customer_account_persistence.sql`** (new — authored, NOT applied)
+- `ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS location_url text null` — optional Google Maps pin URL.
+- `customer_wishlist` table: `(id, guest_id text, product_slug text, created_at)` with `UNIQUE(guest_id, product_slug)`. RLS disabled — all access through SECURITY DEFINER RPCs.
+- **`update_customer_profile(p_guest_id, p_name, p_phone, p_whatsapp)`** — finds customer via `customers WHERE guest_id = p_guest_id AND type='guest'`. Writes ONLY `name/phone/whatsapp` (whitelist per Migration 1 Finding 1). Returns bool.
+- **`get_customer_addresses`**, **`add_customer_address`**, **`update_customer_address`**, **`delete_customer_address`**, **`set_default_customer_address`** — full address CRUD; all ownership-verified via guest_id→customer lookup; required fields validated inside DB.
+- **`get_customer_wishlist`**, **`add_customer_wishlist_item`** (idempotent ON CONFLICT DO NOTHING), **`remove_customer_wishlist_item`** — guest_id-scoped wishlist sync.
+- All RPCs: `GRANT EXECUTE TO anon, authenticated`.
+
+**`src/lib/account/customer-account.ts`** (extended)
+- `updateCustomerProfile(name, phone, whatsapp)` — calls `update_customer_profile` RPC.
+- `CustomerAddress` + `CustomerAddressInput` types + `mapAddressRow()` helper.
+- `getCustomerAddresses()`, `addCustomerAddress(input)`, `updateCustomerAddress(id, input)`, `deleteCustomerAddress(id)`, `setDefaultCustomerAddress(id)`.
+- `getCustomerWishlist()`, `addCustomerWishlistItem(slug)`, `removeCustomerWishlistItem(slug)`.
+
+**`src/app/(public)/account/profile/page.tsx`** (updated)
+- Added `whatsapp` field to `ProfileForm`; `getInitialProfileForm()` now accepts full profile object and prefers Supabase name over auth metadata.
+- `handleSubmit` calls `updateCustomerProfile()` — shows Saving…/error states. Email field is now read-only (managed by Auth only).
+
+**`src/app/(public)/account/addresses/page.tsx`** (full rewrite)
+- Replaced 100% mock implementation with Supabase-backed CRUD.
+- `AddressCard` sub-component: all fields including `locationUrl` (external link), landmark, recipientName; Edit/Delete/Set Default buttons with `busyId` loading guard.
+- `AddressFormPanel` sub-component: full field set (label, recipient, phone, governorate, city, area, street, building, floor, apartment, landmark, location URL, default checkbox).
+- `FormMode` discriminated union: `"hidden" | "add" | { kind:"edit"; address }`. Removed `MockAddress` import entirely.
+
+**`src/lib/hooks/useWishlist.ts`** (updated)
+- Module-level `_synced` flag ensures Supabase load fires once per session regardless of how many components mount the hook.
+- On first mount: dynamic-imports `getCustomerWishlist()`, merges Supabase slugs into localStorage (union, not replace).
+- `toggle` + `remove`: update localStorage immediately, async fire-and-forget Supabase RPC via dynamic import.
+
+**Security:** all RPCs are guest_id-scoped, guest_id validated (8-64 chars, alphanumeric+dash), profile update limited to whitelist, address ownership verified in DB.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings. Migration authored only — apply with `supabase db push` before testing.
+
+---
+
+### [2026-06-28] — Header Notifications Bell: Dropdown Preview
+
+**Goal:** Convert the public header bell icon from a direct `<Link>` to a dropdown popover that shows the latest 5 real order-status notifications inline, with a "View all notifications" footer link.
+
+**`src/components/layout/public/PublicHeader.tsx`** (edited)
+- Added `formatDate` import from `@/lib/utils/formatDate`.
+- Added `NotificationsDropdown` module-level component (same positioning pattern as `UserMenu`):
+  - On mount: dynamically imports `getCustomerNotifications` from `@/lib/account/customer-account` and calls it; shows 2 animated pulse skeletons while loading.
+  - **Content**: renders up to 5 notifications; each is a `<Link href="/account/orders/${orderCode}">` that closes the dropdown on click. Shows status title + body (from inline `STATUS_NOTIFICATION` map for all 6 real statuses) + order code + formatted date.
+  - **Empty state**: Bell icon + "No notifications yet." + "Order updates will appear here."
+  - **Footer**: full-width "View all notifications" link → `/account/notifications`; closes dropdown on click.
+  - Styling: `w-80 rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[...] backdrop-blur-2xl` — matches `UserMenu` exactly. Gold top-line shimmer.
+  - `Date.now()` avoided (linter rule `react-hooks/purity`); relative time replaced with `formatDate()`.
+- Added `isNotifOpen: boolean` state alongside `isUserMenuOpen`.
+- Updated `closeAll()` to also `setIsNotifOpen(false)`.
+- Added `handleNotifToggle()`: closes commerce panels, user menu, cart, then toggles `isNotifOpen`.
+- Updated `handleCartToggle()` and `handleWishlistToggle()` to call `setIsNotifOpen(false)`.
+- Updated `handleUserToggle()` to call `setIsNotifOpen(false)`.
+- Replaced the plain `<Link href="/account/notifications">` bell with a wired `<div className="relative hidden md:block">` wrapping a `<button>` (active-bg style + `aria-expanded`) + `{isNotifOpen && <NotificationsDropdown onClose={...} />}`.
+- Escape key already wired to `closeAll()` — closes the dropdown with no extra work.
+- Mobile: bell remains desktop-only (`hidden md:block`); mobile users reach notifications through the mobile menu account links (unchanged).
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ 43 routes. No db push, no commit, no push.
+
+---
+
+### [2026-06-28] — Customer Account Real + Header Notification Icon
+
+**Goal:** Replace mock runtime data in the customer account area with real Supabase-backed data scoped to the device's `guest_id`; fix the profile firstName-equals-email bug; add a notification bell icon to the public header.
+
+**`supabase/migrations/20260628100000_customer_account_rpcs.sql`** (new — authored, NOT applied)
+- Four SECURITY DEFINER RPCs callable by `anon, authenticated`, each validates `p_guest_id` (8-64 chars, `^[A-Za-z0-9_-]+$`) before any DB access:
+- `get_customer_orders(p_guest_id)` — lists up to 50 orders WHERE `orders.guest_id = p_guest_id`, DESC by `placed_at`; returns `id, code, status, type, payment_method, payment_status, subtotal, discount_total, delivery_fee, total, item_count, placed_at`.
+- `get_customer_order_detail(p_order_code, p_guest_id)` — requires BOTH code AND guest_id (prevents order-code enumeration); returns full order row + `items` as JSONB aggregate (name_en/ar, detail_en/ar, quantity, unit_price, line_total) + `timeline` as JSONB aggregate from `order_status_events`.
+- `get_customer_notifications(p_guest_id)` — returns `order_status_events` joined with `orders WHERE guest_id = p_guest_id`, limit 100, DESC by `changed_at`.
+- `get_customer_profile(p_guest_id)` — returns `customers` row via JOIN on most-recent order on this device.
+- GRANTs to `anon, authenticated`. No INSERT/DELETE grants, no RLS changes.
+
+**`src/lib/account/customer-account.ts`** (new)
+- `"use client"` module with four async functions calling the RPCs via the shared Supabase browser client.
+- Each reads `getOrCreateGuestId()` (from `src/lib/checkout.ts`) inside the async call — safe inside `useEffect`.
+- Returns empty arrays / null on error → graceful degradation if migration not yet applied.
+- Types: `CustomerOrderStatus`, `CustomerOrderSummary`, `CustomerOrderItem`, `CustomerOrderEvent`, `CustomerOrderDetail`, `CustomerNotification`, `CustomerProfile`.
+
+**`src/app/(public)/account/orders/page.tsx`** (rewritten)
+- Removed `MOCK_ORDERS` and `MockNotification` imports from `account-data.ts`.
+- `useEffect` calls `getCustomerOrders()` on mount; loading skeleton while fetching.
+- Real statuses: `pending | preparing | shipped | delivered | cancelled | returned`.
+- Links to `/account/orders/${order.code}` (real order code, not UUID).
+
+**`src/app/(public)/account/orders/[id]/page.tsx`** (rewritten)
+- Removed `MOCK_ORDERS.find()` dependency entirely.
+- `useEffect` calls `getCustomerOrderDetail(id)` where `id` = order code from URL params.
+- Tracking stepper: updated from mock `processing|roasting` to real `pending|preparing|shipped|delivered`; not shown for `cancelled|returned` (terminal statuses).
+- Sections: header card (code + status badge + date) → tracking stepper → items list (frozen snapshot names/sizes/qty/prices) → financial summary (subtotal/discount/delivery/total + payment method) → delivery address (`address_snapshot` JSONB formatted) → order timeline from `order_status_events`.
+- `formatAddress()` helper formats `address_snapshot` object to readable string.
+
+**`src/app/(public)/account/profile/page.tsx`** (fixed + enhanced)
+- Bug fix: `getInitialProfileForm` now checks `user?.name !== user?.email` before treating name as real — prevents `firstName = "midoseka8@gmail.com"` when `useAuth` defaults `user.name` to email.
+- Added `useEffect` that calls `getCustomerProfile()` to pre-fill phone from the customer record linked to checkout orders on this device.
+- Loading skeleton shown while profile fetch is in flight; form remounts (`key`) when phone resolves.
+
+**`src/app/(public)/account/notifications/page.tsx`** (rewritten)
+- Removed `MockNotification` import from `account-data.ts`.
+- `useEffect` calls `getCustomerNotifications()` on mount; loading skeleton while fetching.
+- Each `order_status_events` row mapped to bilingual notification title + body via `STATUS_NOTIFICATION` map (pending/preparing/shipped/delivered/cancelled/returned).
+- Items render as `<Link href="/account/orders/${orderCode}">` — clicking marks as read (local session state) and navigates to order detail.
+- Empty state unchanged (Bell icon + bilingual message).
+
+**`src/components/layout/public/PublicHeader.tsx`** (edited)
+- Added Bell icon `<Link href="/account/notifications">` between the cart button and the user menu button.
+- Only rendered when `isLoggedIn === true`; `hidden md:inline-flex` (desktop only, matches wishlist button pattern).
+- No unread badge (notifications load async; badge can be added once a real-time subscription is set up).
+
+**Security model:** All four RPCs are scoped strictly to the device's `guest_id`. No email/phone search. No broad query. `get_customer_order_detail` requires BOTH code AND guest_id (prevents enumeration). Input validated before any query runs (empty string / SQL injection rejected at the plpgsql level). SECURITY DEFINER bypasses admin-only RLS on `orders` and `order_items` but functions are self-scoping.
+
+**Limitations (acceptable for launch):** clearing `localStorage` loses order access on that device. Cross-device history requires a full Supabase customer auth implementation. Notification `read` state is session-only (no DB persistence).
+
+**Out of scope (unchanged):** account addresses, wishlist, settings pages, admin area, public catalog, checkout flow. `account-data.ts` mock file left in place (still imported by `/account/wishlist` and others).
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` → 0 errors/warnings · `npm run build` → ✓ 43 routes. Migration authored only — run `supabase db push` before testing live order data (pages show empty state gracefully until applied).
+
+---
+
 ### [2026-06-27] — Admin Product Archive / Restore Flow
 
 **Goal:** Let admins archive products safely (no hard delete) so they vanish from the public site but stay in admin for a future restore. Mirrors the existing category archive/restore.

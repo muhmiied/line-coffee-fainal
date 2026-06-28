@@ -34,6 +34,7 @@ import {
   getPublicProductsBySlugs,
   type PublicCatalogProduct,
 } from "@/lib/catalog/public-catalog";
+import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
 
 const announcements = [
@@ -59,6 +60,106 @@ const accountLinks = [
 ];
 
 type CommercePanel = "wishlist" | "cart";
+
+// ─── Notifications dropdown ───────────────────────────────────────────────────
+
+function NotificationsDropdown({ onClose }: { onClose: () => void }) {
+  const { t, language } = useLanguage();
+  const [items, setItems] = useState<import("@/lib/account/customer-account").CustomerNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    import("@/lib/account/customer-account").then(({ getCustomerNotifications }) =>
+      getCustomerNotifications()
+        .then(setItems)
+        .catch(() => setItems([]))
+        .finally(() => setLoading(false))
+    );
+  }, []);
+
+  const STATUS_NOTIFICATION: Record<string, { title: { en: string; ar: string }; body: { en: string; ar: string } }> = {
+    pending:   { title: { en: "Order Received",               ar: "تم استلام طلبك"       }, body: { en: "We've received your order.",           ar: "استلمنا طلبك وهو قيد المراجعة." } },
+    preparing: { title: { en: "Order Being Prepared",         ar: "طلبك قيد التجهيز"     }, body: { en: "Our team is preparing your coffee.",   ar: "فريقنا يجهز قهوتك بعناية." } },
+    shipped:   { title: { en: "Order On Its Way",             ar: "طلبك في الطريق"        }, body: { en: "Your order is out for delivery.",      ar: "تم تسليم طلبك لمندوب التوصيل." } },
+    delivered: { title: { en: "Order Delivered",              ar: "تم توصيل طلبك"         }, body: { en: "Your order has been delivered.",       ar: "استمتع بقهوتك!" } },
+    cancelled: { title: { en: "Order Cancelled",              ar: "تم إلغاء الطلب"        }, body: { en: "Your order has been cancelled.",       ar: "تم إلغاء طلبك." } },
+    returned:  { title: { en: "Return Processed",             ar: "تمت معالجة الإرجاع"   }, body: { en: "Your return has been processed.",      ar: "تمت معالجة طلب إرجاعك." } },
+  };
+
+  const preview = items.slice(0, 5);
+
+  return (
+    <div className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-80 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6A373]/35 to-transparent" />
+
+      {/* Header */}
+      <div className="border-b border-[#B6885E]/12 px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#B6885E]/70">
+          {t({ en: "Notifications", ar: "الإشعارات" })}
+        </p>
+      </div>
+
+      {/* Body */}
+      {loading ? (
+        <div className="space-y-2 px-3 py-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-12 animate-pulse rounded-lg bg-[#1B140F]" />
+          ))}
+        </div>
+      ) : preview.length === 0 ? (
+        <div className="px-4 py-8 text-center">
+          <Bell className="mx-auto mb-2 h-7 w-7 text-[#B6885E]/20" />
+          <p className="text-sm text-[#D6B79A]/55">
+            {t({ en: "No notifications yet.", ar: "لا توجد إشعارات بعد." })}
+          </p>
+          <p className="mt-1 text-xs text-[#B79B85]/40">
+            {t({ en: "Order updates will appear here.", ar: "ستظهر هنا تحديثات طلباتك." })}
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-[#B6885E]/08">
+          {preview.map((notif) => {
+            const content = STATUS_NOTIFICATION[notif.status] ?? {
+              title: { en: `Order ${notif.orderCode}`, ar: `طلب ${notif.orderCode}` },
+              body:  { en: notif.status, ar: notif.status },
+            };
+            const timeStr = formatDate(notif.changedAt, language);
+
+            return (
+              <Link
+                key={notif.eventId}
+                href={`/account/orders/${notif.orderCode}`}
+                onClick={onClose}
+                className="flex items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-[#B6885E]/08"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B6885E]/70" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-[#F5E6D8]">{t(content.title)}</p>
+                  <p className="truncate text-xs text-[#B79B85]/60">{t(content.body)}</p>
+                  <p className="mt-0.5 text-[10px] text-[#B79B85]/40">
+                    <span className="font-mono text-[#B6885E]/50">{notif.orderCode}</span>
+                    {" · "}{timeStr}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="border-t border-[#B6885E]/10 px-3 py-2.5">
+        <Link
+          href="/account/notifications"
+          onClick={onClose}
+          className="flex w-full items-center justify-center rounded-xl border border-[#B6885E]/18 bg-[#B6885E]/[0.06] px-4 py-2 text-xs font-semibold text-[#D6B79A]/85 transition-all hover:border-[#D6A373]/35 hover:bg-[#B6885E]/12 hover:text-[#F5E6D8]"
+        >
+          {t({ en: "View all notifications", ar: "عرض كل الإشعارات" })}
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 // ─── UserMenu dropdown ────────────────────────────────────────────────────────
 
@@ -627,6 +728,7 @@ export function PublicHeader() {
   const [isScrolled,          setIsScrolled]          = useState(false);
   const [openCommercePanel,   setOpenCommercePanel]   = useState<CommercePanel | null>(null);
   const [isUserMenuOpen,      setIsUserMenuOpen]      = useState(false);
+  const [isNotifOpen,         setIsNotifOpen]         = useState(false);
   const [isMobileMenuOpen,    setIsMobileMenuOpen]    = useState(false);
   const [scrollProgress,      setScrollProgress]      = useState(0);
   const [announcementIdx,     setAnnouncementIdx]     = useState(0);
@@ -637,6 +739,7 @@ export function PublicHeader() {
   const closeAll = () => {
     setOpenCommercePanel(null);
     setIsUserMenuOpen(false);
+    setIsNotifOpen(false);
     closeCart();
   };
 
@@ -692,6 +795,7 @@ export function PublicHeader() {
 
   const handleCartToggle = () => {
     setIsUserMenuOpen(false);
+    setIsNotifOpen(false);
     if (openCommercePanel === "cart") {
       setOpenCommercePanel(null);
       closeCart();
@@ -703,14 +807,23 @@ export function PublicHeader() {
 
   const handleWishlistToggle = () => {
     setIsUserMenuOpen(false);
+    setIsNotifOpen(false);
     closeCart();
     setOpenCommercePanel((p) => (p === "wishlist" ? null : "wishlist"));
   };
 
   const handleUserToggle = () => {
     setOpenCommercePanel(null);
+    setIsNotifOpen(false);
     closeCart();
     setIsUserMenuOpen((v) => !v);
+  };
+
+  const handleNotifToggle = () => {
+    setOpenCommercePanel(null);
+    setIsUserMenuOpen(false);
+    closeCart();
+    setIsNotifOpen((v) => !v);
   };
 
   return (
@@ -860,6 +973,22 @@ export function PublicHeader() {
                   </span>
                 )}
               </button>
+
+              {/* Notifications bell — logged-in only, desktop only */}
+              {isLoggedIn && (
+                <div className="relative hidden md:block">
+                  <button
+                    type="button"
+                    onClick={handleNotifToggle}
+                    className={cn("header-icon-button", isNotifOpen && "bg-[#B6885E]/12 text-[#F5E6D8]")}
+                    aria-label={t({ en: "Notifications", ar: "الإشعارات" })}
+                    aria-expanded={isNotifOpen ? "true" : "false"}
+                  >
+                    <Bell />
+                  </button>
+                  {isNotifOpen && <NotificationsDropdown onClose={() => setIsNotifOpen(false)} />}
+                </div>
+              )}
 
               {/* User menu button */}
               <div className="relative hidden md:block">
