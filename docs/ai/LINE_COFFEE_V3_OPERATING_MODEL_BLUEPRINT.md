@@ -1,5 +1,13 @@
 # LINE COFFEE V3 — BUSINESS + TECHNICAL OPERATING MODEL BLUEPRINT
 
+> ⚠️ **STATUS: DEEP REFERENCE ONLY — NEVER AN EXECUTION PLAN.** (updated 2026-06-29)
+> **Execution order/numbering is governed solely by `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`.** Any "Phase N" labels in this document belong to a superseded scheme — ignore them for execution.
+> ⚠️ **(2026-06-28) DEEP REFERENCE — PARTIALLY SUPERSEDED (details below).**
+> This document is a thorough model/ownership reference and is still useful for that. **But:**
+> 1. Its **"current reality" columns are outdated (pre-2026-06-27).** Since it was written, checkout creates real orders, auth is real Supabase, and orders/customer-account are real — see `LINE_COFFEE_V3_CURRENT_STATE.md` for verified state.
+> 2. It is **superseded for execution & phase order by `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (it wins on any conflict)**, and for business-model details by `LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` (**decisions/history reference only**) — specifically: **Media Studio is CANCELLED** (replaced by `LINE_COFFEE_V3_CONTENT_MAP.md`); costing is **FIFO (lots)**; **Make Your Espresso is real raw-bean manufacturing**; **Make Your Flavor is cost-only**; delivery is **zone-based** (30/50/100 + governorate = courier, `delivery_fee = 0`); inventory is **deducted at *delivered*** (not shipped); **packaging deducts at Place Order**.
+> When reading any section below: for **execution / phase order** follow the **MASTER_EXECUTION_PLAN**; for **business decisions** follow **FINAL_DECISIONS_AND_ROADMAP** (decisions/history only). This blueprint is **deep historical/reference only — never an execution plan.**
+
 > The single source of truth for **how Line Coffee V3 should operate** as a real business and a
 > real software system. This is not an audit, not implementation, not a flowchart. It defines the
 > correct future model and the safe order to reach it.

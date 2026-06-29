@@ -1,4 +1,6 @@
 # LINE COFFEE V3 — FULL SYSTEM AUDIT
+
+> ⚠️ **HISTORICAL AUDIT (2026-06-23) — SUPERSEDED, NOT AN EXECUTION PLAN.** This audit predates the real Supabase backend and the locked decisions. Its "Mock-only (no backend)" stack note and internal phase scheme (e.g. "Phase 6 — Media Studio Foundation") are obsolete: **Media Studio is cancelled (Decision 1)** and the project has a real backend. For verified state read `LINE_COFFEE_V3_CURRENT_STATE.md`; for execution read `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`. Kept for historical evidence only.
 **Generated:** 2026-06-23  
 **Project:** Line Coffee V3 — Premium Egyptian Specialty Coffee Brand  
 **Stack:** Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · Mock-only (no backend)  

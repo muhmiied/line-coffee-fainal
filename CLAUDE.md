@@ -2,11 +2,36 @@
 
 ## Current Source Of Truth
 
-- Current state is now in `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
-- The Change Log below is historical and should not override current decisions.
-- If old entries conflict with `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`, follow `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
-- Marketing is currently being restructured to 4 tabs only: Offers / Promo Codes / Announcement Bar / Performance.
-- The previous 5-tab Marketing implementation is obsolete.
+- Live state: `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`. **Execution reference (what to build next, in order): `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`.** Where to edit site copy/images: `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md`.
+- `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` keeps the locked decisions + context/history but is **no longer the phase-execution source** (its phase numbering is superseded by the master plan).
+- The Change Log below is **history**; it does not override the docs above or the block below.
+
+## Doc Reading Order (read before any task)
+
+1. `CLAUDE.md` (this file) — architecture, locked decisions, current position, rules.
+2. `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` — what's real vs mock vs missing.
+3. `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` — **the official execution reference: phase order, gates, per-phase scope.** Use this for what to build next.
+4. `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md` — file location of every public text/image.
+5. `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` — decisions/history reference only; **not** the phase-execution source (numbering superseded by the master plan).
+6. `docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md` — deep model reference only; **never an execution plan**; its "current reality" columns are outdated.
+
+> **Canonical rule:** the **MASTER_EXECUTION_PLAN** is the official execution reference. If any older roadmap inside `docs/` conflicts with it (especially phase numbers), the master plan wins and the older doc is **not** used for execution.
+
+## Current Architecture (Verified 2026-06-28)
+
+The app runs browser-only on the Supabase **anon key**; all writes go through **SECURITY DEFINER RPCs** that validate + recompute server-side. Customer data is scoped by device **`guest_id`**; admin by `admin_users` + `is_admin()`.
+
+- **REAL (Supabase):** public catalog; admin product/category CRUD; **checkout → real orders** (`create_checkout_order`); inventory **reservation in kg per product** (`inventory_stock` + `inventory_movements`); **Admin Orders** (`update_admin_order_status`); **Customer Account** (orders, profile, addresses, wishlist, notifications); real auth.
+- **MOCK (UI only, resets on refresh):** Admin Dashboard, Inventory UI, Customers, Marketing (promo codes don't validate), Accounting, Analytics, CMS, Espresso Manager, Flavor Manager; Cart (localStorage by design).
+- **MISSING (no DB):** FIFO lots · order_item_components · raw-bean inventory · packaging · purchases/suppliers/expenses · promo_codes · delivery zones · refunds/returns · reviews · contact_messages · analytics. **Media Studio does not exist and is cancelled (Decision 1).**
+- **Builders:** compute + add to cart but are **rejected at checkout** today (wired in Phases 8–9 — espresso = 8, flavor = 9; master plan numbering).
+- **Known mismatch:** code deducts inventory at `shipped`; Decision 6 says `delivered` → fixed in Phase 1.
+
+## Locked Business Decisions (1-line each — full text in the roadmap doc)
+
+1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
+
+**Position:** **Phase 0 (docs/source-of-truth lock) being finalized in this patch** — `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` is now the canonical execution reference; commit pending owner approval + Codex review. **Phase 1 next** (delivery zones + deduction `shipped`→`delivered` + payment defaults). Canonical numbering (0–18) lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9. The 5 prior open decisions are resolved in the master plan (packaging mapping, customer cancellation, cross-device history, communication, opening stock).
 
 ---
 
@@ -16,7 +41,7 @@
 
 ## Project Overview
 
-**Line Coffee** is a premium Egyptian specialty-coffee brand website. Visual-first, bilingual (EN/AR), dark cinematic aesthetic. No backend, no Supabase, no CMS — all data is static mock data in `src/lib/mock-data/`.
+**Line Coffee** is a premium Egyptian specialty-coffee brand website. Visual-first, bilingual (EN/AR), dark cinematic aesthetic. **Architecture note (updated 2026-06-29):** this is **no longer mock-only** — catalog, checkout→orders, admin orders, inventory reservation, and the customer account are **real Supabase** (browser anon key + SECURITY DEFINER RPCs). Remaining admin modules are still mock UI; some launch domains are missing — see `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` for the verified map. *(The 2026-06-16 sections below describe the homepage build and remain accurate for the public visuals.)*
 
 ---
 
@@ -30,7 +55,7 @@
 | Styling | Tailwind CSS v4 — CSS-first config via `@theme inline` in `globals.css` |
 | Fonts | Playfair Display (local TTF), Cairo (Google), Tajawal (Google) |
 | Linter | ESLint with `@typescript-eslint` + custom rules |
-| No DB | Static mock data only |
+| Backend | Supabase (Postgres) — browser anon key + SECURITY DEFINER RPCs; no service-role server. Some admin modules still mock — see `CURRENT_STATE.md`. |
 
 ---
 
@@ -109,7 +134,7 @@ src/
 ## Critical Rules (Do NOT violate)
 
 1. **No redesign** — keep the existing visual direction
-2. **No backend** — no Supabase, no API routes for data
+2. **Data layer = Supabase via SECURITY DEFINER RPCs on the anon key** — do NOT add Next.js API routes for data, a service-role server, or a second data source; all writes go through validated RPCs. *(Updated: the project now has a real Supabase backend; the original "no backend" rule is obsolete.)*
 3. **No new sections** — don't add sections not already in the homepage
 4. **No `aria-hidden={expression}`** — linter requires string literal `"true"`, never boolean
 5. **All sections use `"use client"`** — they all use hooks
@@ -152,6 +177,67 @@ ContactSection       ← cinematic-section, contact form + info
 ## Change Log
 
 > Every agent must add an entry here in format: `## [Date] — [Summary]`
+
+---
+
+### [2026-06-29] — Phase 0 Final Docs Consistency Patch (Codex "Approve with fixes" — docs only)
+
+Applied Codex's final read-only verification fixes. **No `src/`, no `supabase/`, no migrations, no `db push`, no commit.**
+
+- **Governorates fee unified to `delivery_fee = 0`** (was "0/null") across the Master Plan (Decision 11, Phase 1 scope, §6.5) and `FINAL_DECISIONS_AND_ROADMAP.md` (Decision 11); added the note "customer pays courier directly; outside Line Coffee revenue unless an admin manually overrides per order."
+- **Delivery zone resolution algorithm written explicitly** in Master Plan §6.5 (first-match order: 1 Shorouk/Madinaty 30 → 2 Haram-end/6 October/Sheikh Zayed 100 *(checked before the general Cairo/Giza rule)* → 3 remaining Cairo/Giza 50 → 4 all other governorates 0 + courier note); more-specific zone wins; `Haram-end` is admin-selectable.
+- **Blueprint supersession wording fixed** — now states the **MASTER_EXECUTION_PLAN wins for execution & phase order**, FINAL_DECISIONS is decisions/history reference only, and the blueprint is deep historical/reference only (never an execution plan). Removed the stale "follow the decisions doc on conflict" line.
+- **FINAL_DECISIONS banner cleaned** — gap map + Part 3 marked reference/context only (not an execution plan); Part 6 retitled "RESOLVED in the Master Execution Plan" with a status note (open decisions no longer need an owner call).
+- **Numeric precision added** (Master Plan §6.7): coffee stock kg ≥3 decimals (0.001 kg = 1 g); espresso components in grams rounded to nearest whole gram unless exact decimal needed for allocation; money EGP 2 decimals (totals/discounts/delivery/COGS/refunds/expenses/supplier payments); UI may show whole EGP but DB snapshots stay 2 decimals.
+- **Content Map**: Reviews/Testimonials future phase corrected Phase 11 → **Phase 13**.
+- **Saved Addresses in Checkout assigned to Phase 2** (Master Plan Phase 2 scope + §6.11): Phase 2 owns registered address ownership + checkout saved/default-address resolution; guests keep the form; Phase 1 may keep the existing checkout form while delivery rules are corrected.
+- **Validation:** `git status --short` shows only docs files. No source/DB changes.
+
+---
+
+### [2026-06-29] — Phase 0 Closure: Canonical Master Execution Plan + Doc Reconciliation (docs only)
+
+**Goal:** Close Phase 0 before commit by making the merged Master Execution Plan the single official execution reference inside the repo, and reconciling stale roadmaps / conflicting phase numbering. **No `src/`, no `supabase/`, no migrations, no `db push`, no commit** — docs only.
+
+**`docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`** (new — **canonical execution reference**) — purpose; the 20 locked business decisions; tool ownership (Claude / Codex / z.ai); collaboration rules; phase-gate format; the full **Phase 0–18 roadmap with a canonical numbering table (§5.0)**; an **Execution Clarifications (§6)** section; immediate next action; commit policy; absolute stop conditions; final priority summary. §6 resolves the open points: **Owner Settings UI deferred**; **storefront stock badges / disable-add-at-0 deferred to stable inventory (≈Phase 5)** while server-side validation stays the early safety gate; **per-phase testing (NOT deferred to Phase 16)** with `create_checkout_order` regression tests starting Phase 1; **migration preflight** before any migration phase incl. Phase 1; and locked details (delivery overlap priority + `Haram-end` admin-selectable + governorate fee 0; `inventory_stock`→`inventory_lots` with no double counting; units/precision kg/grams/EGP; packaging shortage = alert not block + packaging cost basis from lots; returns sellable-at-COGS vs damaged-loss; admin edits only after-shipped-before-delivered; Phase 2 `auth_user_id` stamping + same-device guest migration).
+
+**`CLAUDE.md`** — new **Doc Reading Order** (1 CLAUDE.md → 2 CURRENT_STATE → 3 MASTER_EXECUTION_PLAN → 4 CONTENT_MAP → 5 FINAL_DECISIONS *(decisions/history only)* → 6 BLUEPRINT *(deep ref only)*) + canonical rule that the master plan wins on phase numbering; Current-Source-of-Truth block repointed to the master plan; **Position** line updated (Phase 0 finalizing, Phase 1 next, canonical numbering packaging=6 / identity=2 / promo=7 / editing=10 / espresso=8 / flavor=9); corrected stale "No backend / no Supabase / static mock data" in Project Overview, the Tech-Stack row, and Critical-Rule #2; builders wiring corrected to Phases 8–9.
+
+**`docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`** — AI Reading Order now includes the master plan as the execution reference; builders wiring corrected to Phases 8 & 9; current-position line repointed to the master plan + "Phase 0 being finalized, commit pending".
+
+**`docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md`** — added an **EXECUTION SUPERSESSION banner** (phase numbering superseded by the master plan; decisions + gap map + context stay valid; the 5 prior open decisions now resolved) + fixed the bottom Position line. Part 3 not rewritten (history preserved).
+
+**`docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md`** — corrected inline phase numbers (product images → Phase 12; espresso → Phase 8; flavor → Phase 9).
+
+**`docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md`** — banner strengthened to "deep reference only — never an execution plan; execution governed solely by the master plan".
+
+**`docs/ai/LINE_COFFEE_V3_SYSTEM_AUDIT.md`** — added a historical-audit supersession banner (predates the real backend; "Media Studio Foundation" obsolete per Decision 1).
+
+**Reconciled phase numbering** (old → canonical): packaging 10→6, customer identity 13→2, promo 3→7, order editing 4→10, espresso →8, flavor →9. Older roadmaps marked **non-execution references**. Added **Phase 1 preflight** + **per-phase testing** rule.
+
+**Validation:** docs render as Markdown; `git status --short` shows only docs files. **No `src/`, no `supabase/`, no migrations, no `db push`, no commit/push.**
+
+---
+
+### [2026-06-28] — Documentation Realignment + Phased Roadmap (Phase 0, docs only)
+
+**Goal:** Reconcile the planning docs with verified reality + the owner's locked decisions, and produce a dependency-ordered phased roadmap. **No `src/`, no `supabase/`, no migrations, no commits** — documentation + memory only.
+
+**Verified current state** via full codebase exploration (3 areas): catalog, checkout→orders, admin orders, inventory kg-reservation, and the whole customer account are now **real Supabase**; admin Dashboard/Inventory-UI/Customers/Marketing/Accounting/Analytics/CMS/Espresso-Manager/Flavor-Manager are **mock**; FIFO lots, raw-bean inventory, packaging, purchases/suppliers/expenses, promo table, delivery zones, refunds, reviews, contact, analytics **don't exist**; Media Studio doesn't exist (and is cancelled). Builders are rejected at checkout today.
+
+**`docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`** (full rewrite) — replaced the obsolete "mock-only / Marketing active task" framing with the verified REAL/MOCK/MISSING map, the architecture paragraph (anon key + SECURITY DEFINER RPCs + guest_id scoping), the corrected reading order, and the 20-decision summary.
+
+**`docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md`** (new, then enriched) — the authoritative forward plan: 20 locked decisions, Was→WillBe→How gap map, and an **18-phase** roadmap, plus a per-phase Definition of Done + engineering rules, launch scope/out-of-scope, and 5 open owner decisions. Structural keys: **Purchases + Suppliers + Expenses create inventory lots from the start** in one phase, **FIFO consumption/COGS in a separate phase** (no duplication); **packaging deferred to its own later phase** (Phase 1 is not packaging-complete). Added phases beyond the owner's base list (from engineering review): Owner Settings + storefront stock truth, order editing/cancellation (Decision 13), opening-stock entry, customer identity/auth-linking for cross-device history. Marked as superseding the blueprint where they conflict.
+
+**`docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md`** (new) — replaces Media Studio's purpose: a table mapping every public route's text + images to its source file and static/dynamic origin (announcement bar, footer, all homepage sections, products, builders, checkout, about/contact/blog/legal, account).
+
+**`docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md`** (header only) — added a "DEEP REFERENCE — PARTIALLY SUPERSEDED" banner (Media Studio cancelled, FIFO, espresso raw-bean mfg, flavor cost-only, zone delivery, deduct-at-delivered; current-reality columns outdated). No other lines touched.
+
+**`CLAUDE.md`** (strengthened) — new top block: Doc Reading Order + **Current Architecture (Verified 2026-06-28)** + **Locked Business Decisions** (20, one line each) + current position. A cold session is now oriented in one read without parsing the change log.
+
+**Memory** — added `project_current_architecture.md`, `project_locked_decisions.md`, `project_roadmap_phases.md`; refreshed `v3_plan_reference.md` + `feedback_accounting_stock.md`; updated `MEMORY.md` index.
+
+**Validation:** docs render as Markdown; no file under `src/` or `supabase/` modified.
 
 ---
 
