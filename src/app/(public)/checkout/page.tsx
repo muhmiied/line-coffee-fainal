@@ -8,12 +8,17 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
   checkoutResultStorageKey,
   createCheckoutAttemptId,
   getOrCreateGuestId,
   isCheckoutOrderResult,
 } from "@/lib/checkout";
+import {
+  getCustomerAddresses,
+  type CustomerAddress,
+} from "@/lib/account/customer-account";
 import { resolveDeliveryFee } from "@/lib/delivery";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -365,6 +370,7 @@ function CustomSelect({
 export default function CheckoutPage() {
   const { t, dir, language } = useLanguage();
   const { items, total, clearCart } = useCart();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
   const checkoutAttemptId = useRef<string | null>(null);
 
@@ -372,6 +378,57 @@ export default function CheckoutPage() {
   const [errors,     setErrors]     = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Phase 2: registered customers can pick a saved/default address in checkout.
+  // Guests never load this — the RPC self-scopes and returns nothing for them.
+  const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Guests skip the fetch entirely; the panel is gated on isLoggedIn, so any
+    // stale list left after a sign-out is never rendered (no sync clear needed).
+    if (!isLoggedIn) return;
+    let active = true;
+    getCustomerAddresses()
+      .then((rows) => { if (active) setSavedAddresses(rows); })
+      .catch(() => { if (active) setSavedAddresses([]); });
+    return () => { active = false; };
+  }, [isLoggedIn]);
+
+  // Map a saved address onto the checkout form. Address fields overwrite; identity
+  // fields fill only when empty (don't clobber what the user already typed).
+  // Governorate/area are matched against the known options so the zone preview
+  // still resolves; an unmatched value is left for the user to pick manually.
+  function applySavedAddress(a: CustomerAddress) {
+    const govNorm = a.governorate.trim().toLowerCase();
+    const gov = GOVS.find(
+      (g) => g.en.toLowerCase() === govNorm || g.ar === a.governorate.trim(),
+    );
+    const areaNorm = (a.area ?? "").trim().toLowerCase();
+    const area = gov?.areas.find(
+      (ar) => ar.en.toLowerCase() === areaNorm || ar.ar === (a.area ?? "").trim(),
+    );
+    const floorApt = [
+      a.floor && `${t({ en: "Floor", ar: "الدور" })} ${a.floor}`,
+      a.apartment && `${t({ en: "Apt", ar: "شقة" })} ${a.apartment}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    setSelectedAddressId(a.id);
+    setSubmitError(null);
+    setErrors({});
+    setForm((prev) => ({
+      ...prev,
+      name:        prev.name.trim()  ? prev.name  : (a.recipientName ?? ""),
+      phone:       prev.phone.trim() ? prev.phone : (a.phone ?? ""),
+      governorate: gov ? gov.en : prev.governorate,
+      area:        gov ? (area ? area.en : "") : prev.area,
+      street:      a.street || prev.street,
+      building:    a.building ?? "",
+      floorApt:    floorApt || prev.floorApt,
+    }));
+  }
 
   // Zone-based delivery (Decisions 10 + 11). This mirrors the server for an
   // accurate preview; create_checkout_order recomputes the authoritative fee.
@@ -396,6 +453,11 @@ export default function CheckoutPage() {
 
   function update(field: keyof FormData, value: string) {
     setSubmitError(null);
+    // A manual edit to an address/identity field means the form no longer matches
+    // the picked saved address — drop the highlight.
+    if (field !== "paymentMethod" && field !== "paymentReference" && field !== "paymentPhone") {
+      setSelectedAddressId(null);
+    }
     if (field === "governorate") {
       setForm((prev) => ({ ...prev, governorate: value, area: "" }));
       setErrors((prev) => ({ ...prev, governorate: undefined, area: undefined }));
@@ -580,6 +642,60 @@ export default function CheckoutPage() {
 
             {/* ── Left: Form ── */}
             <div className="space-y-6 lg:col-span-2">
+
+              {/* Saved addresses (registered customers only) */}
+              {isLoggedIn && savedAddresses.length > 0 && (
+                <div className="rounded-2xl border border-[#B6885E]/14 bg-[#120D09]/68 p-6">
+                  <h2 className="mb-1 font-serif text-lg font-bold text-[#F5E6D8]">
+                    {t({ en: "Saved Addresses", ar: "العناوين المحفوظة" })}
+                  </h2>
+                  <p className="mb-4 text-[11px] text-[#D6B79A]/45">
+                    {t({
+                      en: "Pick a saved address to fill the form below.",
+                      ar: "اختر عنواناً محفوظاً لتعبئة النموذج أدناه.",
+                    })}
+                  </p>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {savedAddresses.map((a) => {
+                      const active = selectedAddressId === a.id;
+                      const locline = [a.area, a.city, a.governorate]
+                        .filter(Boolean)
+                        .join("، ");
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => applySavedAddress(a)}
+                          aria-pressed={active ? "true" : "false"}
+                          className={cn(
+                            "rounded-xl border p-3.5 text-start transition-all",
+                            active
+                              ? "border-[#D6A373]/40 bg-[#D6A373]/8 ring-1 ring-[#D6A373]/22"
+                              : "border-[#B6885E]/18 hover:border-[#B6885E]/35",
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-[#F5E6D8]">
+                              {a.label}
+                            </span>
+                            {a.isDefault && (
+                              <span className="rounded-full bg-[#B6885E]/12 px-2 py-0.5 text-[10px] text-[#D6A373]">
+                                {t({ en: "Default", ar: "الافتراضي" })}
+                              </span>
+                            )}
+                          </div>
+                          {locline && (
+                            <p className="mt-0.5 truncate text-[11px] text-[#D6B79A]/50">{locline}</p>
+                          )}
+                          {a.street && (
+                            <p className="truncate text-[11px] text-[#D6B79A]/40">{a.street}</p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Customer info */}
               <div className="rounded-2xl border border-[#B6885E]/14 bg-[#120D09]/68 p-6">

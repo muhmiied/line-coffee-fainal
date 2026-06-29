@@ -32,6 +32,22 @@ export function clearLegacyMockAuth() {
   window.localStorage.removeItem("line-user-v1");
 }
 
+// Phase 2: link same-device guest data (orders/addresses/wishlist) to the
+// signed-in account. Best-effort and idempotent. Guarded so a persisted session
+// only triggers one link attempt per page load; explicit sign-in/up always links.
+let _guestLinkAttempted = false;
+
+async function linkGuestDataBestEffort() {
+  _guestLinkAttempted = true;
+  try {
+    const mod = await import("@/lib/account/customer-account");
+    await mod.linkGuestDataToAccount();
+  } catch {
+    // Migration may not be applied yet, or the network call failed — ignore.
+    // Account reads still work via the auth-based ownership path.
+  }
+}
+
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,6 +59,10 @@ export function useAuth() {
       if (!active) return;
       setUser(mapUser(data.user));
       setIsLoading(false);
+      // Persisted session detected: link same-device guest data once per load.
+      if (data.user && !_guestLinkAttempted) {
+        void linkGuestDataBestEffort();
+      }
     });
 
     const {
@@ -66,6 +86,8 @@ export function useAuth() {
     });
     if (error) throw error;
     setUser(mapUser(data.user));
+    // Link any same-device guest data to this account before the caller routes on.
+    await linkGuestDataBestEffort();
     return data;
   }, []);
 
@@ -81,6 +103,12 @@ export function useAuth() {
       });
       if (error) throw error;
       setUser(mapUser(data.user));
+      // Only an active session can link (auth.uid() must resolve). When email
+      // confirmation is required there is no session yet — linking happens on
+      // the first authenticated load instead.
+      if (data.session) {
+        await linkGuestDataBestEffort();
+      }
       return data;
     },
     [],

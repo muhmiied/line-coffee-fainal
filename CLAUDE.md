@@ -31,7 +31,7 @@ The app runs browser-only on the Supabase **anon key**; all writes go through **
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** **Phase 0 (docs/source-of-truth lock) being finalized in this patch** — `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` is now the canonical execution reference; commit pending owner approval + Codex review. **Phase 1 next** (delivery zones + deduction `shipped`→`delivered` + payment defaults). Canonical numbering (0–18) lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9. The 5 prior open decisions are resolved in the master plan (packaging mapping, customer cancellation, cross-device history, communication, opening stock).
+**Position:** Phase 0 committed; **Phase 1 committed** (`aad279c` — delivery zones + deduct@delivered + all-payments-pending; migration `20260629120000`). **Phase 2 (customer identity / ownership / account correctness) is implemented in code + migration `20260629130000` (authored only — NOT pushed/committed)**: a unified ownership resolver (`account_customer_id`) reads registered customers by `auth.uid()` and guests by `guest_id`, account RPCs now scope orders by `customer_id` (registered = cross-device, guest = same-device, and a registered order can no longer leak to a same-device guest), profile/addresses work for registered customers, wishlist gains an `auth_user_id` path, and `link_guest_data_to_account` promotes/merges same-device guest data on login/signup (no auto-merge by phone/email). **Phase 3 next.** Canonical numbering (0–18) lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9.
 
 ---
 
@@ -177,6 +177,63 @@ ContactSection       ← cinematic-section, contact form + info
 ## Change Log
 
 > Every agent must add an entry here in format: `## [Date] — [Summary]`
+
+---
+
+### [2026-06-29] — Phase 2 bugfix: Wishlist ownership leak (client-only, no migration)
+
+**Bug:** after the Phase 2 migration was `db push`ed, the wishlist leaked across accounts on one device: Account A adds an item → logs out → item stays visible → Account B logs in → still sees A's item. **No `db push`, no commit, no Phase 3, no admin/delivery/payment/inventory changes.**
+
+**Root cause (purely client-side — the DB RPCs were already correctly owner-scoped):** the wishlist used a **single global** localStorage key `line-wishlist-v1`, shared by guest + every account on the device. `useWishlist` hydrated from it with a once-per-load `_synced` guard and **never cleared or re-fetched on auth change**, so A's items survived logout (still in the global key) and were read by B. **`src/app/(public)/account/wishlist/page.tsx` made it worse** — it read the same global key **directly** via `useLocalStorage`, bypassing the hook. The Phase 2 wishlist RPCs (`get/add/remove_customer_wishlist_item`, auth_user_id vs guest_id) were correct, so **no migration was needed**.
+
+**`src/lib/hooks/useWishlist.ts`** (rewritten as an owner-scoped module store):
+- One module-level store + `useSyncExternalStore`, so the header count, header drawer, and `/account/wishlist` share **one** in-memory list and always agree.
+- A **single** module-level `supabase.auth` watcher (not one `useAuth` per ProductCard) resolves the owner: `auth:<userId>` when signed in, else `guest:<guestId>`.
+- On every auth change `setOwner()` runs: **immediately clears** the previous owner's list (guests reseed from their own scoped cache, auth owners start empty), then **re-fetches** the new owner's list from the server (`getCustomerWishlist()` self-scopes by auth.uid()/guest_id — the source of truth).
+- **Authenticated wishlists are never written to localStorage** — memory + server only, so no account-owned item can leak through localStorage. Guests use a per-device key `line-wishlist-v1:guest:<guestId>` for instant paint.
+- The legacy global key `line-wishlist-v1` is **purged once** on init and never read again, killing any pre-fix leaked data.
+- Ownership comes only from auth.uid() (server) or the device guest_id — **never phone/email**. Hook API unchanged (`{ ids, count, toggle, isWishlisted, remove }`).
+
+**`src/app/(public)/account/wishlist/page.tsx`** — replaced the direct `useLocalStorage("line-wishlist-v1")` read with `useWishlist()` (owner-scoped); removed the local `remove` in favour of the hook's.
+
+**Ownership before→after:** one global localStorage list shared across guest/A/B, never cleared on auth change ⇒ **per-owner state**: auth = server-truth (no localStorage), guest = `guest:<guestId>` cache + server; cleared + refetched on every sign-in/out.
+**localStorage scoping:** global `line-wishlist-v1` (purged) ⇒ guest-only `line-wishlist-v1:guest:<guestId>`; authenticated wishlists never persisted to localStorage.
+**Auth-change behaviour:** none ⇒ immediate in-memory clear + server refetch for the new owner; A's items can no longer survive a logout or appear for B.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` (2 changed files) → 0 errors/0 warnings · changed routes compile on the live dev server (`/`, `/products`, `/products/turkish-silk`, `/account/wishlist` → HTTP 200). `npm run build` skipped (live `next dev` on :3000 shares `.next`). **No new migration. No `db push`, no commit, no push.**
+**Manual smoke (logical):** guest add → visible as guest; guest→login A migrates same-device guest items (Phase 2 link RPC) + A shows them; A adds → A only; A logout → guest UI shows only guest-owned items (A's gone); B login → no A items; A re-login → A items return; header count == `/account/wishlist`; no phone/email ownership; Phase 1 checkout/order/payment/inventory untouched.
+
+---
+
+### [2026-06-29] — Phase 2: Customer Identity, Ownership & Account Correctness (code + migration authored, NOT applied)
+
+**Goal:** Implement **Phase 2** of `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`. Fix customer ownership before more operational logic is built on top: registered customers must read account-owned data by `auth.uid()` (cross-device); guests by `guest_id` (same-device); never trust email/phone for ownership; safely link same-device guest data on signup/login. **No `db push`, no commit, no push. Phase 1 logic untouched. Phase 3 not started.**
+
+**Root problem (verified):** the whole customer account was device-scoped — every account RPC took `p_guest_id` and read `orders.guest_id`. Defects: (A) a registered customer on a new device saw nothing; (B) profile/address RPCs only matched `type='guest'`, so registered customers couldn't read/update profile or addresses at all; (C) reading orders by `orders.guest_id` could leak a registered order to a different person using the same device as a guest (same localStorage token). Auth itself was already real Supabase Auth (`useAuth.ts`).
+
+**`supabase/migrations/20260629130000_phase2_customer_identity_ownership.sql`** (new — authored only):
+- **§1 wishlist schema:** `customer_wishlist` += `auth_user_id uuid` (FK `auth.users`), `guest_id` relaxed to nullable, `customer_wishlist_owner_chk` (guest_id OR auth_user_id required), partial unique `(auth_user_id, product_slug)`. Gives registered wishlist a cross-device key without needing a `customers` row.
+- **§2 `account_customer_id(p_guest_id)`** (new, internal, SECURITY DEFINER, revoked from anon/authenticated): the unified ownership resolver. Authenticated → `customers WHERE auth_user_id = auth.uid()` (may be null); anon → `customers WHERE guest_id = p_guest_id AND type='guest'` (validated 8–64 chars). The auth path **ignores** the passed guest_id for ownership, so a signed-in user cannot read another device's guest data by passing its token. **No email/phone ownership.**
+- **§3 order reads** (`get_customer_orders`, `get_customer_order_detail`, `get_customer_notifications`) — replaced (CREATE OR REPLACE, identical return signatures). Now scope by `orders.customer_id = account_customer_id(...)`: registered = cross-device (auth.uid()), guest = same-device (guest_id→guest customer), and a registered order's `customer_id` is the registered customer so a same-device guest (different customer) can no longer read it (fixes leak C). Order detail still requires code + ownership (no enumeration).
+- **§4 profile** (`get_customer_profile`, `update_customer_profile`) — resolve via `account_customer_id`. `update_customer_profile` keeps the name/phone/whatsapp whitelist and **upserts a registered customer row** when an authenticated caller has none yet (whatsapp supplied → satisfies NOT NULL).
+- **§5 addresses** (`get/add/update/delete/set_default_customer_address`) — all switched from the `type='guest'` lookup to `account_customer_id`, so registered customers can finally manage their address book; ownership re-verified against the resolved `customer_id` on every write.
+- **§6 wishlist RPCs** (`get/add/remove_customer_wishlist_item`) — authenticated path keys by `auth_user_id` (ON CONFLICT on the partial index); guest path unchanged (`guest_id`).
+- **§7 `link_guest_data_to_account(p_guest_id)`** (new, authenticated-only): **PROMOTE** the same-device guest customer in place when the account has no `customers` row (type→registered, `auth_user_id` set, `guest_id` cleared — orders/addresses follow automatically); **MERGE** into the existing registered customer otherwise (reassign orders + addresses, handle the one-default-address index, then neutralize the empty guest shell with `guest_id=null, status='inactive'` — **non-destructive, no delete**); device wishlist rows migrate to `auth_user_id` (deduped). Matches **only** by same-device `guest_id`; **no auto-merge by phone/email**. Idempotent — safe to call every login.
+- **§8 grants:** account RPCs keep `anon, authenticated`; `link_guest_data_to_account` is `authenticated` only; `account_customer_id` stays internal.
+
+**`src/lib/account/customer-account.ts`** — added `linkGuestDataToAccount()` + `GuestLinkResult` type (calls the new RPC, best-effort). All existing data-layer functions are **unchanged** (they still pass `guest_id`; the RPCs ignore it when authenticated), so the account read pages need no edits to gain the registered cross-device path.
+
+**`src/lib/hooks/useAuth.ts`** — after a successful `signIn` (and `signUp` when a session exists) it `await`s a best-effort `linkGuestDataToAccount()` before the caller routes on; a persisted session triggers one link attempt per page load (module-level `_guestLinkAttempted` guard). Dynamic-imported so `useAuth` stays light; all failures swallowed (migration may be unapplied).
+
+**`src/app/(public)/checkout/page.tsx`** — Phase 2 §6.11 saved/default-address resolution: registered customers now see a **"Saved Addresses"** picker (loaded via `getCustomerAddresses`, gated on `isLoggedIn && length>0`); clicking one fills the existing form (governorate/area matched against the known options so the zone preview still resolves; identity fields fill-only-when-empty). Guests are unchanged — no fetch, no panel. No redesign, no change to the submit/order logic.
+
+**Ownership before→after:** account data device-scoped by `guest_id` only ⇒ **resolved per caller**: registered by `auth.uid()` (cross-device), guest by `guest_id` (same-device); registered orders no longer leak to same-device guests.
+**Guest before→after:** same-device orders/profile/addresses/wishlist by `guest_id` — **unchanged behaviour** (now expressed via `customer_id` resolved from `guest_id`).
+**Registered before→after:** could not read profile/addresses and saw no orders on a new device ⇒ **full account access by `auth.uid()`**, cross-device, plus checkout saved-address selection.
+**Guest→registered linking:** none ⇒ **same-device promote/merge on signup/login** (orders, addresses, wishlist), no phone/email auto-merge.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` (3 changed files) → 0 errors/0 warnings · changed routes compile on the live dev server (`/`, `/checkout`, `/auth/login`, `/auth/signup`, `/account/profile`, `/account/orders`, `/account/addresses` → HTTP 200) · migration function bodies balanced (15 funcs, 15 `$$` open/close). `npm run build` intentionally skipped — a `next dev` server is live on :3000 sharing `.next` (ChunkLoadError risk, per the 2026-06-26 entry). **Migration is authored only** — apply with `supabase db push` after Codex review + owner approval; until then the live account stays Phase-1 device-scoped.
+**Deferred (documented):** a registered user who never checked out has no `customers` row, so the address book is empty until they save a profile (creates the row) or place an order; wishlist items added locally while logged-out only migrate the rows already persisted server-side (by `guest_id`). FIFO/packaging/promo/builders/accounting untouched.
 
 ---
 

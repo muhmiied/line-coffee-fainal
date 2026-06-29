@@ -354,3 +354,38 @@ export async function removeCustomerWishlistItem(slug: string): Promise<void> {
     p_product_slug: slug,
   });
 }
+
+// ─── Guest → registered linking (Phase 2) ──────────────────────────────────────
+
+export type GuestLinkResult = {
+  linked: boolean;
+  mode?: "promote" | "merge" | "wishlist_only" | "noop";
+  movedOrders?: number;
+  customerId?: string | null;
+  reason?: string;
+};
+
+/**
+ * Link SAME-DEVICE guest data (orders, addresses, wishlist) to the currently
+ * authenticated account. Matches only by the device `guest_id` — there is NO
+ * automatic merge by phone/email. Best-effort and idempotent: safe to call on
+ * every login/signup; re-running finds nothing left to migrate. Requires an
+ * authenticated Supabase session (the RPC reads auth.uid()).
+ */
+export async function linkGuestDataToAccount(): Promise<GuestLinkResult> {
+  const guestId = getOrCreateGuestId();
+  const { data, error } = await supabase.rpc("link_guest_data_to_account", {
+    p_guest_id: guestId,
+  });
+  if (error || !data || typeof data !== "object") {
+    return { linked: false };
+  }
+  const row = data as Record<string, unknown>;
+  return {
+    linked: Boolean(row.linked),
+    mode: row.mode as GuestLinkResult["mode"],
+    movedOrders: row.moved_orders != null ? Number(row.moved_orders) : undefined,
+    customerId: row.customer_id != null ? String(row.customer_id) : null,
+    reason: row.reason != null ? String(row.reason) : undefined,
+  };
+}

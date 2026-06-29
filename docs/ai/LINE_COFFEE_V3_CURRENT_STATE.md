@@ -37,11 +37,13 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 | **Checkout → real order** | `create_checkout_order` RPC: creates `orders` + `order_items` (price snapshot from DB), upserts guest/registered customer, idempotent on `checkout_attempt_id` | `src/app/(public)/checkout/page.tsx`, `src/lib/checkout.ts` |
 | **Inventory reservation** | `inventory_stock` (kg **per product**: `available_kg`/`reserved_kg`) + `inventory_movements` ledger | migration `20260627100000` |
 | **Admin Orders** | Real list/detail + status transitions with inventory effects | `src/lib/admin/admin-orders.ts`; RPC `update_admin_order_status` |
-| **Customer Account** | Orders, order detail, profile, addresses, wishlist, notifications — all guest_id-scoped RPCs | `src/lib/account/customer-account.ts` |
+| **Customer Account** | Orders, order detail, profile, addresses, wishlist, notifications. Ownership resolved per caller — see the Phase 2 note below | `src/lib/account/customer-account.ts` |
 | **Header notifications** | Bell dropdown reads real `order_status_events` | `src/components/layout/public/PublicHeader.tsx` |
 | **Auth** | Real Supabase auth; `/admin` gated via `admin_users` (role/status) | `src/lib/auth/admin.ts`, `useCurrentAdmin` |
 
 **Inventory lifecycle (Phase 1):** reserve at checkout → keep reservation through `shipped` → **deduct at `delivered`** → release on cancel. This now matches Locked Decision 6. ⚠️ The fix lives in migration `20260629120000_phase1_delivery_deduction_payment.sql`, which is **authored but not yet applied** — until the owner runs `supabase db push`, the live DB still deducts at `shipped`. (Phase 5 re-implements deduction at lot level.)
+
+**Customer ownership (Phase 2 — authored, not yet applied):** account data is no longer device-only. Migration `20260629130000_phase2_customer_identity_ownership.sql` adds `account_customer_id(p_guest_id)` — a unified resolver: authenticated callers resolve by `auth.uid()` (registered customer, **cross-device**); anonymous callers by validated `guest_id` (guest customer, **same-device**). Account RPCs now scope orders by `orders.customer_id` (not the raw `guest_id`), so registered customers read their own orders/profile/addresses on any device, profile/addresses finally work for registered customers, and a registered order can no longer leak to a different person using the same device as a guest. Wishlist gained an `auth_user_id` path. `link_guest_data_to_account()` (authenticated-only) promotes/merges **same-device** guest data on signup/login (orders, addresses, wishlist) — **no auto-merge by phone/email**. Until the owner applies it, the live account stays Phase-1 device-scoped (guest_id only).
 
 ---
 
@@ -127,4 +129,4 @@ See `LINE_COFFEE_V3_CONTENT_MAP.md` for which file holds each page's text and im
 
 - `CLAUDE.md` now opens with a **Current Architecture + Locked Decisions + Doc Reading Order** block — read that first; the long change log below it is history.
 - `README.md` is an entry point, not the detailed source of truth.
-- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position: Phase 0 committed. Phase 1 (delivery zones + deduction timing + payment defaults) is implemented in code + migration `20260629120000` (authored only) — pending Codex review + owner `db push`. Phase 2 is next.**
+- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position: Phase 0 + Phase 1 committed. Phase 2 (customer identity / ownership / account correctness) is implemented; migration `20260629130000` (`account_customer_id` resolver, customer_id-scoped account RPCs, wishlist `auth_user_id` path, `link_guest_data_to_account`) has been applied via `db push`. A follow-up client-only bugfix made the wishlist owner-scoped (auth user vs guest), fixing a cross-account localStorage leak — no migration. Phase 3 is next.**

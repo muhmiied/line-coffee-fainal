@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { AccountShell } from "@/components/layout/account/AccountShell";
-import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { useWishlist } from "@/lib/hooks/useWishlist";
 import {
   getPublicProductsBySlugs,
   type PublicCatalogProduct,
@@ -17,7 +17,8 @@ export default function WishlistPage() {
   const { t } = useLanguage();
   const { addItem } = useCart();
 
-  const [wishlistIds, setWishlistIds] = useLocalStorage<string[]>("line-wishlist-v1", []);
+  // Owner-scoped wishlist (auth user or guest) — shared with the header + cards.
+  const { ids: wishlistIds, remove } = useWishlist();
   const [products, setProducts] = useState<PublicCatalogProduct[]>([]);
   const [catalogState, setCatalogState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const wishlistKey = wishlistIds.join("|");
@@ -44,9 +45,6 @@ export default function WishlistPage() {
       isMounted = false;
     };
   }, [wishlistIds, wishlistKey]);
-
-  const remove = (slug: string) =>
-    setWishlistIds((prev) => prev.filter((id) => id !== slug));
 
   const handleAddToCart = (slug: string) => {
     const product = visibleProducts.find((p) => p.slug === slug);
