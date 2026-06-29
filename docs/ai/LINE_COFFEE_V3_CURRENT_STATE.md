@@ -41,7 +41,7 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 | **Header notifications** | Bell dropdown reads real `order_status_events` | `src/components/layout/public/PublicHeader.tsx` |
 | **Auth** | Real Supabase auth; `/admin` gated via `admin_users` (role/status) | `src/lib/auth/admin.ts`, `useCurrentAdmin` |
 
-**Inventory lifecycle today:** reserve at checkout → **deduct at `shipped`** → release on cancel. ⚠️ Locked Decision 6 says deduct at **`delivered`** — this is a known mismatch scheduled for Phase 1 (see roadmap).
+**Inventory lifecycle (Phase 1):** reserve at checkout → keep reservation through `shipped` → **deduct at `delivered`** → release on cancel. This now matches Locked Decision 6. ⚠️ The fix lives in migration `20260629120000_phase1_delivery_deduction_payment.sql`, which is **authored but not yet applied** — until the owner runs `supabase db push`, the live DB still deducts at `shipped`. (Phase 5 re-implements deduction at lot level.)
 
 ---
 
@@ -64,7 +64,9 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 
 ## MISSING — no database at all yet
 
-FIFO inventory **lots** · `order_item_components` (custom espresso breakdown) · **raw-bean** inventory (separate from finished goods) · **packaging** stock · **purchases** / purchase_items · **suppliers** / supplier_payments · **expenses** · **promo_codes** table + checkout application (`discount_total` is always 0) · **delivery zones** (currently hardcoded free ≥500 EGP else 50) · **refunds/returns** records · **reviews** · **contact_messages** · **analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
+FIFO inventory **lots** · `order_item_components` (custom espresso breakdown) · **raw-bean** inventory (separate from finished goods) · **packaging** stock · **purchases** / purchase_items · **suppliers** / supplier_payments · **expenses** · **promo_codes** table + checkout application (`discount_total` is always 0) · **refunds/returns** records · **reviews** · **contact_messages** · **analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
+
+> **Delivery zones (Phase 1 — authored, not yet applied):** zone-based delivery is now resolved **server-side** in `create_checkout_order` via `resolve_delivery_fee()` (Shorouk/Madinaty 30 · Haram/6 October/Sheikh Zayed 100 · remaining Cairo/Giza 50 · other governorates 0 + courier note), with an admin per-order override (`update_admin_order_delivery_fee`). This replaces the old hardcoded "free ≥500 EGP else 50" rule. Lives in migration `20260629120000`; the old rule remains live until the owner applies it.
 
 ---
 
@@ -125,4 +127,4 @@ See `LINE_COFFEE_V3_CONTENT_MAP.md` for which file holds each page's text and im
 
 - `CLAUDE.md` now opens with a **Current Architecture + Locked Decisions + Doc Reading Order** block — read that first; the long change log below it is history.
 - `README.md` is an entry point, not the detailed source of truth.
-- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position: Phase 0 (docs/source-of-truth lock) being finalized — commit pending owner approval + Codex review; Phase 1 is next.**
+- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position: Phase 0 committed. Phase 1 (delivery zones + deduction timing + payment defaults) is implemented in code + migration `20260629120000` (authored only) — pending Codex review + owner `db push`. Phase 2 is next.**

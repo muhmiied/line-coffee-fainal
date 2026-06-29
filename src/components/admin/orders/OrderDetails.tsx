@@ -1,10 +1,17 @@
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { AlertTriangle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import {
   ADMIN_ORDER_STATUS_LABELS,
   ADMIN_PAYMENT_METHOD_LABELS,
   ADMIN_PAYMENT_STATUS_LABELS,
   type AdminOrderDetail,
 } from "@/lib/admin/admin-orders";
+
+const DELIVERY_ZONE_LABELS: Record<string, string> = {
+  shorouk_madinaty: "Shorouk / Madinaty",
+  haram_october_zayed: "Haram / 6 October / Sheikh Zayed",
+  cairo_giza: "Cairo / Giza",
+  governorate_courier: "Governorate (courier-paid)",
+};
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-EG", {
@@ -56,6 +63,11 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
   const cityLine = [order.address.area, order.address.city, order.address.governorate]
     .filter(Boolean)
     .join(", ");
+  const zoneLabel = order.deliveryZone
+    ? DELIVERY_ZONE_LABELS[order.deliveryZone] ?? order.deliveryZone
+    : null;
+  const deliveredUnpaid =
+    order.status === "delivered" && order.paymentStatus !== "paid";
 
   return (
     <div className="space-y-4">
@@ -112,6 +124,12 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
       </div>
 
       <DetailCard title="Payment">
+        {deliveredUnpaid && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[11px] font-semibold text-amber-300">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Delivered but Unpaid — payment is still {ADMIN_PAYMENT_STATUS_LABELS[order.paymentStatus] ?? order.paymentStatus}.
+          </div>
+        )}
         <div className="grid gap-2.5 sm:grid-cols-2">
           <ValueRow
             label="Method"
@@ -156,9 +174,22 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
             <dd>{order.subtotal.toLocaleString()} EGP</dd>
           </div>
           <div className="flex justify-between text-[#D6B79A]/58">
-            <dt>Delivery</dt>
-            <dd>{order.deliveryFee ? `${order.deliveryFee.toLocaleString()} EGP` : "Free"}</dd>
+            <dt>
+              Delivery
+              {zoneLabel ? ` · ${zoneLabel}` : ""}
+              {order.deliveryFeeOverridden ? " (overridden)" : ""}
+            </dt>
+            <dd>
+              {order.deliveryFee
+                ? `${order.deliveryFee.toLocaleString()} EGP`
+                : order.deliveryZone === "governorate_courier"
+                  ? "Paid to courier"
+                  : "Free"}
+            </dd>
           </div>
+          {order.deliveryNote && (
+            <p className="text-[11px] leading-4 text-[#D6B79A]/42">{order.deliveryNote}</p>
+          )}
           {order.discountTotal > 0 && (
             <div className="flex justify-between text-emerald-300/80">
               <dt>Discount {order.promoCode ? `(${order.promoCode})` : ""}</dt>

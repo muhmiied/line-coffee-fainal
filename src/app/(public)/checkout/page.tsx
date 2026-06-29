@@ -14,6 +14,7 @@ import {
   getOrCreateGuestId,
   isCheckoutOrderResult,
 } from "@/lib/checkout";
+import { resolveDeliveryFee } from "@/lib/delivery";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
@@ -372,7 +373,14 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const deliveryFee = total >= 500 ? 0 : 50;
+  // Zone-based delivery (Decisions 10 + 11). This mirrors the server for an
+  // accurate preview; create_checkout_order recomputes the authoritative fee.
+  // Resolvable only once both governorate AND area are chosen.
+  const deliveryZone =
+    form.governorate && form.area
+      ? resolveDeliveryFee(form.governorate, form.area)
+      : null;
+  const deliveryFee = deliveryZone?.fee ?? 0;
   const grandTotal  = total + deliveryFee;
 
   const govOptions = GOVS.map((g) => ({
@@ -818,12 +826,28 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-[#D6B79A]/58">{t({ en: "Delivery", ar: "التوصيل" })}</span>
-                    <span className={cn("arabic-number font-semibold", deliveryFee === 0 ? "text-emerald-400" : "text-[#F5E6D8]")}>
-                      {deliveryFee === 0
-                        ? t({ en: "Free", ar: "مجاني" })
-                        : `${deliveryFee} ${t({ en: "EGP", ar: "ج.م" })}`}
-                    </span>
+                    {deliveryZone === null ? (
+                      <span className="text-[#D6B79A]/45">
+                        {t({ en: "Select address", ar: "اختر العنوان" })}
+                      </span>
+                    ) : deliveryZone.zone === "governorate_courier" ? (
+                      <span className="font-semibold text-emerald-400">
+                        {t({ en: "Paid to courier", ar: "يُدفع للمندوب" })}
+                      </span>
+                    ) : (
+                      <span className="arabic-number font-semibold text-[#F5E6D8]">
+                        {`${deliveryFee} ${t({ en: "EGP", ar: "ج.م" })}`}
+                      </span>
+                    )}
                   </div>
+                  {deliveryZone?.zone === "governorate_courier" && (
+                    <p className="text-[10px] leading-4 text-[#D6B79A]/42">
+                      {t({
+                        en: "Outside Cairo & Giza — the courier collects the delivery fee on arrival.",
+                        ar: "خارج القاهرة والجيزة — يحصّل المندوب رسوم التوصيل عند الوصول.",
+                      })}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between border-t border-[#B6885E]/12 pt-3">
                     <span className="font-bold text-[#F5E6D8]">{t({ en: "Total", ar: "الإجمالي" })}</span>
                     <span className="arabic-number font-serif text-xl font-bold text-[#D6A373]">

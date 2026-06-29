@@ -89,15 +89,17 @@ export interface OrderEffect {
 }
 
 // Canonical lifecycle effect map. Encodes the required accounting/operating
-// decisions:
+// decisions (Locked Decision 6: reserve at Place Order, deduct at Delivered):
 //   pending   -> reserve stock only
 //   preparing -> still reserved; no deduction, no revenue
-//   shipped   -> deduct stock (goods left operations)
-//   delivered -> recognize revenue + COGS + gross profit + LTV
+//   shipped   -> still reserved; parcel is out for delivery, no deduction yet
+//   delivered -> deduct stock + recognize revenue + COGS + gross profit + LTV
 //   cancelled -> release reservation
 //   returned  -> reverse revenue, restock if sellable (affects COGS + LTV)
 // Supabase mapping: this stays in app code as the rule source; SQL functions
-// and server actions consult it when transitioning `orders.status`.
+// and server actions consult it when transitioning `orders.status`. The
+// Phase 1 migration (20260629120000) moves the kg-model deduction from
+// `shipped` to `delivered` to match this contract.
 export const ORDER_STATUS_EFFECTS: Record<OrderStatus, OrderEffect> = {
   pending: {
     reservesStock: true,
@@ -120,8 +122,8 @@ export const ORDER_STATUS_EFFECTS: Record<OrderStatus, OrderEffect> = {
     affectsCogs: false,
   },
   shipped: {
-    reservesStock: false,
-    deductsStock: true,
+    reservesStock: true,
+    deductsStock: false,
     recognizesRevenue: false,
     releasesReservation: false,
     reversesRevenue: false,
@@ -131,7 +133,7 @@ export const ORDER_STATUS_EFFECTS: Record<OrderStatus, OrderEffect> = {
   },
   delivered: {
     reservesStock: false,
-    deductsStock: false,
+    deductsStock: true,
     recognizesRevenue: true,
     releasesReservation: false,
     reversesRevenue: false,

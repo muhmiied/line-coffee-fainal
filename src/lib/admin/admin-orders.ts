@@ -76,6 +76,9 @@ export type AdminOrderDetail = AdminOrderSummary & {
   subtotal: number;
   discountTotal: number;
   deliveryFee: number;
+  deliveryZone: string | null;
+  deliveryNote: string | null;
+  deliveryFeeOverridden: boolean;
   promoCode: string | null;
   paymentReference: string | null;
   paymentPhone: string | null;
@@ -84,6 +87,14 @@ export type AdminOrderDetail = AdminOrderSummary & {
   items: AdminOrderItem[];
   events: AdminOrderStatusEvent[];
   updatedAt: string | null;
+};
+
+export type AdminOrderDeliveryFeeUpdateResult = {
+  order_id: string;
+  code: string;
+  delivery_fee: number;
+  total: number;
+  delivery_fee_overridden: boolean;
 };
 
 export type AdminOrderStatusUpdateResult = {
@@ -110,6 +121,9 @@ type OrderRow = {
   subtotal: number | string;
   discount_total: number | string;
   delivery_fee: number | string;
+  delivery_zone: string | null;
+  delivery_note: string | null;
+  delivery_fee_overridden: boolean | null;
   total: number | string;
   promo_code: string | null;
   payment_method: PaymentMethod;
@@ -161,6 +175,9 @@ const ORDER_COLUMNS = `
   subtotal,
   discount_total,
   delivery_fee,
+  delivery_zone,
+  delivery_note,
+  delivery_fee_overridden,
   total,
   promo_code,
   payment_method,
@@ -376,6 +393,9 @@ function mapDetail(
     subtotal: money(row.subtotal),
     discountTotal: money(row.discount_total),
     deliveryFee: money(row.delivery_fee),
+    deliveryZone: row.delivery_zone,
+    deliveryNote: row.delivery_note,
+    deliveryFeeOverridden: Boolean(row.delivery_fee_overridden),
     promoCode: row.promo_code,
     paymentReference: row.payment_reference,
     paymentPhone: row.payment_phone,
@@ -489,4 +509,64 @@ export async function updateAdminOrderStatus(
   }
 
   return result as AdminOrderStatusUpdateResult;
+}
+
+function deliveryFeeWriteError(message: string) {
+  devWarn("delivery-fee", message);
+  if (message.includes("only be changed before")) {
+    return new AdminOrdersError(
+      "Delivery fee can only be changed before the order is delivered.",
+    );
+  }
+  if (message.includes("out of range") || message.includes("would be negative")) {
+    return new AdminOrdersError("Enter a delivery fee between 0 and 100000 EGP.");
+  }
+  if (message.includes("Order not found")) {
+    return new AdminOrdersError("Order not found.");
+  }
+  if (message.includes("Admin access required") || message.includes("permission denied")) {
+    return new AdminOrdersError("Admin permission is required.");
+  }
+  return new AdminOrdersError("Could not update the delivery fee. Please try again.");
+}
+
+/**
+ * Admin per-order delivery-fee override (Phase 1.2). Recomputes the order total
+ * server-side, flags `delivery_fee_overridden`, and writes an audit line into
+ * the order's admin note. Allowed only before the order is delivered.
+ */
+export async function updateAdminOrderDeliveryFee(
+  orderId: string,
+  deliveryFee: number,
+  note?: string,
+): Promise<AdminOrderDeliveryFeeUpdateResult> {
+  if (!orderId) throw new AdminOrdersError("Order id is required.");
+  if (!Number.isFinite(deliveryFee) || deliveryFee < 0 || deliveryFee > 100000) {
+    throw new AdminOrdersError("Enter a delivery fee between 0 and 100000 EGP.");
+  }
+  const normalizedNote = note?.trim() || null;
+  if (normalizedNote && normalizedNote.length > 500) {
+    throw new AdminOrdersError("Delivery note cannot exceed 500 characters.");
+  }
+
+  const { data, error } = await supabase.rpc("update_admin_order_delivery_fee", {
+    p_order_id: orderId,
+    p_delivery_fee: Math.round(deliveryFee * 100) / 100,
+    p_note: normalizedNote,
+  });
+
+  if (error) throw deliveryFeeWriteError(error.message);
+
+  const result = data as Partial<AdminOrderDeliveryFeeUpdateResult> | null;
+  if (
+    !result ||
+    typeof result.order_id !== "string" ||
+    typeof result.code !== "string" ||
+    typeof result.delivery_fee !== "number" ||
+    typeof result.total !== "number"
+  ) {
+    throw new AdminOrdersError("The delivery fee update returned an invalid response.");
+  }
+
+  return result as AdminOrderDeliveryFeeUpdateResult;
 }

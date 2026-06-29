@@ -180,6 +180,39 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-29] — Phase 1: Delivery Zones + Deduction Timing + Payment Defaults (code + migration authored, NOT applied)
+
+**Goal:** Implement **Phase 1** of `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` — fix the most dangerous mismatches in the live checkout/order flow: delivery fee, stock deduction timing, and payment defaults. **No `db push`, no commit, no push.** Phases 2+ untouched; builders/promo/FIFO/packaging untouched; no public redesign.
+
+**`supabase/migrations/20260629120000_phase1_delivery_deduction_payment.sql`** (new — authored only):
+- **§1** `orders` += `delivery_zone text`, `delivery_note text`, `delivery_fee_overridden boolean default false` (all `add column if not exists`; `delivery_fee`/`total` already existed).
+- **§2** `resolve_delivery_fee(governorate, area) returns jsonb` (immutable, internal — revoked from anon/authenticated). First-match zone resolution (Decisions 10+11, master §6.5): **1** Shorouk/Madinaty→30 · **2** Haram / 6 October / Sheikh Zayed→100 *(checked before #3 since they sit inside Cairo/Giza)* · **3** remaining Cairo/Giza→50 · **4** all other governorates→0 + courier note. EN + AR area tokens matched.
+- **§3** `create_checkout_order` replaced (CREATE OR REPLACE). Only two behavioural changes vs `20260627100000`: (a) **all** payment methods now map to `payment_status = 'pending'` (was cash→pending, instapay/wallet→pending_review) per Decision 12; (b) delivery fee comes from `resolve_delivery_fee()` (was `subtotal >= 500 ? 0 : 50`), and `delivery_zone`/`delivery_note` are frozen on the order. Validation / DB-authoritative pricing / atomic reservation / idempotent replay / snapshots all preserved otherwise. Fee is **server-computed**; the UI value is never trusted.
+- **§4** `update_admin_order_status` replaced (CREATE OR REPLACE). Only change: the inventory effect fires on **`delivered`** (deduct) instead of `shipped`; `cancelled` still releases; `shipped` now leaves the reservation untouched (parcel out for delivery). Transition map unchanged. Movement reason text updated to "Order delivered; reservation deducted". Minimal kg-model trigger-point move (Phase 5 rewrites at lot level).
+- **§5** `update_admin_order_delivery_fee(order_id, fee, note)` (new, admin-gated SECURITY DEFINER). Recomputes `total = subtotal − discount_total + fee`, sets `delivery_fee_overridden = true`, stores `delivery_note`, and appends an audit line to `admin_note` (the `order_status_events.status` CHECK only allows the 6 lifecycle statuses, so it can't hold a non-status audit row — `admin_note` is the safe trail). Allowed only before delivery (`pending`/`preparing`/`shipped`); fee clamped 0–100000.
+
+**`src/lib/types/order.ts`** — `ORDER_STATUS_EFFECTS` corrected to match Decision 6: `shipped` now `reservesStock:true, deductsStock:false` (was deduct); `delivered` now `deductsStock:true` (+ existing revenue/COGS/LTV). Comment block updated. (Rule-source contract; imported by `admin-orders.ts` + `accounting.ts` as types only.)
+
+**`src/lib/delivery.ts`** (new) — `resolveDeliveryFee(governorate, area)` TS **display mirror** of the SQL function (same order, same EN/AR tokens). Documented that the server always recomputes; this is preview-only.
+
+**`src/app/(public)/checkout/page.tsx`** — replaced `total >= 500 ? 0 : 50` with zone-based preview via `resolveDeliveryFee(form.governorate, form.area)` (resolvable once both are chosen). Order-summary Delivery row now shows the zone fee, or "Select address" before address, or "Paid to courier" + a small courier note for out-of-Cairo/Giza. Same layout — no redesign.
+
+**`src/lib/admin/admin-orders.ts`** — `AdminOrderDetail` += `deliveryZone`/`deliveryNote`/`deliveryFeeOverridden`; `OrderRow` + `ORDER_COLUMNS` + `mapDetail` updated; new `updateAdminOrderDeliveryFee(orderId, fee, note?)` calling the RPC (+ result type + error mapping).
+
+**`src/components/admin/orders/OrderDetails.tsx`** — Totals "Delivery" line now shows zone label + "(overridden)" flag + courier note; new **"Delivered but Unpaid"** amber badge in the Payment card (`status === 'delivered' && paymentStatus !== 'paid'`).
+
+**`src/app/admin/orders/[id]/page.tsx`** — added an admin **delivery-fee override** control (fee input + optional reason + Save) shown only for `pending`/`preparing`/`shipped`; calls `updateAdminOrderDeliveryFee` then refreshes.
+
+**Delivery before→after:** client-only `free ≥500 EGP else 50` (also the server's rule) → **server-side zone resolution** (30/100/50/0+courier) frozen on the order; admin per-order override.
+**Stock lifecycle before→after:** reserve@checkout → deduct@**shipped** → release@cancel  ⇒  reserve@checkout → hold@shipped → deduct@**delivered** → release@cancel.
+**Payment before→after:** cash=pending, instapay/wallet=**pending_review** ⇒ **all methods = pending**; `delivered` never auto-marks paid (unchanged — it never touched payment_status).
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npm run lint` (changed files) → 0 errors/warnings · zone resolver parity test → 13/13 (incl. the 4 required zones + AR governorate forms) · changed routes compile on dev server (`/checkout`, `/admin/orders`, `/` → HTTP 200). `npm run build` intentionally skipped — a `next dev` server is live on :3000 sharing `.next` (ChunkLoadError risk per the 2026-06-26 entry).
+**Migration is authored only.** Apply with `supabase db push` after Codex review + owner approval; until then the live checkout keeps flat-50 + shipped-deduction. No `db push`, no commit, no push.
+**Deferred (documented):** saved/default address selection in checkout (Phase 2); lot-level deduction/COGS (Phase 5); a `site_settings`-editable zone-fee table (Owner Settings UI deferred, master §6.1 — fee mapping lives in `resolve_delivery_fee()` for now).
+
+---
+
 ### [2026-06-29] — Phase 0 Final Docs Consistency Patch (Codex "Approve with fixes" — docs only)
 
 Applied Codex's final read-only verification fixes. **No `src/`, no `supabase/`, no migrations, no `db push`, no commit.**

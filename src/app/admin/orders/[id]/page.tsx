@@ -10,10 +10,13 @@ import {
   ADMIN_ORDER_STATUS_LABELS,
   ALLOWED_ADMIN_ORDER_TRANSITIONS,
   getAdminOrderById,
+  updateAdminOrderDeliveryFee,
   updateAdminOrderStatus,
   type AdminOrderDetail,
   type AdminOrderStatus,
 } from "@/lib/admin/admin-orders";
+
+const DELIVERY_OVERRIDABLE: AdminOrderStatus[] = ["pending", "preparing", "shipped"];
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -25,6 +28,10 @@ export default function OrderDetailPage() {
   const [statusNote, setStatusNote] = useState("");
   const [updatingTo, setUpdatingTo] = useState<AdminOrderStatus | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [feeInput, setFeeInput] = useState<string | null>(null);
+  const [feeNote, setFeeNote] = useState("");
+  const [overridingFee, setOverridingFee] = useState(false);
+  const [feeMessage, setFeeMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -66,6 +73,35 @@ export default function OrderDetailPage() {
       );
     } finally {
       setUpdatingTo(null);
+    }
+  }
+
+  async function overrideDeliveryFee() {
+    if (!order || overridingFee) return;
+    const raw = feeInput ?? String(order.deliveryFee);
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100000) {
+      setFeeMessage("Enter a delivery fee between 0 and 100000 EGP.");
+      return;
+    }
+    setOverridingFee(true);
+    setFeeMessage(null);
+    try {
+      await updateAdminOrderDeliveryFee(order.id, parsed, feeNote.trim() || undefined);
+      const refreshed = await getAdminOrderById(order.id);
+      if (!refreshed) throw new Error("Order not found after update.");
+      setOrder(refreshed);
+      setFeeInput(null);
+      setFeeNote("");
+      setFeeMessage(
+        `Delivery fee set to ${refreshed.deliveryFee.toLocaleString()} EGP · total ${refreshed.total.toLocaleString()} EGP.`,
+      );
+    } catch (error) {
+      setFeeMessage(
+        error instanceof Error ? error.message : "Could not update the delivery fee.",
+      );
+    } finally {
+      setOverridingFee(false);
     }
   }
 
@@ -161,6 +197,65 @@ export default function OrderDetailPage() {
           </p>
         )}
       </section>
+
+      {DELIVERY_OVERRIDABLE.includes(order.status) && (
+        <section className="rounded-xl border border-[#B6885E]/14 bg-white/[0.018] p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label
+                htmlFor="delivery-fee"
+                className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/65"
+              >
+                Delivery fee (EGP)
+              </label>
+              <input
+                id="delivery-fee"
+                type="number"
+                min={0}
+                max={100000}
+                step="0.01"
+                inputMode="decimal"
+                value={feeInput ?? String(order.deliveryFee)}
+                onChange={(event) => setFeeInput(event.target.value)}
+                className="mt-2 w-32 rounded-lg border border-[#B6885E]/15 bg-[#0B0806]/65 px-3 py-2 text-sm text-[#F5E6D8] outline-none focus:border-[#D6A373]/35"
+              />
+            </div>
+            <div className="min-w-[12rem] flex-1">
+              <label
+                htmlFor="delivery-fee-note"
+                className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/65"
+              >
+                Override reason (optional)
+              </label>
+              <input
+                id="delivery-fee-note"
+                type="text"
+                maxLength={500}
+                value={feeNote}
+                onChange={(event) => setFeeNote(event.target.value)}
+                placeholder="e.g. Aswan courier fee agreed with customer"
+                className="mt-2 w-full rounded-lg border border-[#B6885E]/15 bg-[#0B0806]/65 px-3 py-2 text-sm text-[#F5E6D8] outline-none placeholder:text-[#D6B79A]/25 focus:border-[#D6A373]/35"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={overridingFee}
+              onClick={() => void overrideDeliveryFee()}
+              className="rounded-lg border border-[#D6A373]/25 bg-[#D6A373]/10 px-3 py-2 text-xs font-semibold text-[#D6A373] hover:bg-[#D6A373]/16 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {overridingFee ? "Saving…" : "Override delivery fee"}
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] text-[#D6B79A]/42">
+            Recomputes the order total and logs the change to the admin note. Allowed before delivery only.
+          </p>
+          {feeMessage && (
+            <p className="mt-2 text-xs text-[#D6B79A]/65" role="status">
+              {feeMessage}
+            </p>
+          )}
+        </section>
+      )}
 
       <OrderDetails order={order} />
     </div>
