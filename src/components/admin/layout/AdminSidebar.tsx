@@ -23,17 +23,15 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   label: string;
-  badge?: number;
-  alert?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin/dashboard",        icon: LayoutDashboard, label: "Main Dashboard" },
-  { href: "/admin/orders",           icon: ShoppingBag,     label: "Orders",               badge: 4 },
+  { href: "/admin/orders",           icon: ShoppingBag,     label: "Orders" },
   { href: "/admin/products",         icon: Package,         label: "Products" },
   { href: "/admin/espresso-manager", icon: Coffee,          label: "Make Your Espresso" },
   { href: "/admin/flavor-manager",   icon: Sparkles,        label: "Make Your Flavor" },
-  { href: "/admin/inventory",        icon: Boxes,           label: "Inventory",             alert: true },
+  { href: "/admin/inventory",        icon: Boxes,           label: "Inventory" },
   { href: "/admin/customers",        icon: Users,           label: "Customers" },
   { href: "/admin/marketing",        icon: Megaphone,       label: "Marketing" },
   { href: "/admin/accounting",       icon: Receipt,         label: "Accounting" },
@@ -44,9 +42,10 @@ const NAV_ITEMS: NavItem[] = [
 interface SidebarContentProps {
   collapsed: boolean;
   onClose?: () => void;
+  orderCount: number | null;
 }
 
-function SidebarContent({ collapsed, onClose }: SidebarContentProps) {
+function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps) {
   const pathname = usePathname();
 
   return (
@@ -116,20 +115,16 @@ function SidebarContent({ collapsed, onClose }: SidebarContentProps) {
                 <>
                   <span className="flex-1 truncate">{item.label}</span>
 
-                  {item.badge != null && (
+                  {item.href === "/admin/orders" && orderCount != null && orderCount > 0 && (
                     <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none flex-shrink-0"
+                      className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none"
                       style={{
                         background: "rgba(251,191,36,0.14)",
                         color: "#fbbf24",
                       }}
                     >
-                      {item.badge}
+                      {orderCount}
                     </span>
-                  )}
-
-                  {item.alert && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
                   )}
                 </>
               )}
@@ -214,12 +209,14 @@ interface AdminSidebarProps {
   collapsed: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  orderCount: number | null;
 }
 
 export default function AdminSidebar({
   collapsed,
   mobileOpen,
   onMobileClose,
+  orderCount,
 }: AdminSidebarProps) {
   const SIDEBAR_STYLE = {
     background: "#0D0907",
@@ -233,7 +230,7 @@ export default function AdminSidebar({
         className="hidden lg:flex flex-col h-full flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out"
         style={{ ...SIDEBAR_STYLE, width: collapsed ? 64 : 240 }}
       >
-        <SidebarContent collapsed={collapsed} />
+        <SidebarContent collapsed={collapsed} orderCount={orderCount} />
       </aside>
 
       {/* Mobile sidebar — slide-in overlay */}
@@ -245,7 +242,11 @@ export default function AdminSidebar({
           transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
         }}
       >
-        <SidebarContent collapsed={false} onClose={onMobileClose} />
+        <SidebarContent
+          collapsed={false}
+          onClose={onMobileClose}
+          orderCount={orderCount}
+        />
       </aside>
     </>
   );

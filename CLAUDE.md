@@ -180,6 +180,24 @@ ContactSection       ← cinematic-section, contact form + info
 
 ---
 
+### [2026-06-29] — Real admin counters and operational notifications
+
+Replaced the defensive placeholder state with real admin-protected Supabase counters. `getAdminOrderOverview()` performs exact count-only queries for total orders, pending orders, shipped orders, and delivered orders with an outstanding payment status. `AdminShell` owns one shared overview snapshot, refreshes it on mount, focus/visibility, every 30 seconds, and immediately after an in-app order status update. The Admin Sidebar shows the real total when greater than zero. The Admin TopBar bell is clickable; its badge is the number of active order instances and its dropdown aggregates real pending, shipped, and delivered-unpaid alerts, with an honest empty/error state and no mock/unread data. Customer notifications remain owner-scoped through `get_customer_notifications`; wishlist remains owner-scoped through `useWishlist`; cart count remains quantity-derived. Files: `src/lib/admin/admin-orders.ts`, `src/components/admin/layout/AdminShell.tsx`, `src/components/admin/layout/AdminSidebar.tsx`, `src/components/admin/layout/AdminTopBar.tsx`. No migration, DB push, Phase 3, service-role code, commit, or push.
+
+---
+
+### [2026-06-29] — Counter sanity micro-fix after Phase 2
+
+Removed dishonest UI counters without adding backend scope: the Admin Orders sidebar badge (`4`) and mock inventory alert dot were removed; the admin topbar mock notification badge/dropdown data was removed; and the customer notifications page no longer labels every owner-scoped order event unread on each mount or offers non-persistent mark-read actions. The admin bell remains as a badge-free inactive placeholder until a real notification source exists. Public notifications remain an owner-scoped event list from `get_customer_notifications`; its unread badge is intentionally absent until persisted read state exists. Wishlist continues to use the Phase 2 owner-scoped `useWishlist` store, and cart count continues to derive from live cart quantities. Files: `src/components/admin/layout/AdminSidebar.tsx`, `src/components/admin/layout/AdminTopBar.tsx`, `src/app/(public)/account/notifications/page.tsx`. No migration, DB push, Phase 3, service-role code, public redesign, commit, or push.
+
+---
+
+### [2026-06-29] — Restore safe Admin TopBar notification action
+
+Corrected the counter micro-fix overreach by restoring the Admin TopBar bell as an accessible disabled placeholder with no badge, count, dropdown, or mock notification data. Admin Orders and inventory sidebar indicators remain hidden because no reliable shared source is available in the shell. Files: `src/components/admin/layout/AdminTopBar.tsx`. No migration, DB push, Phase 3, service-role code, commit, or push.
+
+---
+
 ### [2026-06-29] — Phase 2 bugfix: Wishlist ownership leak (client-only, no migration)
 
 **Bug:** after the Phase 2 migration was `db push`ed, the wishlist leaked across accounts on one device: Account A adds an item → logs out → item stays visible → Account B logs in → still sees A's item. **No `db push`, no commit, no Phase 3, no admin/delivery/payment/inventory changes.**

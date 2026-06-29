@@ -105,6 +105,15 @@ export type AdminOrderStatusUpdateResult = {
   no_op: boolean;
 };
 
+export type AdminOrderOverview = {
+  total: number;
+  pending: number;
+  shipped: number;
+  deliveredUnpaid: number;
+};
+
+export const ADMIN_ORDERS_CHANGED_EVENT = "line-admin-orders-changed";
+
 type UnknownRecord = Record<string, unknown>;
 
 type OrderRow = {
@@ -452,6 +461,50 @@ export async function getAdminOrders(): Promise<AdminOrderSummary[]> {
   return ((data ?? []) as unknown as OrderRow[]).map(mapSummary);
 }
 
+export async function getAdminOrderOverview(): Promise<AdminOrderOverview> {
+  const deliveredUnpaidStatuses: PaymentStatus[] = [
+    "unpaid",
+    "partially_paid",
+    "pending",
+    "pending_review",
+    "failed",
+  ];
+  const [totalResult, pendingResult, shippedResult, deliveredUnpaidResult] =
+    await Promise.all([
+      supabase.from("orders").select("id", { count: "exact", head: true }),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "shipped"),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "delivered")
+        .in("payment_status", deliveredUnpaidStatuses),
+    ]);
+
+  const failedResult = [
+    totalResult,
+    pendingResult,
+    shippedResult,
+    deliveredUnpaidResult,
+  ].find((result) => result.error);
+  if (failedResult?.error) {
+    throw readError("order-overview", failedResult.error.message);
+  }
+
+  return {
+    total: totalResult.count ?? 0,
+    pending: pendingResult.count ?? 0,
+    shipped: shippedResult.count ?? 0,
+    deliveredUnpaid: deliveredUnpaidResult.count ?? 0,
+  };
+}
+
 export async function getAdminOrderById(id: string): Promise<AdminOrderDetail | null> {
   const { data, error } = await supabase
     .from("orders")
@@ -508,6 +561,7 @@ export async function updateAdminOrderStatus(
     throw new AdminOrdersError("The status update returned an invalid response.");
   }
 
+  window.dispatchEvent(new Event(ADMIN_ORDERS_CHANGED_EVENT));
   return result as AdminOrderStatusUpdateResult;
 }
 

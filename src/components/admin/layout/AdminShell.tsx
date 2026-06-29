@@ -7,6 +7,11 @@ import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 import { useAuth } from "@/lib/hooks/useAuth";
+import {
+  ADMIN_ORDERS_CHANGED_EVENT,
+  getAdminOrderOverview,
+  type AdminOrderOverview,
+} from "@/lib/admin/admin-orders";
 
 function GateScreen({ children }: { children: React.ReactNode }) {
   return (
@@ -32,6 +37,7 @@ export default function AdminShell({
   const { signOut } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [orderOverview, setOrderOverview] = useState<AdminOrderOverview | null>(null);
 
   // No session → bounce to login, preserving where the admin was headed.
   useEffect(() => {
@@ -40,6 +46,38 @@ export default function AdminShell({
       router.replace(`/auth/login?next=${next}`);
     }
   }, [status, pathname, router]);
+
+  useEffect(() => {
+    if (status !== "authorized" || !isAdmin || !admin) return;
+    let cancelled = false;
+
+    const loadOverview = () => {
+      void getAdminOrderOverview()
+        .then((overview) => {
+          if (!cancelled) setOrderOverview(overview);
+        })
+        .catch(() => {
+          // Keep the last valid snapshot; initial failures show no fake counts.
+        });
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") loadOverview();
+    };
+
+    loadOverview();
+    window.addEventListener("focus", loadOverview);
+    window.addEventListener(ADMIN_ORDERS_CHANGED_EVENT, loadOverview);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const interval = window.setInterval(loadOverview, 30_000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", loadOverview);
+      window.removeEventListener(ADMIN_ORDERS_CHANGED_EVENT, loadOverview);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.clearInterval(interval);
+    };
+  }, [admin, isAdmin, status]);
 
   const handleMenuToggle = () => {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -155,10 +193,15 @@ export default function AdminShell({
         collapsed={sidebarCollapsed}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
+        orderCount={orderOverview?.total ?? null}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <AdminTopBar admin={admin} onMenuToggle={handleMenuToggle} />
+        <AdminTopBar
+          admin={admin}
+          onMenuToggle={handleMenuToggle}
+          orderOverview={orderOverview}
+        />
         <main
           className="admin-scrollbar flex-1 overflow-y-auto p-4 md:p-6"
           style={{ background: "var(--coffee-black)" }}

@@ -10,7 +10,6 @@ import {
   type CustomerNotification,
 } from "@/lib/account/customer-account";
 import { formatDate } from "@/lib/utils/formatDate";
-import { cn } from "@/lib/utils/cn";
 
 // Bilingual notification content per order status event
 const STATUS_NOTIFICATION: Record<
@@ -43,31 +42,17 @@ const STATUS_NOTIFICATION: Record<
   },
 };
 
-type NotifItem = CustomerNotification & { read: boolean };
-
 export default function NotificationsPage() {
   const { t, language } = useLanguage();
   const [loading, setLoading]       = useState(true);
-  const [items, setItems]           = useState<NotifItem[]>([]);
+  const [items, setItems]           = useState<CustomerNotification[]>([]);
 
   useEffect(() => {
     getCustomerNotifications()
-      .then((notifications) =>
-        setItems(notifications.map((n) => ({ ...n, read: false })))
-      )
+      .then(setItems)
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, []);
-
-  const unread = items.filter((n) => !n.read).length;
-
-  const markAllRead = () =>
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-
-  const markRead = (eventId: string) =>
-    setItems((prev) =>
-      prev.map((n) => (n.eventId === eventId ? { ...n, read: true } : n))
-    );
 
   if (loading) {
     return (
@@ -83,22 +68,6 @@ export default function NotificationsPage() {
 
   return (
     <AccountShell title={{ en: "Notifications", ar: "الإشعارات" }}>
-      {/* Header row */}
-      {unread > 0 && (
-        <div className="mb-4 flex items-center justify-between">
-          <span className="text-sm text-[#B79B85]/60">
-            {unread} {t({ en: "unread", ar: "غير مقروء" })}
-          </span>
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="text-sm text-[#B6885E]/80 transition-colors hover:text-[#D6A373]"
-          >
-            {t({ en: "Mark all as read", ar: "تحديد الكل كمقروء" })}
-          </button>
-        </div>
-      )}
-
       {items.length === 0 ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Bell className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/20" />
@@ -124,22 +93,10 @@ export default function NotificationsPage() {
               <Link
                 key={notif.eventId}
                 href={`/account/orders/${notif.orderCode}`}
-                onClick={() => markRead(notif.eventId)}
-                className={cn(
-                  "block w-full rounded-xl border px-5 py-4 text-start transition-all",
-                  notif.read
-                    ? "border-[#B6885E]/08 bg-[#120D09] opacity-70"
-                    : "border-[#B6885E]/18 bg-[#15100B] hover:border-[#B6885E]/28",
-                )}
+                className="block w-full rounded-xl border border-[#B6885E]/18 bg-[#15100B] px-5 py-4 text-start transition-all hover:border-[#B6885E]/28"
               >
                 <div className="flex items-start gap-3">
-                  {/* Unread dot */}
-                  <span
-                    className={cn(
-                      "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                      notif.read ? "opacity-0" : "bg-[#B6885E]",
-                    )}
-                  />
+                  <Bell className="mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]/60" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[#F5E6D8]">
                       {t(content.title)}

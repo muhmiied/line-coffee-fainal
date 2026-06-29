@@ -12,10 +12,9 @@ import {
   LogOut,
   User,
   Monitor,
-  ShoppingBag,
-  Package,
-  Star,
-  Settings,
+  Clock3,
+  Truck,
+  CircleDollarSign,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
@@ -24,29 +23,7 @@ import {
   getAdminInitials,
   type CurrentAdmin,
 } from "@/lib/auth/admin";
-import { ADMIN_NOTIFICATIONS, type NotifType } from "@/lib/mock-data/admin/dashboard-mock";
-
-const NOTIF_BG: Record<NotifType, string> = {
-  order:     "rgba(182,136,94,0.12)",
-  inventory: "rgba(239,68,68,0.12)",
-  review:    "rgba(167,139,250,0.12)",
-  system:    "rgba(96,165,250,0.12)",
-};
-
-const NOTIF_ICON_COLOR: Record<NotifType, string> = {
-  order:     "var(--gold)",
-  inventory: "#ef4444",
-  review:    "#a78bfa",
-  system:    "#60a5fa",
-};
-
-function NotifIcon({ type }: { type: NotifType }) {
-  const color = NOTIF_ICON_COLOR[type];
-  if (type === "order")     return <ShoppingBag size={13} style={{ color }} />;
-  if (type === "inventory") return <Package     size={13} style={{ color }} />;
-  if (type === "review")    return <Star        size={13} style={{ color }} />;
-  return                           <Settings    size={13} style={{ color }} />;
-}
+import type { AdminOrderOverview } from "@/lib/admin/admin-orders";
 
 const PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard":        "Main Dashboard",
@@ -65,19 +42,19 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AdminTopBar({
   admin,
   onMenuToggle,
+  orderOverview,
 }: {
   admin: CurrentAdmin;
   onMenuToggle: () => void;
+  orderOverview: AdminOrderOverview | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen,   setNotifOpen]   = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const notifRef   = useRef<HTMLDivElement>(null);
-
-  const unreadCount = ADMIN_NOTIFICATIONS.filter((n) => !n.read).length;
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const pageTitle = PAGE_TITLES[pathname] ?? "Admin Dashboard";
 
@@ -85,6 +62,34 @@ export default function AdminTopBar({
   const adminFirstName = adminName.split(" ")[0] || admin.email;
   const adminInitials = getAdminInitials(admin);
   const adminRoleLabel = formatAdminRole(admin.role);
+  const activeAlertCount = orderOverview
+    ? orderOverview.pending + orderOverview.shipped + orderOverview.deliveredUnpaid
+    : 0;
+  const alerts = orderOverview
+    ? [
+        {
+          key: "pending",
+          count: orderOverview.pending,
+          Icon: Clock3,
+          color: "#fbbf24",
+          label: `${orderOverview.pending} pending ${orderOverview.pending === 1 ? "order needs" : "orders need"} review`,
+        },
+        {
+          key: "delivered-unpaid",
+          count: orderOverview.deliveredUnpaid,
+          Icon: CircleDollarSign,
+          color: "#f87171",
+          label: `${orderOverview.deliveredUnpaid} delivered ${orderOverview.deliveredUnpaid === 1 ? "order is" : "orders are"} still unpaid`,
+        },
+        {
+          key: "shipped",
+          count: orderOverview.shipped,
+          Icon: Truck,
+          color: "#a78bfa",
+          label: `${orderOverview.shipped} shipped ${orderOverview.shipped === 1 ? "order is" : "orders are"} awaiting delivery confirmation`,
+        },
+      ].filter((alert) => alert.count > 0)
+    : [];
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -92,8 +97,11 @@ export default function AdminTopBar({
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node)
+      ) {
+        setNotificationsOpen(false);
       }
     };
     document.addEventListener("mousedown", onMouseDown);
@@ -133,123 +141,66 @@ export default function AdminTopBar({
       <div className="flex items-center gap-2">
         <div className="admin-topbar-divider hidden sm:block" />
 
-        {/* Notification bell */}
-        <div className="relative" ref={notifRef}>
+        <div className="relative" ref={notificationsRef}>
           <button
             type="button"
-            onClick={() => { setNotifOpen((p) => !p); setProfileOpen(false); }}
-            className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
-            style={{ color: "var(--cream-dim)" }}
-            aria-label="Notifications"
-            aria-expanded={notifOpen ? "true" : "false"}
+            onClick={() => {
+              setNotificationsOpen((open) => !open);
+              setProfileOpen(false);
+            }}
+            className="relative rounded-lg p-2 text-[#B79B85] transition-colors hover:bg-white/5 hover:text-[#F5E6D8]"
+            aria-label="Operational notifications"
+            aria-expanded={notificationsOpen ? "true" : "false"}
           >
             <Bell size={17} />
-            {unreadCount > 0 && (
-              <span
-                className="absolute top-1 right-1 min-w-[15px] h-[15px] rounded-full flex items-center justify-center text-[9px] font-bold"
-                style={{
-                  background: "#ef4444",
-                  color: "#fff",
-                  boxShadow: "0 0 0 1.5px var(--coffee-black)",
-                }}
-              >
-                {unreadCount}
+            {activeAlertCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_0_1.5px_var(--coffee-black)]">
+                {activeAlertCount}
               </span>
             )}
           </button>
 
-          {/* Notification dropdown */}
-          {notifOpen && (
-            <div
-              className="absolute right-0 top-full mt-2 w-72 rounded-xl overflow-hidden z-50"
-              style={{
-                background: "#1a1209",
-                border: "1px solid rgba(182,136,94,0.15)",
-                boxShadow: "0 20px 56px rgba(0,0,0,0.55)",
-              }}
-            >
-              {/* Header */}
-              <div
-                className="flex items-center justify-between px-4 py-3"
-                style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
-              >
-                <p className="text-sm font-semibold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
-                  Notifications
+          {notificationsOpen && (
+            <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#B6885E]/15 bg-[#1A1209] shadow-[0_20px_56px_rgba(0,0,0,0.55)]">
+              <div className="border-b border-[#B6885E]/10 px-4 py-3">
+                <p className="font-serif text-sm font-semibold text-[#F5E6D8]">
+                  Operational notifications
                 </p>
-                {unreadCount > 0 && (
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
-                  >
-                    {unreadCount} new
-                  </span>
-                )}
+                <p className="mt-0.5 text-[10px] text-[#B79B85]/50">
+                  Live order alerts from Supabase
+                </p>
               </div>
 
-              {/* List */}
-              <div>
-                {ADMIN_NOTIFICATIONS.map((notif, i) => {
-                  const isLast = i === ADMIN_NOTIFICATIONS.length - 1;
-                  return (
-                    <div
-                      key={notif.id}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors"
-                      style={!isLast ? { borderBottom: "1px solid rgba(182,136,94,0.05)" } : undefined}
+              {orderOverview == null ? (
+                <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
+                  Notifications are temporarily unavailable.
+                </p>
+              ) : alerts.length === 0 ? (
+                <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
+                  No active notifications
+                </p>
+              ) : (
+                <div className="divide-y divide-[#B6885E]/[0.07]">
+                  {alerts.map(({ key, Icon, color, label }) => (
+                    <Link
+                      key={key}
+                      href="/admin/orders"
+                      onClick={() => setNotificationsOpen(false)}
+                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025]"
                     >
-                      {/* Type icon */}
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                        style={{ background: NOTIF_BG[notif.type] }}
+                      <span
+                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                        style={{ background: `${color}18`, color }}
                       >
-                        <NotifIcon type={notif.type} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p
-                            className="text-[12.5px] font-medium leading-tight"
-                            style={{ color: notif.read ? "var(--cream-dim)" : "var(--cream)" }}
-                          >
-                            {notif.title}
-                          </p>
-                          {!notif.read && (
-                            <span
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1"
-                              style={{ background: "#ef4444" }}
-                            />
-                          )}
-                        </div>
-                        <p
-                          className="text-[11px] mt-0.5 truncate"
-                          style={{ color: "var(--cream-dim)", opacity: 0.6 }}
-                        >
-                          {notif.body}
-                        </p>
-                        <p
-                          className="text-[10px] mt-1"
-                          style={{ color: "var(--cream-dim)", opacity: 0.4 }}
-                        >
-                          {notif.time}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Footer */}
-              <div
-                className="px-4 py-2.5 text-center"
-                style={{ borderTop: "1px solid rgba(182,136,94,0.08)" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setNotifOpen(false)}
-                  className="text-[12px] font-medium transition-opacity hover:opacity-75 w-full"
-                  style={{ color: "var(--gold)" }}
-                >
-                  Mark all as read
-                </button>
-              </div>
+                        <Icon size={14} />
+                      </span>
+                      <span className="pt-1 text-xs leading-relaxed text-[#F5E6D8]/85">
+                        {label}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
