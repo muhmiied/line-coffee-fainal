@@ -1,11 +1,13 @@
 // Line Coffee V3 — Launch-Core Data Contracts
 // common.ts — shared primitives for all domain contracts.
 //
-// Phase 3A, Part A. Type-only. Additive. These contracts are NOT yet imported
-// by mock data, UI, or backend code. They define the canonical vocabulary that
-// every other contract (category, product, customer, order, ...) will build on,
-// so that the four bilingual conventions currently in the codebase collapse into
-// one (`LocalizedValue`) before Supabase schema design begins.
+// Type-only. Additive. These define the canonical vocabulary every other
+// contract (category, product, customer, order, ...) builds on, collapsing the
+// codebase's bilingual conventions into one (`LocalizedValue`).
+// Status (2026-06-29, Phase 3 audit): partially LIVE — `LocalizedValue` and
+// `PackageSize` are imported by the public/admin catalog data layers; the rest of
+// this vocabulary is still forward-looking. See `src/lib/types/README.md` for the
+// live-vs-dormant contract registry.
 
 // Canonical bilingual value used across the whole project: { en, ar }.
 // Re-exported (type-only) from the language context so there is a single
@@ -24,8 +26,13 @@ export type ISODate = string;
 // Supabase mapping: `timestamptz`.
 export type ISODateTime = string;
 
-// Monetary amount in the smallest practical unit we store (EGP, integer).
-// Supabase mapping: `integer` (or `numeric` if fractional currency is ever needed).
+// Monetary amount in EGP, carried as a JS number at the app boundary.
+// Per master plan §6.7 the DB stores money as `numeric(_, 2)` — 2 decimal places
+// (totals, discounts, delivery fees, COGS, refunds, expenses, supplier payments),
+// frozen as a snapshot on the order. The UI may render whole EGP, but the stored
+// value keeps 2 decimals. (Earlier this type was documented as integer-only; that
+// is corrected here to match the locked precision rule.)
+// Supabase mapping: `numeric(_, 2)`.
 export type Money = number;
 
 // The only currency Line Coffee operates in at launch.

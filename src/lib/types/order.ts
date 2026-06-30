@@ -1,7 +1,14 @@
 // Line Coffee V3 — Launch-Core Data Contracts
 // order.ts — canonical order + order item + order lifecycle contract.
 //
-// Phase 3B. Type-only. Additive. Imported by nothing yet.
+// Type-only. Additive.
+// Status (2026-06-29, Phase 3 audit): partially LIVE — the lifecycle/payment
+// UNION types (OrderStatus, OrderType, OrderChannel, PaymentMethod,
+// PaymentStatus) are imported by `src/lib/admin/admin-orders.ts`. The Order /
+// OrderItem interfaces and `ORDER_STATUS_EFFECTS` are a documented rule source:
+// the live status→stock/revenue rules currently run in the SQL RPCs
+// (`update_admin_order_status`) and `ALLOWED_ADMIN_ORDER_TRANSITIONS`, not from
+// this map directly. See `src/lib/types/README.md`.
 //
 // This is the launch keystone. Today the order domain is modeled by three
 // incompatible mock shapes with three different status enums (admin

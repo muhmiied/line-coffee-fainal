@@ -1,3 +1,9 @@
+// Return contract of the `create_checkout_order` RPC.
+// `payment_method` is the DB-mapped method (UI cash/instapay/e-wallet ->
+// cash_on_delivery/instapay/wallet). `payment_status` is always "pending" after
+// Phase 1 (Locked Decision 12: all payment methods start pending; nothing is
+// auto-marked paid). The legacy "pending_review" value is gone — the RPC no
+// longer produces it.
 export type CheckoutOrderResult = {
   order_id: string;
   code: string;
@@ -6,7 +12,7 @@ export type CheckoutOrderResult = {
   delivery_fee: number;
   total: number;
   payment_method: "cash_on_delivery" | "instapay" | "wallet";
-  payment_status: "pending" | "pending_review";
+  payment_status: "pending";
   item_count: number;
 };
 
@@ -58,6 +64,9 @@ export function isCheckoutOrderResult(value: unknown): value is CheckoutOrderRes
     typeof result.total === "number" &&
     typeof result.item_count === "number" &&
     ["cash_on_delivery", "instapay", "wallet"].includes(result.payment_method ?? "") &&
-    ["pending", "pending_review"].includes(result.payment_status ?? "")
+    // Phase 1 always returns "pending". Kept as a presence/type check (not an enum
+    // match) so a successfully placed order is never rejected over this
+    // display-only field even if the server status string ever evolves.
+    typeof result.payment_status === "string"
   );
 }

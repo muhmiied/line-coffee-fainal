@@ -31,7 +31,7 @@ The app runs browser-only on the Supabase **anon key**; all writes go through **
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phase 0 committed; **Phase 1 committed** (`aad279c` — delivery zones + deduct@delivered + all-payments-pending; migration `20260629120000`). **Phase 2 (customer identity / ownership / account correctness) is implemented in code + migration `20260629130000` (authored only — NOT pushed/committed)**: a unified ownership resolver (`account_customer_id`) reads registered customers by `auth.uid()` and guests by `guest_id`, account RPCs now scope orders by `customer_id` (registered = cross-device, guest = same-device, and a registered order can no longer leak to a same-device guest), profile/addresses work for registered customers, wishlist gains an `auth_user_id` path, and `link_guest_data_to_account` promotes/merges same-device guest data on login/signup (no auto-merge by phone/email). **Phase 3 next.** Canonical numbering (0–18) lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9.
+**Position:** Phase 0 committed; **Phase 1 committed** (`aad279c` — delivery zones + deduct@delivered + all-payments-pending; migration `20260629120000`). **Phase 2 (customer identity / ownership / account correctness) is implemented in code + migration `20260629130000` (authored only — NOT pushed/committed)**: a unified ownership resolver (`account_customer_id`) reads registered customers by `auth.uid()` and guests by `guest_id`, account RPCs now scope orders by `customer_id` (registered = cross-device, guest = same-device, and a registered order can no longer leak to a same-device guest), profile/addresses work for registered customers, wishlist gains an `auth_user_id` path, and `link_guest_data_to_account` promotes/merges same-device guest data on login/signup (no auto-merge by phone/email). **Phase 3 (data contracts + migration workflow foundation) implemented** (code + docs only — no SQL migration authored, no `db push`, no commit): aligned the checkout result contract to Phase 1 (`payment_status` is always `pending`), corrected the `Money` precision comment, refreshed the canonical-contract headers to state live-vs-dormant status, removed the unused mock-era `account-data.ts`, fixed the local `config.toml` seed path (`./seeds/*.sql`), and added `docs/ai/LINE_COFFEE_V3_DATA_CONTRACTS_AND_MIGRATIONS.md` + `src/lib/types/README.md`. **Phase 4 next.** Canonical numbering (0–18) lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9.
 
 ---
 
@@ -177,6 +177,34 @@ ContactSection       ← cinematic-section, contact form + info
 ## Change Log
 
 > Every agent must add an entry here in format: `## [Date] — [Summary]`
+
+---
+
+### [2026-06-30] — Phase 3: Data contracts + migration workflow foundation (code + docs, NO migration)
+
+**Goal:** Implement **Phase 3** of `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` — make the existing real-backend ↔ frontend integration safer, clearer, and easier to extend before the heavier inventory/FIFO/accounting phases. Foundation, **not** features. **No SQL migration authored, no `db push`, no commit/push, no Phase 1/2 business-rule change, no public redesign, no service-role code.**
+
+**Audit (read-only):** mapped the launch-critical entities across Supabase RPCs/views → `src/lib/types/*` → data-layer modules → UI consumers. Conclusion: the **live data layers are already well-typed and consistent** — each (`checkout.ts`, `account/customer-account.ts`, `admin/admin-orders.ts`, `admin/admin-catalog.ts`, `catalog/public-catalog.ts`, `auth/admin.ts`) has explicit DB row types + safe nullable normalization, and no UI reads an untyped response. Found two parallel type layers: the **canonical contracts** in `src/lib/types/*` (some now LIVE — `common`/`order` unions/`admin`; many still forward for MISSING domains) and the **data-layer read/return shapes** (what the UI actually consumes). Full audit + registry in the new docs below.
+
+**`src/lib/checkout.ts`** — F1: narrowed `CheckoutOrderResult.payment_status` from `"pending" | "pending_review"` to **`"pending"`** to match Phase 1 (Decision 12 — all methods start pending; `create_checkout_order` in `20260629120000` never returns `pending_review`). The `isCheckoutOrderResult` guard now checks `payment_status` is a **string** (presence/type) rather than an enum match, so a successfully-placed order can never be rejected over this display-only field. `payment_method` union unchanged (matches the RPC's mapped `cash_on_delivery|instapay|wallet`).
+
+**`src/app/(public)/order-success/page.tsx`** — F1: removed the now-dead `payment_status === "pending_review"` branch (always "Pending" post-Phase 1).
+
+**`src/lib/types/common.ts`** — F2: corrected the `Money` doc comment from "integer EGP" to the locked 2-decimal `numeric(_,2)` rule (master plan §6.7). Comment-only, no behavior. Header refreshed to note `LocalizedValue`/`PackageSize` are now LIVE.
+
+**`src/lib/types/order.ts` + `admin.ts`** — F4: refreshed the stale "imported by nothing yet" headers to state live-vs-dormant status (order unions → `admin-orders.ts`; admin role/status/permission → `auth/admin.ts`; `ORDER_STATUS_EFFECTS` is a documented rule source — the enforced rule lives in the SQL RPC + `ALLOWED_ADMIN_ORDER_TRANSITIONS`).
+
+**`src/lib/mock-data/account-data.ts`** — F5: **deleted** (`git rm`). Verified zero references (import path + every export name: `MOCK_ORDERS`, `MockOrder`, `MockAddress`, `MOCK_ADDRESSES`, `MockNotification`, `MOCK_NOTIFICATIONS`) before removal. The account area is fully real now; this mock file was orphaned. Deferred mock admin modules (`mock-data/admin/*`) were left untouched.
+
+**`supabase/config.toml`** — F6: fixed `[db.seed].sql_paths` from `["./seed.sql"]` (a file that does not exist) to **`["./seeds/*.sql"]`** so a local `supabase db reset` actually loads `seeds/20260625_catalog_seed.sql` instead of an empty catalog. **Local CLI only** — no production effect, no `db push`.
+
+**`docs/ai/LINE_COFFEE_V3_DATA_CONTRACTS_AND_MIGRATIONS.md`** (new) — the two-layer type model, the Phase 3 contract audit (F1–F8 + intentional divergences), contract↔Phase-1/2 RPC alignment, the **Supabase DB type strategy** (no generated types today; documented the `supabase gen types` process + how to wire the `Database` generic incrementally — not generated, needs credentials/local DB), and the **migration workflow** (naming/order, authoring rule, a paste-in per-migration header checklist, authoring rules, preflight, apply/reset/backup commands).
+
+**`src/lib/types/README.md`** (new) — contract registry (LIVE / DORMANT / FORWARD per file), the "data-layer shapes are the live contracts" rule, the Money precision note, and the DB-type pointer.
+
+**Intentional non-changes (documented):** the catalog `pricingModel: "packaged-by-weight"` literal vs canonical `ProductPricingModel` divergence (reconcile in Phase 4+), `OrderItem.custom_data: unknown` (builder payloads, Phases 8–9), and the 5× duplicated `select` column list in `public-catalog.ts` (maintainability smell, no behavior issue) — left as-is to avoid risk/scope creep.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npx eslint` (changed files) → 0 errors/0 warnings · `git diff --check` → clean (only pre-existing CRLF notices) · route compile smoke on the live dev server (`/`, `/products`, `/checkout`, `/order-success`, `/account/orders`, `/account/wishlist`, `/account/notifications`, `/admin/orders`, `/admin/dashboard`) → all HTTP 200. `npm run build` skipped (live `next dev` on :3000 shares `.next` — ChunkLoadError risk per the 2026-06-26 entry). **No migration, no `db push`, no commit, no push.**
 
 ---
 

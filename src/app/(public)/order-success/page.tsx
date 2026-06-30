@@ -56,11 +56,8 @@ function OrderSuccessContent() {
         wallet: t({ en: "Wallet", ar: "المحفظة الإلكترونية" }),
       }[result.payment_method]
     : null;
-  const paymentStatus = result
-    ? result.payment_status === "pending_review"
-      ? t({ en: "Pending review", ar: "في انتظار المراجعة" })
-      : t({ en: "Pending", ar: "قيد الانتظار" })
-    : null;
+  // Phase 1 (Decision 12): every order starts with payment_status "pending".
+  const paymentStatus = result ? t({ en: "Pending", ar: "قيد الانتظار" }) : null;
 
   return (
     <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">

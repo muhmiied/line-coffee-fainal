@@ -1,7 +1,11 @@
 // Line Coffee V3 — Launch-Core Admin Security Contract
 // admin.ts — admin users, roles, and permissions.
 //
-// Phase 3E. Type-only. Additive. Not yet imported anywhere.
+// Type-only. Additive.
+// Status (2026-06-29, Phase 3 audit): LIVE — `AdminRole`, `AdminUserStatus`, and
+// `AdminPermission` are imported by `src/lib/auth/admin.ts` (the real admin gate
+// reads `public.admin_users` by `auth_user_id`). `ADMIN_ROLE_PERMISSIONS` /
+// `RoleDefinition` remain forward-looking. See `src/lib/types/README.md`.
 //
 // Closes the launch-critical security gap identified in the Supabase Schema +
 // Real Data Transition Plan (§B gap, §E table 30/31, §M RLS): today the admin
