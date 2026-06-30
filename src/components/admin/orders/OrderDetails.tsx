@@ -3,6 +3,7 @@ import {
   ADMIN_ORDER_STATUS_LABELS,
   ADMIN_PAYMENT_METHOD_LABELS,
   ADMIN_PAYMENT_STATUS_LABELS,
+  OUTSTANDING_PAYMENT_STATUSES,
   type AdminOrderDetail,
 } from "@/lib/admin/admin-orders";
 
@@ -67,7 +68,8 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
     ? DELIVERY_ZONE_LABELS[order.deliveryZone] ?? order.deliveryZone
     : null;
   const deliveredUnpaid =
-    order.status === "delivered" && order.paymentStatus !== "paid";
+    order.status === "delivered" &&
+    OUTSTANDING_PAYMENT_STATUSES.includes(order.paymentStatus);
 
   return (
     <div className="space-y-4">

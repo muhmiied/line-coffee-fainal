@@ -41,9 +41,9 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 | **Header notifications** | Bell dropdown reads real `order_status_events` | `src/components/layout/public/PublicHeader.tsx` |
 | **Auth** | Real Supabase auth; `/admin` gated via `admin_users` (role/status) | `src/lib/auth/admin.ts`, `useCurrentAdmin` |
 
-**Inventory lifecycle (Phase 1):** reserve at checkout → keep reservation through `shipped` → **deduct at `delivered`** → release on cancel. This now matches Locked Decision 6. ⚠️ The fix lives in migration `20260629120000_phase1_delivery_deduction_payment.sql`, which is **authored but not yet applied** — until the owner runs `supabase db push`, the live DB still deducts at `shipped`. (Phase 5 re-implements deduction at lot level.)
+**Inventory lifecycle (Phase 1, applied):** reserve at checkout → keep the reservation through `shipped` → **deduct at `delivered`** → release on cancel. Migration `20260629120000_phase1_delivery_deduction_payment.sql` is applied and matches Locked Decision 6. Delivery never changes `payment_status`. (Phase 5 re-implements deduction at lot level.)
 
-**Customer ownership (Phase 2 — authored, not yet applied):** account data is no longer device-only. Migration `20260629130000_phase2_customer_identity_ownership.sql` adds `account_customer_id(p_guest_id)` — a unified resolver: authenticated callers resolve by `auth.uid()` (registered customer, **cross-device**); anonymous callers by validated `guest_id` (guest customer, **same-device**). Account RPCs now scope orders by `orders.customer_id` (not the raw `guest_id`), so registered customers read their own orders/profile/addresses on any device, profile/addresses finally work for registered customers, and a registered order can no longer leak to a different person using the same device as a guest. Wishlist gained an `auth_user_id` path. `link_guest_data_to_account()` (authenticated-only) promotes/merges **same-device** guest data on signup/login (orders, addresses, wishlist) — **no auto-merge by phone/email**. Until the owner applies it, the live account stays Phase-1 device-scoped (guest_id only).
+**Customer ownership (Phase 2, applied):** account data is no longer device-only. Migration `20260629130000_phase2_customer_identity_ownership.sql` adds `account_customer_id(p_guest_id)` — a unified resolver: authenticated callers resolve by `auth.uid()` (registered customer, **cross-device**); anonymous callers by validated `guest_id` (guest customer, **same-device**). Account RPCs scope orders by `orders.customer_id` (not the raw `guest_id`), so registered customers read their own orders/profile/addresses on any device, profile/addresses work for registered customers, and a registered order cannot leak to a different person using the same device as a guest. Wishlist has an `auth_user_id` path. `link_guest_data_to_account()` (authenticated-only) promotes/merges **same-device** guest data on signup/login (orders, addresses, wishlist) — **no auto-merge by phone/email**.
 
 ---
 
@@ -60,7 +60,7 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 - **CMS** — `cms-mock.ts` (reviews approval, blog, contact inbox, legal — all mock)
 - **Espresso Manager** — beans are local component state
 - **Flavor Manager** — flavors/bases are local component state
-- **Cart** — `localStorage` only (`line-cart-v1`), by design until checkout
+- **Cart** — local-only but owner-scoped: `line-cart-v1:guest:<guestId>` or `line-cart-v1:auth:<userId>`. The old global `line-cart-v1` key is purged and never read.
 
 ---
 
@@ -68,7 +68,7 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 
 FIFO inventory **lots** · `order_item_components` (custom espresso breakdown) · **raw-bean** inventory (separate from finished goods) · **packaging** stock · **purchases** / purchase_items · **suppliers** / supplier_payments · **expenses** · **promo_codes** table + checkout application (`discount_total` is always 0) · **refunds/returns** records · **reviews** · **contact_messages** · **analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
 
-> **Delivery zones (Phase 1 — authored, not yet applied):** zone-based delivery is now resolved **server-side** in `create_checkout_order` via `resolve_delivery_fee()` (Shorouk/Madinaty 30 · Haram/6 October/Sheikh Zayed 100 · remaining Cairo/Giza 50 · other governorates 0 + courier note), with an admin per-order override (`update_admin_order_delivery_fee`). This replaces the old hardcoded "free ≥500 EGP else 50" rule. Lives in migration `20260629120000`; the old rule remains live until the owner applies it.
+> **Delivery zones (Phase 1, applied):** `create_checkout_order` resolves delivery **server-side** via `resolve_delivery_fee()` (Shorouk/Madinaty 30 · Haram/6 October/Sheikh Zayed 100 · remaining Cairo/Giza 50 · other governorates 0 + courier note), with an admin per-order override (`update_admin_order_delivery_fee`). The old hardcoded "free ≥500 EGP else 50" rule is no longer live.
 
 ---
 

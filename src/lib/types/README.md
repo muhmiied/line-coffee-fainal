@@ -31,7 +31,7 @@ contract is the target the schema/RPCs converge toward as missing domains land.
 
 ---
 
-## Contract registry (status as of Phase 3, 2026-06-29)
+## Contract registry (status after Phase 3 cleanup, 2026-06-30)
 
 | File | Domain | Status | Live consumers / notes |
 |---|---|---|---|
@@ -41,7 +41,7 @@ contract is the target the schema/RPCs converge toward as missing domains land.
 | `product.ts` | Product / ProductVariant | **DORMANT** | Live shape: `public-catalog.ts` `PublicCatalogProduct`, `admin-catalog.ts` `AdminProduct`. Note: those use `pricingModel: "packaged-by-weight"`; the canonical `ProductPricingModel` is `fixed`/`per_kg`/`custom_builder` — reconcile when the catalog schema is revisited (Phase 4+) |
 | `category.ts` | Category | **DORMANT** | Live shape: catalog `PublicCatalogCategory` / `AdminProductCategory` |
 | `customer.ts` | Customer / Address / Snapshots | **DORMANT** | Live shape: `customer-account.ts` (`CustomerProfile`, `CustomerAddress`, …) + `admin-orders.ts` snapshots |
-| `inventory.ts` | Inventory items / movements / suppliers / beans | **FORWARD** | No DB tables yet (Phases 4–6, 8). Live inventory today = `inventory_stock` kg-per-product (Phase 1) |
+| `inventory.ts` | Inventory items / movements / suppliers / beans | **FORWARD** | Expanded item/lot/supplier/bean tables are not present yet (Phases 4–6, 8). Live inventory today = `inventory_stock` + `inventory_movements`, kg-per-product (Phase 1) |
 | `accounting.ts` | Purchases / expenses / supplier payments / derived P&L | **FORWARD** | No DB tables yet (Phases 4, 5, 11, 14). Derivation layer — deliberately no `AccountingOrder` |
 | `marketing.ts` | Promo / offers / banners | **FORWARD** | No DB tables yet (Phase 7). Marketing admin is mock |
 | `cms.ts` | Reviews / blog / contact | **FORWARD** | No DB tables yet (Phase 13). CMS admin is mock |

@@ -1469,7 +1469,7 @@ export default function CmsPage() {
           {copiedLabel && <span className="rounded-lg border border-[#4ade80]/25 bg-[#4ade80]/10 px-3 py-2 text-xs font-semibold text-[#4ade80]">{copiedLabel} copied</span>}
           <div className="inline-flex items-center gap-2 rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs text-[#b79b85]">
             <Globe2 size={13} className="text-[#b6885e]" />
-            CMS manages content. Media Studio manages visual assets.
+            CMS manages content. Product images are managed in Admin Products.
           </div>
         </div>
       </div>

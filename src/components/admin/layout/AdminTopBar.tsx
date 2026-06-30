@@ -11,7 +11,6 @@ import {
   ExternalLink,
   LogOut,
   User,
-  Monitor,
   Clock3,
   Truck,
   CircleDollarSign,
@@ -303,24 +302,6 @@ export default function AdminTopBar({
                     style={{ color: "var(--gold)" }}
                   >
                     ✓
-                  </span>
-                </div>
-
-                {/* Media Studio — coming soon */}
-                <div
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] mb-0.5 cursor-not-allowed select-none"
-                  style={{ color: "var(--cream-dim)", opacity: 0.45 }}
-                >
-                  <Monitor size={13} />
-                  <span className="flex-1">Media Studio</span>
-                  <span
-                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: "rgba(182,136,94,0.12)",
-                      color: "var(--gold)",
-                    }}
-                  >
-                    SOON
                   </span>
                 </div>
 

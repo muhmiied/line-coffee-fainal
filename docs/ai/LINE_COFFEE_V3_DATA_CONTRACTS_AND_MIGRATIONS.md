@@ -57,7 +57,7 @@ response. The issues found were drift/clarity, not safety holes:
 
 | # | Finding | Resolution in Phase 3 |
 |---|---|---|
-| F1 | `CheckoutOrderResult.payment_status` was `"pending" \| "pending_review"`, but Phase 1 (Decision 12) makes `create_checkout_order` always return `"pending"`. `order-success` had a dead `=== "pending_review"` branch. | **Fixed.** Narrowed the type to `"pending"`; the guard now accepts any string for that display-only field (so a real placed order can never be rejected over it); removed the dead UI branch. |
+| F1 | `CheckoutOrderResult.payment_status` was `"pending" \| "pending_review"`, but Phase 1 (Decision 12) makes `create_checkout_order` always return `"pending"`. `order-success` had a dead `=== "pending_review"` branch. | **Fixed.** Narrowed the type and runtime guard to `"pending"` and removed the dead UI branch. |
 | F2 | `common.ts` `Money` was documented as integer EGP, contradicting §6.7 (2-decimal `numeric`). | **Fixed (comment only).** Corrected to the 2-decimal rule. No runtime change. |
 | F3 | CLAUDE.md claimed `ORDER_STATUS_EFFECTS` is "imported by admin-orders + accounting." It is referenced **only in comments**; the enforced rule lives in the SQL RPC + `ALLOWED_ADMIN_ORDER_TRANSITIONS`. | **Documented.** The contract itself is already Phase-1-correct (deduct at delivered). No code change; clarified header + registry. |
 | F4 | Three contract headers (`common`, `order`, `admin`) said "imported by nothing yet" — now false. | **Fixed (comment only).** Headers now state live-vs-dormant status and point to the registry. |

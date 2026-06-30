@@ -258,8 +258,14 @@ export const ADMIN_PAYMENT_STATUS_LABELS: Record<string, string> = {
   refunded: "Refunded",
   failed: "Failed",
   pending: "Pending",
-  pending_review: "Pending Review",
 };
+
+export const OUTSTANDING_PAYMENT_STATUSES: PaymentStatus[] = [
+  "unpaid",
+  "partially_paid",
+  "pending",
+  "failed",
+];
 
 export const ALLOWED_ADMIN_ORDER_TRANSITIONS: Record<
   AdminOrderStatus,
@@ -462,13 +468,6 @@ export async function getAdminOrders(): Promise<AdminOrderSummary[]> {
 }
 
 export async function getAdminOrderOverview(): Promise<AdminOrderOverview> {
-  const deliveredUnpaidStatuses: PaymentStatus[] = [
-    "unpaid",
-    "partially_paid",
-    "pending",
-    "pending_review",
-    "failed",
-  ];
   const [totalResult, pendingResult, shippedResult, deliveredUnpaidResult] =
     await Promise.all([
       supabase.from("orders").select("id", { count: "exact", head: true }),
@@ -484,7 +483,7 @@ export async function getAdminOrderOverview(): Promise<AdminOrderOverview> {
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("status", "delivered")
-        .in("payment_status", deliveredUnpaidStatuses),
+        .in("payment_status", OUTSTANDING_PAYMENT_STATUSES),
     ]);
 
   const failedResult = [

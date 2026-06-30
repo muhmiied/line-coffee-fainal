@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 
+export const AUTH_OWNER_CHANGED_EVENT = "line-auth-owner-changed";
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -25,6 +27,13 @@ function mapUser(user: User | null): AuthUser | null {
     name: metadataName.trim() || user.email,
     email: user.email,
   };
+}
+
+function notifyAuthOwnerChanged(userId: string | null) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(AUTH_OWNER_CHANGED_EVENT, { detail: { userId } }),
+  );
 }
 
 export function clearLegacyMockAuth() {
@@ -86,6 +95,7 @@ export function useAuth() {
     });
     if (error) throw error;
     setUser(mapUser(data.user));
+    notifyAuthOwnerChanged(data.user.id);
     // Link any same-device guest data to this account before the caller routes on.
     await linkGuestDataBestEffort();
     return data;
@@ -103,6 +113,7 @@ export function useAuth() {
       });
       if (error) throw error;
       setUser(mapUser(data.user));
+      notifyAuthOwnerChanged(data.session?.user.id ?? null);
       // Only an active session can link (auth.uid() must resolve). When email
       // confirmation is required there is no session yet — linking happens on
       // the first authenticated load instead.
@@ -119,12 +130,13 @@ export function useAuth() {
     // session. Even if the network call fails we still clear local identity so
     // no stale admin/customer state survives the sign-out.
     clearLegacyMockAuth();
+    setUser(null);
+    notifyAuthOwnerChanged(null);
     try {
       await supabase.auth.signOut({ scope: "local" });
     } catch {
-      // ignore — local identity is cleared below regardless
+      // ignore — local identity was cleared above regardless
     }
-    setUser(null);
   }, []);
 
   return {

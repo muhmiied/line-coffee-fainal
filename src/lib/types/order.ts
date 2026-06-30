@@ -10,14 +10,10 @@
 // (`update_admin_order_status`) and `ALLOWED_ADMIN_ORDER_TRANSITIONS`, not from
 // this map directly. See `src/lib/types/README.md`.
 //
-// This is the launch keystone. Today the order domain is modeled by three
-// incompatible mock shapes with three different status enums (admin
-// "New/Preparing/...", customer lowercase "processing/roasting/...", accounting
-// "Delivered/Cancelled"). This contract replaces all of them with ONE canonical
-// `Order` / `OrderItem` / `OrderStatus`, and encodes the operating-model rules
-// for what each status does to stock, revenue, COGS, and customer LTV via
-// `ORDER_STATUS_EFFECTS`. Checkout, Admin Orders, Customer Account, Inventory,
-// Accounting, and Analytics will all key off these types.
+// This contract is the launch keystone: one canonical `Order` / `OrderItem` /
+// `OrderStatus` vocabulary plus the operating-model effects for stock, revenue,
+// COGS, and customer LTV. Live checkout/account modules still use RPC-specific
+// boundary shapes; the admin order layer already imports the unions below.
 
 import type {
   ID,
@@ -59,8 +55,7 @@ export type PaymentStatus =
   | "paid"
   | "refunded"
   | "failed"
-  | "pending"
-  | "pending_review";
+  | "pending";
 
 // Composition of an order: standard catalog items, a custom builder order, or a
 // mix of both.

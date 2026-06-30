@@ -64,9 +64,6 @@ export function isCheckoutOrderResult(value: unknown): value is CheckoutOrderRes
     typeof result.total === "number" &&
     typeof result.item_count === "number" &&
     ["cash_on_delivery", "instapay", "wallet"].includes(result.payment_method ?? "") &&
-    // Phase 1 always returns "pending". Kept as a presence/type check (not an enum
-    // match) so a successfully placed order is never rejected over this
-    // display-only field even if the server status string ever evolves.
-    typeof result.payment_status === "string"
+    result.payment_status === "pending"
   );
 }

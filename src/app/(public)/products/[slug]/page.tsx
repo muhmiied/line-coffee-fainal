@@ -152,17 +152,17 @@ function ProductLoadPanel({ state }: { state: "loading" | "error" }) {
       <div className="mx-auto max-w-xl rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/70 p-8">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
           {state === "loading"
-            ? t({ en: "Loading Product", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬" })
-            : t({ en: "Product Unavailable", ar: "Ø§Ù„Ù…Ù†ØªØ¬ ØºÙŠØ± Ù…ØªØ§Ø­" })}
+            ? t({ en: "Loading Product", ar: "جاري تحميل المنتج" })
+            : t({ en: "Product Unavailable", ar: "المنتج غير متاح" })}
         </p>
         <h1 className="mt-3 font-serif text-3xl font-bold">
           {state === "loading"
-            ? t({ en: "Reading the live product.", ar: "Ù†Ù‚Ø±Ø£ Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ø­ÙŠ." })
-            : t({ en: "We could not load this product right now.", ar: "Ù„Ù… Ù†ØªÙ…ÙƒÙ† Ù…Ù† ØªØ­Ù…ÙŠÙ„ Ù‡Ø°Ø§ Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ø¢Ù†." })}
+            ? t({ en: "Reading the live product.", ar: "نقرأ المنتج الحي." })
+            : t({ en: "We could not load this product right now.", ar: "لم نتمكن من تحميل هذا المنتج الآن." })}
         </h1>
         {state === "error" ? (
           <Link href="/products" className="premium-button mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
-            {t({ en: "Back to Products", ar: "Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+            {t({ en: "Back to Products", ar: "العودة للمنتجات" })}
           </Link>
         ) : null}
       </div>

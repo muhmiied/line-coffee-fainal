@@ -66,30 +66,30 @@ export default function WishlistPage() {
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
-            {t({ en: "Your wishlist is empty", ar: "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø§Øª ÙØ§Ø±ØºØ©" })}
+            {t({ en: "Your wishlist is empty", ar: "قائمة المحفوظات فارغة" })}
           </p>
           <p className="mb-6 text-xs text-[#B79B85]/50">
-            {t({ en: "Tap the heart icon on any product to save it here.", ar: "Ø§Ø¶ØºØ· Ø£ÙŠÙ‚ÙˆÙ†Ø© Ø§Ù„Ù‚Ù„Ø¨ Ø¹Ù„Ù‰ Ø£ÙŠ Ù…Ù†ØªØ¬ Ù„Ø­ÙØ¸Ù‡ Ù‡Ù†Ø§." })}
+            {t({ en: "Tap the heart icon on any product to save it here.", ar: "اضغط أيقونة القلب على أي منتج لحفظه هنا." })}
           </p>
           <Link href="/products" className="premium-button inline-block px-8 py-2.5 text-sm">
-            {t({ en: "Browse products", ar: "ØªØµÙØ­ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+            {t({ en: "Browse products", ar: "تصفح المنتجات" })}
           </Link>
         </div>
       ) : catalogState === "idle" || catalogState === "loading" ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
-            {t({ en: "Loading saved products", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©" })}
+            {t({ en: "Loading saved products", ar: "جاري تحميل المنتجات المحفوظة" })}
           </p>
         </div>
       ) : catalogState === "error" ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
-            {t({ en: "Saved products could not be loaded", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©" })}
+            {t({ en: "Saved products could not be loaded", ar: "تعذر تحميل المنتجات المحفوظة" })}
           </p>
           <p className="text-xs text-[#B79B85]/50">
-            {t({ en: "Please try again in a moment.", ar: "ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰ Ø¨Ø¹Ø¯ Ù‚Ù„ÙŠÙ„." })}
+            {t({ en: "Please try again in a moment.", ar: "يرجى المحاولة مرة أخرى بعد قليل." })}
           </p>
         </div>
       ) : visibleProducts.length === 0 ? (

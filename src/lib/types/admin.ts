@@ -7,12 +7,9 @@
 // reads `public.admin_users` by `auth_user_id`). `ADMIN_ROLE_PERMISSIONS` /
 // `RoleDefinition` remain forward-looking. See `src/lib/types/README.md`.
 //
-// Closes the launch-critical security gap identified in the Supabase Schema +
-// Real Data Transition Plan (§B gap, §E table 30/31, §M RLS): today the admin
-// area is gated only by a localStorage auto-seed ("anyone hits /admin"). This
-// contract defines the canonical admin identity, role, and permission shapes so
-// `/admin/*` can later be gated server-side on real `admin_users` membership.
-// No runtime authorization is implemented here.
+// Defines the canonical identity, role, and permission vocabulary used by the
+// real `/admin/*` gate. Runtime authorization lives in `src/lib/auth/admin.ts`
+// and resolves active membership from `public.admin_users`.
 
 import type { ID, ISODateTime } from "@/lib/types/common";
 

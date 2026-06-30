@@ -22,16 +22,17 @@
 The app runs browser-only on the Supabase **anon key**; all writes go through **SECURITY DEFINER RPCs** that validate + recompute server-side. Customer data is scoped by device **`guest_id`**; admin by `admin_users` + `is_admin()`.
 
 - **REAL (Supabase):** public catalog; admin product/category CRUD; **checkout → real orders** (`create_checkout_order`); inventory **reservation in kg per product** (`inventory_stock` + `inventory_movements`); **Admin Orders** (`update_admin_order_status`); **Customer Account** (orders, profile, addresses, wishlist, notifications); real auth.
-- **MOCK (UI only, resets on refresh):** Admin Dashboard, Inventory UI, Customers, Marketing (promo codes don't validate), Accounting, Analytics, CMS, Espresso Manager, Flavor Manager; Cart (localStorage by design).
-- **MISSING (no DB):** FIFO lots · order_item_components · raw-bean inventory · packaging · purchases/suppliers/expenses · promo_codes · delivery zones · refunds/returns · reviews · contact_messages · analytics. **Media Studio does not exist and is cancelled (Decision 1).**
+- **MOCK (UI only, resets on refresh):** Admin Dashboard, Inventory UI, Customers, Marketing (promo codes don't validate), Accounting, Analytics, CMS, Espresso Manager, Flavor Manager.
+- **LOCAL:** Cart persists per explicit owner in localStorage (`guest:<guestId>` / `auth:<userId>`); the legacy global `line-cart-v1` key is purged and never read.
+- **MISSING (no DB):** FIFO lots · order_item_components · raw-bean inventory · packaging · purchases/suppliers/expenses · promo_codes · refunds/returns · reviews · contact_messages · analytics. **Media Studio does not exist and is cancelled (Decision 1).**
 - **Builders:** compute + add to cart but are **rejected at checkout** today (wired in Phases 8–9 — espresso = 8, flavor = 9; master plan numbering).
-- **Known mismatch:** code deducts inventory at `shipped`; Decision 6 says `delivered` → fixed in Phase 1.
+- **Applied lifecycle:** checkout reserves inventory, `shipped` keeps it reserved, `delivered` deducts it, and `cancelled` releases it.
 
 ## Locked Business Decisions (1-line each — full text in the roadmap doc)
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phase 0 committed; **Phase 1 committed** (`aad279c` — delivery zones + deduct@delivered + all-payments-pending; migration `20260629120000`). **Phase 2 (customer identity / ownership / account correctness) is implemented in code + migration `20260629130000` (authored only — NOT pushed/committed)**: a unified ownership resolver (`account_customer_id`) reads registered customers by `auth.uid()` and guests by `guest_id`, account RPCs now scope orders by `customer_id` (registered = cross-device, guest = same-device, and a registered order can no longer leak to a same-device guest), profile/addresses work for registered customers, wishlist gains an `auth_user_id` path, and `link_guest_data_to_account` promotes/merges same-device guest data on login/signup (no auto-merge by phone/email). **Phase 3 (data contracts + migration workflow foundation) implemented** (code + docs only — no SQL migration authored, no `db push`, no commit): aligned the checkout result contract to Phase 1 (`payment_status` is always `pending`), corrected the `Money` precision comment, refreshed the canonical-contract headers to state live-vs-dormant status, removed the unused mock-era `account-data.ts`, fixed the local `config.toml` seed path (`./seeds/*.sql`), and added `docs/ai/LINE_COFFEE_V3_DATA_CONTRACTS_AND_MIGRATIONS.md` + `src/lib/types/README.md`. **Phase 4 next.** Canonical numbering (0–18) lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9.
+**Position:** Phases 0–3 are complete. **Phase 1** migration `20260629120000` is applied (delivery zones + deduct-at-delivered + all-payments-pending). **Phase 2** migration `20260629130000` is applied: `account_customer_id` scopes registered customers by `auth.uid()` and guests by `guest_id`; account RPCs scope orders by `customer_id`; profile/addresses work cross-device for registered customers; wishlist uses an `auth_user_id` path; and `link_guest_data_to_account` promotes/merges same-device guest data without phone/email ownership. **Phase 3** aligned the checkout/payment contracts, removed unused account mocks, fixed the local seed path, and documented contract/migration conventions. **Phase 4 is next and has not started.** Canonical numbering lives in the master plan §5.0: packaging = Phase 6, customer identity = Phase 2, promo = Phase 7, order editing = Phase 10, espresso = 8, flavor = 9.
 
 ---
 
@@ -177,6 +178,26 @@ ContactSection       ← cinematic-section, contact form + info
 ## Change Log
 
 > Every agent must add an entry here in format: `## [Date] — [Summary]`
+
+---
+
+### [2026-06-30] — P0 cart ownership leak fix (client-only)
+
+**Bug:** the entire site shared one `line-cart-v1` localStorage cart. Account A items survived logout and appeared for the guest and Account B on the same device.
+
+**Fix:** rewrote `src/lib/context/cart.tsx` as one owner-aware external store shared by the header count/drawer, `/cart`, and `/checkout`. Guest carts persist under `line-cart-v1:guest:<guestId>`; authenticated carts persist locally under `line-cart-v1:auth:<userId>`. Auth changes atomically replace the visible cart and close the drawer before React renders the new owner. The ambiguous legacy global key is deleted and never migrated. Guest and account carts remain separate (no implicit merge, phone, or email ownership). `useAuth` emits a local owner-change signal for immediate sign-in/sign-up/sign-out switching while the cart also listens to Supabase auth and cross-tab storage events.
+
+**Validation:** `npx tsc --noEmit` and targeted ESLint pass; Playwright verified legacy-key purge, guest → A → logout/guest → B → A isolation, A cart restoration, unchanged wishlist storage, drawer/header count updates, and matching `/cart` + `/checkout` state. No migration, DB push, commit/push, Phase 4, service-role code, public redesign, or Phase 1/2 backend-rule change.
+
+---
+
+### [2026-06-30] — Phases 1–3 integration sanity and ownership cleanup
+
+Reviewed the closed Phase 1–3 surfaces before Phase 4. Fixed a client-side privacy regression where checkout saved-address results and account-page React state could survive a direct Account A → Account B session switch: `/account/*` and `/checkout` now remount their local state by authenticated owner id, checkout renders saved addresses only for their matching owner, and the public-header notification dropdown remounts per owner. RPC ownership remains unchanged (`auth.uid()` for registered customers, `guest_id` for guests); no phone/email ownership was introduced.
+
+Removed the remaining live `pending_review` payment branch from the canonical order contract, admin payment label, and delivered-unpaid counter query; made the checkout-result runtime guard require Phase 1's authoritative `pending`; removed the cancelled Media Studio from the admin switcher and corrected the CMS label; repaired mojibake in public product/wishlist UI; and refreshed stale Phase 1/2 applied-state and contract comments/docs.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · ESLint on every changed TS/TSX file → 0 errors/0 warnings · delivery-zone logic → 30/100/50/0 with courier note as locked · Playwright Chromium smoke (`/`, `/products`, `/checkout`, `/order-success`, `/account/orders`, `/account/wishlist`, `/account/notifications`, `/admin/orders`, `/admin/dashboard`) → all HTTP 200, protected routes redirect safely to sign-in when signed out, 0 console errors · seed path resolves to the existing catalog seed · `git diff --check` clean. No migration, `db push`, commit, push, Phase 4 work, service-role code, public redesign, or Phase 1/2 business-rule change.
 
 ---
 

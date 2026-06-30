@@ -39,7 +39,7 @@ function buildSidebarItems(categories: PublicCatalogCategory[]): SidebarItem[] {
       items.push({
         kind: "studio",
         id: "make-your-espresso",
-        label: { en: "Make Your Espresso", ar: "Ø§ØµÙ†Ø¹ Ø¥Ø³Ø¨Ø±ÙŠØ³Ùˆ Ø®Ø§ØµØªÙƒ" },
+        label: { en: "Make Your Espresso", ar: "اصنع إسبريسو خاصتك" },
       });
     }
 
@@ -47,7 +47,7 @@ function buildSidebarItems(categories: PublicCatalogCategory[]): SidebarItem[] {
       items.push({
         kind: "studio",
         id: "make-your-flavor",
-        label: { en: "Make Your Flavor", ar: "Ø§ØµÙ†Ø¹ Ù†ÙƒÙ‡ØªÙƒ" },
+        label: { en: "Make Your Flavor", ar: "اصنع نكهتك" },
       });
     }
   }
@@ -76,12 +76,12 @@ function ProductsHero() {
 
       <div className="relative z-10 px-4 text-center text-white">
         <h1 className="mb-4 font-serif text-4xl font-bold md:text-5xl lg:text-6xl">
-          {t({ en: "Our Products", ar: "Ù…Ù†ØªØ¬Ø§ØªÙ†Ø§" })}
+          {t({ en: "Our Products", ar: "منتجاتنا" })}
         </h1>
         <p className="mx-auto max-w-2xl text-lg text-white/90 md:text-xl">
           {t({
             en: "Discover our carefully curated selection of premium coffee.",
-            ar: "Ø§ÙƒØªØ´Ù Ù…Ø¬Ù…ÙˆØ¹ØªÙ†Ø§ Ø§Ù„Ù…Ù†ØªÙ‚Ø§Ø© Ù…Ù† Ø§Ù„Ù‚Ù‡ÙˆØ© Ø§Ù„ÙØ§Ø®Ø±Ø©.",
+            ar: "اكتشف مجموعتنا المنتقاة من القهوة الفاخرة.",
           })}
         </p>
       </div>
@@ -165,7 +165,7 @@ export default function ProductsPage() {
           <aside className="shrink-0 lg:w-64">
             <div className="luxury-panel sticky top-28 rounded-2xl p-4">
               <h2 className="mb-4 px-2 font-serif text-lg font-semibold text-[#F5E6D8]/90">
-                {t({ en: "Categories", ar: "Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª" })}
+                {t({ en: "Categories", ar: "التصنيفات" })}
               </h2>
               <nav className="space-y-1">
                 {sidebarItems.map((item) => {
@@ -202,7 +202,7 @@ export default function ProductsPage() {
                         <span className="flex items-center justify-between gap-2">
                           <span>{t(item.label)}</span>
                           <span className="text-[10px] uppercase tracking-[0.14em] text-[#D6B79A]/30">
-                            {t({ en: "Soon", ar: "Ù‚Ø±ÙŠØ¨Ø§Ù‹" })}
+                            {t({ en: "Soon", ar: "قريباً" })}
                           </span>
                         </span>
                       </button>
@@ -232,19 +232,19 @@ export default function ProductsPage() {
             {catalogState === "loading" ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
                 <p className="font-serif text-lg text-[#F5E6D8]/50">
-                  {t({ en: "Loading products", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+                  {t({ en: "Loading products", ar: "جاري تحميل المنتجات" })}
                 </p>
                 <p className="text-sm text-[#D6B79A]/40">
-                  {t({ en: "Reading the live catalog.", ar: "Ù†Ù‚Ø±Ø£ Ø§Ù„ÙƒØ§ØªØ§Ù„ÙˆØ¬ Ø§Ù„Ø­ÙŠ." })}
+                  {t({ en: "Reading the live catalog.", ar: "نقرأ الكتالوج الحي." })}
                 </p>
               </div>
             ) : catalogState === "error" ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
                 <p className="font-serif text-lg text-[#F5E6D8]/50">
-                  {t({ en: "Products could not be loaded", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+                  {t({ en: "Products could not be loaded", ar: "تعذر تحميل المنتجات" })}
                 </p>
                 <p className="text-sm text-[#D6B79A]/40">
-                  {t({ en: "Please try again in a moment.", ar: "ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰ Ø¨Ø¹Ø¯ Ù‚Ù„ÙŠÙ„." })}
+                  {t({ en: "Please try again in a moment.", ar: "يرجى المحاولة مرة أخرى بعد قليل." })}
                 </p>
               </div>
             ) : isStudio ? (
@@ -268,7 +268,7 @@ export default function ProductsPage() {
 
                 <p className="mb-5 text-sm text-[#D6B79A]/55">
                   {filtered.length}{" "}
-                  {t({ en: "products", ar: "Ù…Ù†ØªØ¬" })}
+                  {t({ en: "products", ar: "منتج" })}
                 </p>
 
                 {filtered.length > 0 ? (
@@ -285,10 +285,10 @@ export default function ProductsPage() {
                 ) : (
                   <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
                     <p className="font-serif text-lg text-[#F5E6D8]/50">
-                      {t({ en: "No products found", ar: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª" })}
+                      {t({ en: "No products found", ar: "لا توجد منتجات" })}
                     </p>
                     <p className="text-sm text-[#D6B79A]/40">
-                      {t({ en: "Try a different search or category", ar: "Ø¬Ø±Ø¨ Ø¨Ø­Ø«Ø§Ù‹ Ø£Ùˆ ØªØµÙ†ÙŠÙØ§Ù‹ Ù…Ø®ØªÙ„ÙØ§Ù‹" })}
+                      {t({ en: "Try a different search or category", ar: "جرّب بحثاً أو تصنيفاً مختلفاً" })}
                     </p>
                   </div>
                 )}

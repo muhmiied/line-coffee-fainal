@@ -62,7 +62,7 @@ Last updated: 2026-06-28
 
 | Route | Source | Type |
 |---|---|---|
-| `/cart` | Cart context (`src/lib/context/cart.tsx`, `localStorage`) | Local |
+| `/cart` | Cart context (`src/lib/context/cart.tsx`, owner-scoped `localStorage`) | Local |
 | `/checkout` | Form labels inline in `checkout/page.tsx`; governorate/area lists inline; submit → `create_checkout_order` | Static UI · **Dynamic** submit |
 | `/order-success` | Order snapshot from `sessionStorage` | Local |
 

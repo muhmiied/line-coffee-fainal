@@ -370,30 +370,57 @@ function CustomSelect({
 export default function CheckoutPage() {
   const { t, dir, language } = useLanguage();
   const { items, total, clearCart } = useCart();
-  const { isLoggedIn } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const checkoutAttemptId = useRef<string | null>(null);
+  const ownerKey = isAuthLoading ? "loading" : (user?.id ?? "guest");
 
-  const [form,       setForm]       = useState<FormData>(EMPTY);
+  const [ownedForm, setOwnedForm] = useState<{
+    ownerKey: string;
+    value: FormData;
+  }>({ ownerKey, value: EMPTY });
+  const form = ownedForm.ownerKey === ownerKey ? ownedForm.value : EMPTY;
   const [errors,     setErrors]     = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Phase 2: registered customers can pick a saved/default address in checkout.
-  // Guests never load this — the RPC self-scopes and returns nothing for them.
-  const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
+  // Phase 2: saved addresses are cached with their authenticated owner. The
+  // owner id is checked again at render time so an Account A -> Account B
+  // session switch can never paint Account A's addresses while B's request is
+  // still in flight.
+  const [savedAddressState, setSavedAddressState] = useState<{
+    ownerId: string | null;
+    rows: CustomerAddress[];
+  }>({ ownerId: null, rows: [] });
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const savedAddresses =
+    user && savedAddressState.ownerId === user.id ? savedAddressState.rows : [];
+
+  function setForm(action: React.SetStateAction<FormData>) {
+    setOwnedForm((current) => {
+      const currentValue = current.ownerKey === ownerKey ? current.value : EMPTY;
+      const value =
+        typeof action === "function" ? action(currentValue) : action;
+      return { ownerKey, value };
+    });
+  }
 
   useEffect(() => {
-    // Guests skip the fetch entirely; the panel is gated on isLoggedIn, so any
-    // stale list left after a sign-out is never rendered (no sync clear needed).
-    if (!isLoggedIn) return;
+    if (isAuthLoading) return;
+
+    const ownerId = user?.id ?? null;
+    if (!ownerId) return;
+
     let active = true;
     getCustomerAddresses()
-      .then((rows) => { if (active) setSavedAddresses(rows); })
-      .catch(() => { if (active) setSavedAddresses([]); });
+      .then((rows) => {
+        if (active) setSavedAddressState({ ownerId, rows });
+      })
+      .catch(() => {
+        if (active) setSavedAddressState({ ownerId, rows: [] });
+      });
     return () => { active = false; };
-  }, [isLoggedIn]);
+  }, [isAuthLoading, user?.id]);
 
   // Map a saved address onto the checkout form. Address fields overwrite; identity
   // fields fill only when empty (don't clobber what the user already typed).
@@ -644,7 +671,7 @@ export default function CheckoutPage() {
             <div className="space-y-6 lg:col-span-2">
 
               {/* Saved addresses (registered customers only) */}
-              {isLoggedIn && savedAddresses.length > 0 && (
+              {user && savedAddresses.length > 0 && (
                 <div className="rounded-2xl border border-[#B6885E]/14 bg-[#120D09]/68 p-6">
                   <h2 className="mb-1 font-serif text-lg font-bold text-[#F5E6D8]">
                     {t({ en: "Saved Addresses", ar: "العناوين المحفوظة" })}

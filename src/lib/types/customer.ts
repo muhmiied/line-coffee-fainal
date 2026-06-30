@@ -1,11 +1,10 @@
 // Line Coffee V3 — Launch-Core Data Contracts
 // customer.ts — canonical customer + address contract.
 //
-// Phase 3A, Part A. Type-only. Additive. Not yet imported anywhere.
-// Unifies the multiple customer/address shapes (admin `AdminCustomer` +
-// `CustomerAddress`, customer-account `MockAddress`, and the inline
-// `AdminOrder.address`) into one launch shape, and adds order-time snapshot
-// shapes so an order can freeze customer/address details at purchase time.
+// Type-only. Additive. The snapshot types are imported by the canonical order
+// contract; live account/admin modules still expose RPC-specific boundary
+// shapes. This file defines the target launch vocabulary for customers,
+// addresses, and order-time snapshots.
 
 import type {
   ID,

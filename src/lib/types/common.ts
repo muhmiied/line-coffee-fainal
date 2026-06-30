@@ -15,7 +15,7 @@
 // Supabase mapping: usually two columns `*_en` / `*_ar`, or a single jsonb column.
 export type { LocalizedValue } from "@/lib/context/language";
 
-// Primary key. App-facing string today; UUID (text) in Supabase later.
+// Primary key at the app boundary. Live Supabase table ids are UUID strings.
 export type ID = string;
 
 // Calendar date with no time component, ISO 8601: "YYYY-MM-DD".

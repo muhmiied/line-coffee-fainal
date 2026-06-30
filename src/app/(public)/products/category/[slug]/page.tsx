@@ -148,7 +148,7 @@ function getCategoryExperience(category: PublicCatalogCategory): CategoryExperie
   if (isKnownCategorySlug(category.slug)) return categoryExperiences[category.slug];
 
   return {
-    eyebrow: { en: "Line Coffee", ar: "Ù„Ø§ÙŠÙ† ÙƒÙˆÙÙŠ" },
+    eyebrow: { en: "Line Coffee", ar: "لاين كوفي" },
     title: category.name,
     intro: category.description ?? category.name,
     story: category.description ?? category.name,
@@ -220,17 +220,17 @@ function CategoryLoadPanel({ state }: { state: "loading" | "error" }) {
       <div className="mx-auto max-w-xl rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/70 p-8">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
           {state === "loading"
-            ? t({ en: "Loading Catalog", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ÙƒØ§ØªØ§Ù„ÙˆØ¬" })
-            : t({ en: "Catalog Unavailable", ar: "Ø§Ù„ÙƒØ§ØªØ§Ù„ÙˆØ¬ ØºÙŠØ± Ù…ØªØ§Ø­" })}
+            ? t({ en: "Loading Catalog", ar: "جاري تحميل الكتالوج" })
+            : t({ en: "Catalog Unavailable", ar: "الكتالوج غير متاح" })}
         </p>
         <h1 className="mt-3 font-serif text-3xl font-bold">
           {state === "loading"
-            ? t({ en: "Reading this category.", ar: "Ù†Ù‚Ø±Ø£ Ù‡Ø°Ø§ Ø§Ù„ØªØµÙ†ÙŠÙ." })
-            : t({ en: "We could not load this category right now.", ar: "Ù„Ù… Ù†ØªÙ…ÙƒÙ† Ù…Ù† ØªØ­Ù…ÙŠÙ„ Ù‡Ø°Ø§ Ø§Ù„ØªØµÙ†ÙŠÙ Ø§Ù„Ø¢Ù†." })}
+            ? t({ en: "Reading this category.", ar: "نقرأ هذا التصنيف." })
+            : t({ en: "We could not load this category right now.", ar: "لم نتمكن من تحميل هذا التصنيف الآن." })}
         </h1>
         {state === "error" ? (
           <Link href="/products" className="premium-button mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
-            {t({ en: "Back to Products", ar: "Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+            {t({ en: "Back to Products", ar: "العودة للمنتجات" })}
           </Link>
         ) : null}
       </div>

@@ -512,28 +512,28 @@ function CommercePopover({
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
               <p className="text-sm text-[#D6B79A]/55">
-                {t({ en: "No saved items yet.", ar: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª Ù…Ø­ÙÙˆØ¸Ø© Ø¨Ø¹Ø¯." })}
+                {t({ en: "No saved items yet.", ar: "لا توجد منتجات محفوظة بعد." })}
               </p>
               <Link
                 href="/products"
                 onClick={onClose}
                 className="mt-4 inline-block text-sm font-medium text-[#B6885E] hover:text-[#D6A373]"
               >
-                {t({ en: "Browse products â†’", ar: "â† ØªØµÙØ­ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª" })}
+                {t({ en: "Browse products →", ar: "← تصفح المنتجات" })}
               </Link>
             </div>
           ) : wishlistState === "idle" || wishlistState === "loading" ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
               <p className="text-sm text-[#D6B79A]/55">
-                {t({ en: "Loading saved products.", ar: "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©." })}
+                {t({ en: "Loading saved products.", ar: "جاري تحميل المنتجات المحفوظة." })}
               </p>
             </div>
           ) : wishlistState === "error" ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
               <p className="text-sm text-[#D6B79A]/55">
-                {t({ en: "Saved products could not be loaded.", ar: "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©." })}
+                {t({ en: "Saved products could not be loaded.", ar: "تعذر تحميل المنتجات المحفوظة." })}
               </p>
             </div>
           ) : visibleWishlistProducts.length === 0 ? (
@@ -722,7 +722,7 @@ export function PublicHeader() {
   const { language, dir, toggleLanguage, t } = useLanguage();
   const { count, isOpen, closeCart, openCart } = useCart();
   const { count: wishCount } = useWishlist();
-  const { isLoggedIn } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const pathname = usePathname();
 
   const [isScrolled,          setIsScrolled]          = useState(false);
@@ -986,7 +986,12 @@ export function PublicHeader() {
                   >
                     <Bell />
                   </button>
-                  {isNotifOpen && <NotificationsDropdown onClose={() => setIsNotifOpen(false)} />}
+                  {isNotifOpen && user && (
+                    <NotificationsDropdown
+                      key={user.id}
+                      onClose={() => setIsNotifOpen(false)}
+                    />
+                  )}
                 </div>
               )}
 
