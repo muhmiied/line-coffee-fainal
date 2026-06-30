@@ -127,6 +127,25 @@ export interface Purchase {
   note?: string;
 }
 
+// One line of a purchase: a finished product bought in KG at a per-kg unit cost.
+// Phase 4 addition — the canonical `Purchase` above is header-only; real
+// purchases carry line items (each line becomes its own inventory lot on
+// receive, so distinct cost lots survive for FIFO later). `lineCost` =
+// round(quantityKg * unitCost, 2), computed server-side.
+// Supabase mapping: `purchase_items` table (migration 20260630120000).
+export interface PurchaseItem {
+  id: ID;
+  purchaseId: ID;
+  productId: ID;
+  // Frozen product name at purchase time so a later rename doesn't rewrite history.
+  productName?: string;
+  quantityKg: number;
+  // Per-kg cost (private — admin/accounting only).
+  unitCost: Money;
+  lineCost: Money;
+  createdAt?: ISODateTime;
+}
+
 // ---------------------------------------------------------------------------
 // Supplier payments (reduce payable; overpayment becomes credit/advance)
 // ---------------------------------------------------------------------------

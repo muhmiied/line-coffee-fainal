@@ -10,6 +10,7 @@
 
 import type {
   ID,
+  ISODate,
   ISODateTime,
   ImageAssetRef,
   LocalizedValue,
@@ -115,6 +116,34 @@ export interface StockMovement {
   actorId?: ID;
   actorName?: string;
   occurredAt: ISODateTime;
+}
+
+// Lifecycle of a received stock lot. "open" still has remaining qty; "closed"
+// is fully consumed (FIFO draws it to zero in Phase 5+).
+export type InventoryLotStatus = "open" | "closed";
+
+// A received finished-product stock lot — the FIFO foundation (Phase 4). Keyed
+// by productId (matching the live `inventory_stock` per-product model rather than
+// a generic inventory item). `receivedQtyKg` is frozen at receipt; `remainingQtyKg`
+// is what FIFO draws down LATER — in Phase 4 it is created equal to
+// `receivedQtyKg` and is never decremented (nothing consumes lots yet). `unitCost`
+// is the per-kg cost basis future COGS reads.
+// Supabase mapping: `inventory_lots` table (created in migration
+// 20260630120000_phase4_purchasing_suppliers_expenses_lots).
+export interface InventoryLot {
+  id: ID;
+  productId: ID;
+  purchaseId?: ID;
+  purchaseItemId?: ID;
+  supplierId?: ID;
+  receivedQtyKg: number;
+  remainingQtyKg: number;
+  // Per-kg cost basis for this lot (private — admin/accounting only).
+  unitCost: Money;
+  receivedDate: ISODate;
+  status: InventoryLotStatus;
+  createdAt?: ISODateTime;
+  updatedAt?: ISODateTime;
 }
 
 // Supplier lifecycle. "blocked" preserves history while preventing new buys.
