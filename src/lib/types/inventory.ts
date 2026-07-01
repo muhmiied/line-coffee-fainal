@@ -108,7 +108,7 @@ export interface StockMovement {
   productId?: ID;
   variantId?: ID;
   orderId?: ID;
-  orderItemId?: ID;
+  orderItemId?: ID | null;
   supplierId?: ID;
   purchaseId?: ID;
   returnId?: ID;
@@ -122,14 +122,22 @@ export interface StockMovement {
 // is fully consumed (FIFO draws it to zero in Phase 5+).
 export type InventoryLotStatus = "open" | "closed";
 
-// A received finished-product stock lot — the FIFO foundation (Phase 4). Keyed
-// by productId (matching the live `inventory_stock` per-product model rather than
-// a generic inventory item). `receivedQtyKg` is frozen at receipt; `remainingQtyKg`
-// is what FIFO draws down LATER — in Phase 4 it is created equal to
-// `receivedQtyKg` and is never decremented (nothing consumes lots yet). `unitCost`
-// is the per-kg cost basis future COGS reads.
-// Supabase mapping: `inventory_lots` table (created in migration
-// 20260630120000_phase4_purchasing_suppliers_expenses_lots).
+// How a lot came into existence (Phase 5). "purchase" = a received purchase
+// receipt (Phase 4); "opening" = the one-time Phase-5 reconciliation that
+// re-expressed pre-existing `inventory_stock` on-hand as a lot (no double count);
+// "adjustment" = a future manual lot correction.
+export type InventoryLotSource = "purchase" | "opening" | "adjustment";
+
+// A finished-product stock lot — the FIFO engine (Phase 4 foundation, Phase 5
+// operational). Keyed by productId (matching the live `inventory_stock`
+// per-product model rather than a generic inventory item). `receivedQtyKg` is
+// frozen at receipt; `remainingQtyKg` is physical on-hand still in the lot;
+// `reservedQtyKg` (Phase 5) is the part of `remainingQtyKg` reserved by open
+// orders, so available-in-lot = `remainingQtyKg - reservedQtyKg`. FIFO reserve
+// bumps `reservedQtyKg`; delivery deducts both; cancel lowers `reservedQtyKg`.
+// `unitCost` is the per-kg cost basis COGS reads.
+// Supabase mapping: `inventory_lots` table (migration
+// 20260630120000_phase4… + 20260630130000_phase5… added reservedQtyKg + source).
 export interface InventoryLot {
   id: ID;
   productId: ID;
@@ -138,10 +146,41 @@ export interface InventoryLot {
   supplierId?: ID;
   receivedQtyKg: number;
   remainingQtyKg: number;
+  // Phase 5: reserved portion of remainingQtyKg (open orders hold it).
+  reservedQtyKg?: number;
+  // Derived convenience: remainingQtyKg - reservedQtyKg (available to reserve).
+  availableQtyKg?: number;
   // Per-kg cost basis for this lot (private — admin/accounting only).
   unitCost: Money;
   receivedDate: ISODate;
   status: InventoryLotStatus;
+  // Phase 5: how the lot was created (purchase / opening / adjustment).
+  source?: InventoryLotSource;
+  createdAt?: ISODateTime;
+  updatedAt?: ISODateTime;
+}
+
+// Lifecycle of an order→lot allocation (Phase 5). "reserved" = held for an open
+// order; "deducted" = consumed at delivery (permanent, backs COGS); "released" =
+// returned to the lot on cancellation.
+export type OrderLotAllocationStatus = "reserved" | "deducted" | "released";
+
+// The exact record of which FIFO lot a specific order line reserved (Phase 5).
+// Delivery deducts the SAME allocations, cancel releases the SAME allocations,
+// and per-line COGS = deductedQtyKg × unitCost. Private (admin-only) — carries a
+// cost basis and must never be exposed to anon/customers.
+// Supabase mapping: `order_lot_allocations` table (migration 20260630130000).
+export interface OrderLotAllocation {
+  id: ID;
+  orderId: ID;
+  orderItemId?: ID;
+  productId: ID;
+  lotId: ID;
+  reservedQtyKg: number;
+  deductedQtyKg: number;
+  // Per-kg cost basis snapshot from the lot at allocation time (private).
+  unitCost: Money;
+  status: OrderLotAllocationStatus;
   createdAt?: ISODateTime;
   updatedAt?: ISODateTime;
 }

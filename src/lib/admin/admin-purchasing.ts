@@ -97,6 +97,7 @@ export type PurchaseDetail = PurchaseSummary & {
 };
 
 export type InventoryLotStatus = "open" | "closed";
+export type InventoryLotSource = "purchase" | "opening" | "adjustment";
 
 export type InventoryLot = {
   id: string;
@@ -106,9 +107,30 @@ export type InventoryLot = {
   supplierId: string | null;
   receivedQtyKg: number;
   remainingQtyKg: number;
+  // Phase 5: reserved portion of remainingQtyKg; availableQtyKg is derived.
+  reservedQtyKg: number;
+  availableQtyKg: number;
   unitCost: number;
   receivedDate: string;
   status: InventoryLotStatus;
+  source: InventoryLotSource;
+  createdAt: string;
+  updatedAt: string | null;
+};
+
+export type OrderLotAllocationStatus = "reserved" | "deducted" | "released";
+
+// Order → lot reservation ledger (Phase 5). Admin-only (carries unit_cost).
+export type OrderLotAllocation = {
+  id: string;
+  orderId: string;
+  orderItemId: string | null;
+  productId: string;
+  lotId: string;
+  reservedQtyKg: number;
+  deductedQtyKg: number;
+  unitCost: number;
+  status: OrderLotAllocationStatus;
   createdAt: string;
   updatedAt: string | null;
 };
@@ -287,9 +309,25 @@ type InventoryLotRow = {
   supplier_id: string | null;
   received_qty_kg: number | string;
   remaining_qty_kg: number | string;
+  reserved_qty_kg?: number | string;
   unit_cost: number | string;
   received_date: string;
   status: InventoryLotStatus;
+  source?: InventoryLotSource;
+  created_at: string;
+  updated_at: string | null;
+};
+
+type OrderLotAllocationRow = {
+  id: string;
+  order_id: string;
+  order_item_id: string | null;
+  product_id: string;
+  lot_id: string;
+  reserved_qty_kg: number | string;
+  deducted_qty_kg: number | string;
+  unit_cost: number | string;
+  status: OrderLotAllocationStatus;
   created_at: string;
   updated_at: string | null;
 };
@@ -315,7 +353,11 @@ const PURCHASE_ITEM_COLUMNS =
 const SUPPLIER_PAYMENT_COLUMNS =
   "id, supplier_id, purchase_id, amount, method, notes, paid_at, created_at";
 const INVENTORY_LOT_COLUMNS =
+  "id, product_id, purchase_id, purchase_item_id, supplier_id, received_qty_kg, remaining_qty_kg, reserved_qty_kg, unit_cost, received_date, status, source, created_at, updated_at";
+const PHASE_4_INVENTORY_LOT_COLUMNS =
   "id, product_id, purchase_id, purchase_item_id, supplier_id, received_qty_kg, remaining_qty_kg, unit_cost, received_date, status, created_at, updated_at";
+const ORDER_LOT_ALLOCATION_COLUMNS =
+  "id, order_id, order_item_id, product_id, lot_id, reserved_qty_kg, deducted_qty_kg, unit_cost, status, created_at, updated_at";
 const EXPENSE_COLUMNS =
   "id, expense_date, category, amount, payment_method, notes, attachment_url, created_at, updated_at";
 
@@ -380,6 +422,8 @@ function mapSupplierPayment(row: SupplierPaymentRow): SupplierPayment {
 }
 
 function mapInventoryLot(row: InventoryLotRow): InventoryLot {
+  const remaining = money(row.remaining_qty_kg);
+  const reserved = money(row.reserved_qty_kg);
   return {
     id: row.id,
     productId: row.product_id,
@@ -387,9 +431,28 @@ function mapInventoryLot(row: InventoryLotRow): InventoryLot {
     purchaseItemId: row.purchase_item_id,
     supplierId: row.supplier_id,
     receivedQtyKg: money(row.received_qty_kg),
-    remainingQtyKg: money(row.remaining_qty_kg),
+    remainingQtyKg: remaining,
+    reservedQtyKg: reserved,
+    availableQtyKg: Math.max(0, Math.round((remaining - reserved) * 1000) / 1000),
     unitCost: money(row.unit_cost),
     receivedDate: row.received_date,
+    status: row.status,
+    source: row.source ?? "purchase",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapOrderLotAllocation(row: OrderLotAllocationRow): OrderLotAllocation {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    orderItemId: row.order_item_id,
+    productId: row.product_id,
+    lotId: row.lot_id,
+    reservedQtyKg: money(row.reserved_qty_kg),
+    deductedQtyKg: money(row.deducted_qty_kg),
+    unitCost: money(row.unit_cost),
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -653,8 +716,12 @@ export async function recordPurchasePayment(
 }
 
 // ---------------------------------------------------------------------------
-// Inventory lots (read-only foundation — no FIFO consumption in Phase 4)
+// Inventory lots + allocations (Phase 5: FIFO reserve / deduct / release)
 // ---------------------------------------------------------------------------
+// Read-only, admin-only. Lots carry reservedQtyKg/availableQtyKg (Phase 5) and a
+// source (purchase / opening / adjustment). Allocations are the order→lot ledger
+// that reservation, delivery deduction, and COGS all read from. Both carry cost
+// data and are never exposed to anon/customers.
 
 export async function listInventoryLots(productId?: string): Promise<InventoryLot[]> {
   let query = supabase
@@ -666,9 +733,48 @@ export async function listInventoryLots(productId?: string): Promise<InventoryLo
 
   if (productId) query = query.eq("product_id", productId);
 
-  const { data, error } = await query;
+  const phase5Result = await query;
+  let data: unknown = phase5Result.data;
+  let error = phase5Result.error;
+
+  // Preserve the existing Phase-4 lot read while Phase 5 is authored but not
+  // applied. Only a missing-column/schema-cache error takes this fallback;
+  // authorization and all other failures still surface normally.
+  if (error && ["42703", "PGRST204"].includes(error.code)) {
+    let phase4Query = supabase
+      .from("inventory_lots")
+      .select(PHASE_4_INVENTORY_LOT_COLUMNS)
+      .order("received_date", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(500);
+
+    if (productId) phase4Query = phase4Query.eq("product_id", productId);
+
+    const phase4Result = await phase4Query;
+    data = phase4Result.data;
+    error = phase4Result.error;
+  }
+
   if (error) throw readError("inventory-lots", error.message);
   return ((data ?? []) as InventoryLotRow[]).map(mapInventoryLot);
+}
+
+// Order→lot allocations for one order (which lots a line reserved/deducted, with
+// the cost basis). Admin-only; used by future admin order-cost / inventory views.
+export async function listOrderLotAllocations(
+  orderId: string,
+): Promise<OrderLotAllocation[]> {
+  if (!orderId) return [];
+
+  const { data, error } = await supabase
+    .from("order_lot_allocations")
+    .select(ORDER_LOT_ALLOCATION_COLUMNS)
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true })
+    .limit(500);
+
+  if (error) throw readError("order-lot-allocations", error.message);
+  return ((data ?? []) as OrderLotAllocationRow[]).map(mapOrderLotAllocation);
 }
 
 // ---------------------------------------------------------------------------

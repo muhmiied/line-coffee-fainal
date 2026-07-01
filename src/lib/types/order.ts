@@ -101,7 +101,9 @@ export interface OrderEffect {
 // Supabase mapping: this stays in app code as the rule source; SQL functions
 // and server actions consult it when transitioning `orders.status`. The
 // Phase 1 migration (20260629120000) moves the kg-model deduction from
-// `shipped` to `delivered` to match this contract.
+// `shipped` to `delivered` to match this contract; Phase 5 (20260630130000)
+// re-implements reserve/deduct/release at FIFO lot level and snapshots COGS at
+// `delivered` (order_items.line_cogs + orders.cogs_total).
 export const ORDER_STATUS_EFFECTS: Record<OrderStatus, OrderEffect> = {
   pending: {
     reservesStock: true,
@@ -247,6 +249,10 @@ export interface Order {
   discountTotal: Money;
   deliveryFee: Money;
   total: Money;
+  // PRIVATE order-level COGS snapshot (Phase 5). Set at `delivered` from consumed
+  // FIFO lot costs (Σ order item lineCogs). Discounts never reduce it. Admin-only.
+  // Supabase mapping: `orders.cogs_total` (migration 20260630130000).
+  cogsTotal?: Money | null;
   promoCode?: string;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;

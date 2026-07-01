@@ -87,6 +87,12 @@ export type AdminOrderDetail = AdminOrderSummary & {
   items: AdminOrderItem[];
   events: AdminOrderStatusEvent[];
   updatedAt: string | null;
+  // Phase 5 (forward): private order-level COGS snapshot set at delivered from
+  // consumed FIFO lot costs (orders.cogs_total). Left undefined until the Phase 5
+  // migration (20260630130000) is applied — NOT added to the live ORDER_COLUMNS
+  // select, so this read stays valid before the column exists. Wire it into the
+  // select + mapDetail once applied (admin-only; never expose to customers).
+  cogsTotal?: number | null;
 };
 
 export type AdminOrderDeliveryFeeUpdateResult = {

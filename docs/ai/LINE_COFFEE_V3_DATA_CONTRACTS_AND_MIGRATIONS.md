@@ -33,7 +33,7 @@ touching.
    | `src/lib/account/customer-account.ts` | `CustomerOrderSummary/Detail/Item/Event`, `CustomerNotification`, `CustomerProfile`, `CustomerAddress(Input)`, wishlist (`string[]` of slugs), `GuestLinkResult` |
    | `src/lib/admin/admin-orders.ts` | `AdminOrderSummary/Detail/Item`, `AdminOrderStatusEvent`, `AdminOrderOverview`, status/fee update results |
    | `src/lib/admin/admin-catalog.ts` | `AdminProduct(+Meta/Size/Category)`, create/update inputs |
-   | `src/lib/admin/admin-purchasing.ts` | **(Phase 4)** `Supplier(+Input)`, `Purchase(Summary/Detail/Item)`, `SupplierPayment`, `InventoryLot`, `Expense(+Input)`, create/receive/payment results |
+   | `src/lib/admin/admin-purchasing.ts` | **(Phase 4/5)** `Supplier(+Input)`, `Purchase(Summary/Detail/Item)`, `SupplierPayment`, `InventoryLot` (+Phase-5 `reservedQtyKg`/`availableQtyKg`/`source`), `OrderLotAllocation` (Phase 5), `Expense(+Input)`, create/receive/payment results |
    | `src/lib/catalog/public-catalog.ts` | `PublicCatalogProduct/Category/Size/Blend` |
    | `src/lib/auth/admin.ts` | `CurrentAdmin`, `CurrentAdminResult` |
 
