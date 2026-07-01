@@ -7,7 +7,7 @@ import {
   Banknote, Tag, Zap, Wallet,
 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
-import { useCart } from "@/lib/context/cart";
+import { useCart, type CartItem } from "@/lib/context/cart";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
   checkoutResultStorageKey,
@@ -367,6 +367,62 @@ function CustomSelect({
   );
 }
 
+// ── Cart item -> checkout RPC item ───────────────────────────────────────────
+// Builds the exact item shape `create_checkout_order` expects per kind. The
+// server always re-validates and re-prices — this only forwards the customer's
+// selection (product+size, or the structured builder payload). Returns null
+// when a cart item is missing the data it needs (e.g. a builder item added
+// before this contract existed), so the caller can ask the customer to
+// remove/re-add it rather than submit a malformed line.
+type CheckoutRpcItem =
+  | { kind: "product"; slug: string; size: string; quantity: number }
+  | {
+      kind: "espresso-blend";
+      size: string;
+      quantity: number;
+      beans: Array<{ bean_key: string; percent: number }>;
+    }
+  | {
+      kind: "flavor-mix";
+      size: string;
+      quantity: number;
+      base_key: string;
+      flavor_keys: string[];
+    };
+
+function buildCheckoutItem(item: CartItem): CheckoutRpcItem | null {
+  if (item.kind === "product") {
+    const size = item.detail.en;
+    if (!item.slug || !["250g", "500g", "1kg"].includes(size)) return null;
+    return { kind: "product", slug: item.slug, size, quantity: item.qty };
+  }
+
+  if (item.kind === "espresso-blend") {
+    const data = item.customData;
+    if (!data || data.kind !== "espresso-blend" || data.beans.length === 0) return null;
+    return {
+      kind: "espresso-blend",
+      size: data.packageSize,
+      quantity: item.qty,
+      beans: data.beans.map((bean) => ({ bean_key: bean.beanKey, percent: bean.percent })),
+    };
+  }
+
+  if (item.kind === "flavor-mix") {
+    const data = item.customData;
+    if (!data || data.kind !== "flavor-mix" || data.flavorKeys.length === 0) return null;
+    return {
+      kind: "flavor-mix",
+      size: data.packageSize,
+      quantity: item.qty,
+      base_key: data.baseKey,
+      flavor_keys: data.flavorKeys,
+    };
+  }
+
+  return null;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CheckoutPage() {
@@ -537,10 +593,25 @@ export default function CheckoutPage() {
         ar: "أحد المنتجات لم يعد متاحاً. يرجى تحديث سلة التسوق.",
       });
     }
-    if (message?.includes("Custom builder checkout")) {
+    if (message?.includes("must total 100")) {
       return t({
-        en: "Custom blends cannot be checked out yet. Remove them to continue with catalog products.",
-        ar: "لا يمكن إتمام طلب الخلطات المخصصة حالياً. احذفها للمتابعة بمنتجات المتجر.",
+        en: "Your custom espresso blend ratios must total 100%. Please adjust it in the studio and add it again.",
+        ar: "يجب أن يكون مجموع نسب توليفة الإسبريسو المخصصة 100%. يرجى تعديلها في الاستوديو وإضافتها مرة أخرى.",
+      });
+    }
+    if (
+      message?.includes("is missing its bean selection") ||
+      message?.includes("is missing its flavor selection") ||
+      message?.includes("is missing its base") ||
+      message?.includes("Invalid espresso blend") ||
+      message?.includes("Invalid flavor selection") ||
+      message?.includes("Duplicate bean") ||
+      message?.includes("Duplicate flavor") ||
+      message?.includes("cannot use more than")
+    ) {
+      return t({
+        en: "Your custom blend/mix could not be validated. Please remove it and add it again from the studio.",
+        ar: "تعذر التحقق من التوليفة/الخلطة المخصصة. يرجى حذفها وإضافتها مرة أخرى من الاستوديو.",
       });
     }
     if (message?.includes("Invalid email")) {
@@ -587,25 +658,17 @@ export default function CheckoutPage() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    const unsupportedItem = items.find((item) => item.kind !== "product");
-    if (unsupportedItem) {
-      setSubmitError(getCheckoutError("Custom builder checkout"));
-      return;
-    }
-
-    const checkoutItems = items.map((item) => ({
-      kind: "product",
-      slug: item.slug,
-      size: item.detail.en,
-      quantity: item.qty,
-    }));
-    if (checkoutItems.some((item) => !item.slug || !["250g", "500g", "1kg"].includes(item.size))) {
+    const mappedItems = items.map(buildCheckoutItem);
+    if (mappedItems.some((item) => item === null)) {
       setSubmitError(t({
-        en: "A cart item is missing its product or size. Remove it and add it again.",
-        ar: "بيانات أحد منتجات السلة غير مكتملة. احذفه ثم أضفه مرة أخرى.",
+        en: "A cart item is missing its details. Remove it and add it again.",
+        ar: "بيانات أحد عناصر السلة غير مكتملة. احذفه ثم أضفه مرة أخرى.",
       }));
       return;
     }
+    const checkoutItems = mappedItems.filter(
+      (item): item is CheckoutRpcItem => item !== null,
+    );
 
     setSubmitting(true);
     let orderPlaced = false;

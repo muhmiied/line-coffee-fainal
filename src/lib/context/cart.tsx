@@ -12,6 +12,10 @@ import {
 import { getOrCreateGuestId } from "@/lib/checkout";
 import { AUTH_OWNER_CHANGED_EVENT } from "@/lib/hooks/useAuth";
 import { supabase } from "@/lib/supabase/client";
+import type {
+  EspressoBuilderPayload,
+  FlavorBuilderPayload,
+} from "@/lib/types/builders";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +27,11 @@ export type CartItem = {
   pricePerUnit: number;
   qty: number;
   slug?: string;
+  // Structured builder payload (Phase 8/9). Present for "espresso-blend" /
+  // "flavor-mix" items; the checkout page forwards it to the
+  // create_checkout_order RPC for server-side validation/pricing — the
+  // server never trusts pricePerUnit for these kinds. Absent for "product".
+  customData?: EspressoBuilderPayload | FlavorBuilderPayload;
 };
 
 type CartCtx = {
@@ -91,6 +100,41 @@ function isLocalizedValue(value: unknown): value is CartItem["name"] {
   return typeof localized.en === "string" && typeof localized.ar === "string";
 }
 
+function isPackageSize(value: unknown): value is "250g" | "500g" | "1kg" {
+  return value === "250g" || value === "500g" || value === "1kg";
+}
+
+function isEspressoBuilderPayload(value: unknown): value is EspressoBuilderPayload {
+  if (!value || typeof value !== "object") return false;
+  const payload = value as Partial<EspressoBuilderPayload>;
+  return (
+    payload.kind === "espresso-blend" &&
+    isPackageSize(payload.packageSize) &&
+    Array.isArray(payload.beans) &&
+    payload.beans.length > 0 &&
+    payload.beans.every(
+      (bean) =>
+        bean &&
+        typeof bean === "object" &&
+        typeof bean.beanKey === "string" &&
+        typeof bean.percent === "number",
+    )
+  );
+}
+
+function isFlavorBuilderPayload(value: unknown): value is FlavorBuilderPayload {
+  if (!value || typeof value !== "object") return false;
+  const payload = value as Partial<FlavorBuilderPayload>;
+  return (
+    payload.kind === "flavor-mix" &&
+    isPackageSize(payload.packageSize) &&
+    typeof payload.baseKey === "string" &&
+    Array.isArray(payload.flavorKeys) &&
+    payload.flavorKeys.length > 0 &&
+    payload.flavorKeys.every((key) => typeof key === "string")
+  );
+}
+
 function isCartItem(value: unknown): value is CartItem {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const item = value as Partial<CartItem>;
@@ -105,7 +149,10 @@ function isCartItem(value: unknown): value is CartItem {
     typeof item.qty === "number" &&
     Number.isInteger(item.qty) &&
     item.qty > 0 &&
-    (item.slug === undefined || typeof item.slug === "string")
+    (item.slug === undefined || typeof item.slug === "string") &&
+    (item.customData === undefined ||
+      isEspressoBuilderPayload(item.customData) ||
+      isFlavorBuilderPayload(item.customData))
   );
 }
 

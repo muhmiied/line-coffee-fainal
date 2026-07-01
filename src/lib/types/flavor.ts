@@ -3,6 +3,18 @@
 //
 // Phase 3E. Type-only. Additive. Not yet imported anywhere.
 //
+// SUPERSEDED BY THE REAL PHASE 9 SHAPE (2026-07-01): this file's vocabulary
+// (`slug`, `basePricePerKg`, `addOnPricePerKg`, category enum
+// original/sweets/nuts/fruits/special_order) predates the actual flavor
+// catalog and does not match the live `flavor_bases` / `flavor_items` tables
+// (migration 20260701120000) or `flavorData.ts` (base_key/flavor_key,
+// price_per_kg/add_on_per_kg, categories chocolate/fruits/nuts/desserts/
+// coffee-shisha). The real, live-mapped contracts are
+// `src/lib/types/builders.ts` (`FlavorBuilderPayload` /
+// `FlavorBuilderOrderSnapshot`) and `src/lib/admin/admin-flavor.ts`
+// (`AdminFlavorBase` / `AdminFlavorItem`). This file is kept for history but
+// should not be used for new Phase 9 work.
+//
 // Closes the flavor-catalog gap identified in the Supabase Schema + Real Data
 // Transition Plan (§B gap, §E tables 7/8): the Make-Your-Flavor builder data
 // (`flavorData.ts`) and the admin Flavor Manager use separate, untyped local

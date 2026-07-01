@@ -103,7 +103,11 @@ export interface OrderEffect {
 // Phase 1 migration (20260629120000) moves the kg-model deduction from
 // `shipped` to `delivered` to match this contract; Phase 5 (20260630130000)
 // re-implements reserve/deduct/release at FIFO lot level and snapshots COGS at
-// `delivered` (order_items.line_cogs + orders.cogs_total).
+// `delivered` (order_items.line_cogs + orders.cogs_total). Phase 8-9
+// (20260701120000) extends the same reserve@order/deduct@delivered/
+// release@cancel effects to a separate raw-bean FIFO resource for
+// `custom_espresso` lines, and rolls a `custom_flavor` line's cost-only
+// snapshot into `orders.cogs_total` at delivered (no stock effect for flavor).
 export const ORDER_STATUS_EFFECTS: Record<OrderStatus, OrderEffect> = {
   pending: {
     reservesStock: true,

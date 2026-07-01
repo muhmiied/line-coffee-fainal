@@ -166,6 +166,13 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
       },
       pricePerUnit: unitPrice,
       qty: quantity,
+      customData: {
+        kind: "espresso-blend",
+        packageSize: selectedSize,
+        beans: activeRatios
+          .filter((ratio) => ratio.percent > 0)
+          .map((ratio) => ({ beanKey: ratio.beanId, percent: ratio.percent })),
+      },
     });
   };
   const analysis = analyzeBlend({

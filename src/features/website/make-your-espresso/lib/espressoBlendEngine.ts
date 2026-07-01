@@ -585,5 +585,5 @@ export function formatPercent(value: number) {
 }
 
 export function isValidManualTotal(ratios: BlendRatio[]) {
-  return Math.round(ratioTotal(ratios) * 10) / 10 === 100;
+  return Math.abs(ratioTotal(ratios) - 100) < Number.EPSILON * 100;
 }

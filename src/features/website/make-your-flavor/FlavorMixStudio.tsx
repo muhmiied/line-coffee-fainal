@@ -118,6 +118,12 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
       },
       pricePerUnit: unitPrice,
       qty: quantity,
+      customData: {
+        kind: "flavor-mix",
+        packageSize: selectedWeight,
+        baseKey: selectedBase.id,
+        flavorKeys: selectedFlavorIds,
+      },
     });
   };
 
