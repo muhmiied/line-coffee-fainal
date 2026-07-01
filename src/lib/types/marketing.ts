@@ -1,11 +1,8 @@
 // Line Coffee V3 - Launch-Core Marketing Contract
 // marketing.ts - canonical promo code, offer, and announcement bar contracts.
 //
-// Phase 3D. Type-only. Additive. Imported by nothing yet.
-//
-// These contracts prepare the future Marketing Admin, checkout promo validation,
-// and public announcement bar data shape without implementing validation logic,
-// connecting checkout, or wiring Marketing Admin to the public header.
+// Phase 7 makes the promo subset live. Offers and announcement-bar contracts
+// remain forward-looking.
 
 import type {
   ID,
@@ -36,27 +33,26 @@ export type PromoUsageRule =
   | "multi_use"
   | "once_per_customer";
 
-// Future server-side discount code contract. Promo validation must happen on
-// the backend later; this file intentionally provides no runtime validator.
-// Supabase mapping: `promo_codes` table.
+export type PromoCodeDiscountType = "percentage" | "fixed_amount";
+export type PromoCodeStatus = "active" | "inactive";
+
+// Live Phase-7 promo-code contract. Usage count is derived from
+// `promo_redemptions`; checkout validation and discount calculation are
+// server-side only.
 export interface PromoCode {
   id: ID;
   code: string;
-  title: LocalizedValue;
-  description?: LocalizedValue;
-  discountType: DiscountType;
-  value: Money | number;
-  minOrderAmount?: Money;
-  maxDiscountAmount?: Money;
-  usageRule: PromoUsageRule;
-  maxUses?: number;
+  status: PromoCodeStatus;
+  discountType: PromoCodeDiscountType;
+  value: Money;
+  minimumSubtotal?: Money;
+  maxDiscount?: Money;
+  startsAt?: ISODateTime;
+  endsAt?: ISODateTime;
+  usageLimit?: number;
+  perCustomerLimit?: number;
   usedCount: number;
-  audience: AudienceType;
-  specificCustomerIds?: ID[];
-  startDate?: ISODateTime;
-  endDate?: ISODateTime;
-  status: CampaignStatus;
-  active: boolean;
+  notes?: string;
   createdAt: ISODateTime;
   updatedAt?: ISODateTime;
 }
@@ -118,19 +114,23 @@ export interface AnnouncementBarItem {
 export type PromoValidationStatus =
   | "valid"
   | "invalid"
+  | "not_started"
   | "expired"
   | "inactive"
   | "usage_limit_reached"
-  | "min_order_not_met"
-  | "not_allowed_for_customer";
+  | "minimum_not_met"
+  | "customer_limit_reached";
 
-// Result shape for future server-only checkout promo validation.
+// Safe, cost-free result from `validate_promo_code`. The final checkout always
+// recalculates against DB-authoritative product prices.
 export interface PromoValidationResult {
   status: PromoValidationStatus;
-  promoCode?: PromoCode;
-  discountAmount: Money;
-  freeShipping: boolean;
-  message: LocalizedValue;
+  code: string | null;
+  discountTotal: Money;
+  subtotal: Money;
+  discountedSubtotal: Money;
+  minimumSubtotal?: Money;
+  message: string;
 }
 
 // ---------------------------------------------------------------------------

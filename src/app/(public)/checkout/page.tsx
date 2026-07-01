@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import {
   ArrowRight, ChevronDown, ShoppingBag,
-  Banknote, Zap, Wallet,
+  Banknote, Tag, Zap, Wallet,
 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
@@ -14,7 +14,9 @@ import {
   createCheckoutAttemptId,
   getOrCreateGuestId,
   isCheckoutOrderResult,
+  validatePromoCode,
 } from "@/lib/checkout";
+import type { PromoValidationResult } from "@/lib/types/marketing";
 import {
   getCustomerAddresses,
   type CustomerAddress,
@@ -383,6 +385,9 @@ export default function CheckoutPage() {
   const [errors,     setErrors]     = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
+  const [validatingPromo, setValidatingPromo] = useState(false);
 
   // Phase 2: saved addresses are cached with their authenticated owner. The
   // owner id is checked again at render time so an Account A -> Account B
@@ -465,7 +470,11 @@ export default function CheckoutPage() {
       ? resolveDeliveryFee(form.governorate, form.area)
       : null;
   const deliveryFee = deliveryZone?.fee ?? 0;
-  const grandTotal  = total + deliveryFee;
+  const promoMatchesSubtotal =
+    promoResult?.status === "valid" &&
+    Math.abs(promoResult.subtotal - total) < 0.01;
+  const promoDiscount = promoMatchesSubtotal ? promoResult.discountTotal : 0;
+  const grandTotal = Math.max(0, total - promoDiscount) + deliveryFee;
 
   const govOptions = GOVS.map((g) => ({
     value: g.en,
@@ -510,6 +519,12 @@ export default function CheckoutPage() {
   }
 
   function getCheckoutError(message?: string) {
+    if (message?.includes("Promo code rejected")) {
+      return t({
+        en: "This promo code cannot be applied to the current order.",
+        ar: "لا يمكن تطبيق كود الخصم على الطلب الحالي.",
+      });
+    }
     if (message?.includes("Insufficient stock")) {
       return t({
         en: "One of your items does not have enough stock. Please lower its quantity.",
@@ -535,6 +550,35 @@ export default function CheckoutPage() {
       en: "We could not place your order. Please try again.",
       ar: "تعذر تسجيل طلبك. يرجى المحاولة مرة أخرى.",
     });
+  }
+
+  async function handleApplyPromo() {
+    const normalized = promoCode.trim();
+    setSubmitError(null);
+    setPromoResult(null);
+    if (!normalized) return;
+
+    setValidatingPromo(true);
+    try {
+      const result = await validatePromoCode(
+        normalized,
+        total,
+        getOrCreateGuestId(),
+      );
+      setPromoResult(result);
+      if (result.code) setPromoCode(result.code);
+    } catch {
+      setPromoResult({
+        status: "invalid",
+        code: null,
+        discountTotal: 0,
+        subtotal: total,
+        discountedSubtotal: total,
+        message: "Promo validation is temporarily unavailable.",
+      });
+    } finally {
+      setValidatingPromo(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -590,6 +634,7 @@ export default function CheckoutPage() {
             reference: form.paymentReference.trim() || null,
             phone: form.paymentPhone.trim() || null,
           },
+          promo_code: promoCode.trim() || null,
           items: checkoutItems,
         },
       });
@@ -960,6 +1005,61 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
+                <div className="mb-4 border-t border-[#B6885E]/12 pt-4">
+                  <label
+                    htmlFor="promo-code"
+                    className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/60"
+                  >
+                    <Tag className="h-3.5 w-3.5" />
+                    {t({ en: "Promo code", ar: "كود الخصم" })}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="promo-code"
+                      value={promoCode}
+                      onChange={(event) => {
+                        setPromoCode(event.target.value.toUpperCase());
+                        setPromoResult(null);
+                      }}
+                      maxLength={32}
+                      autoComplete="off"
+                      placeholder={t({ en: "Enter code", ar: "أدخل الكود" })}
+                      className={cn(inputClass, "uppercase")}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={validatingPromo || !promoCode.trim()}
+                      className="shrink-0 rounded-xl border border-[#D6A373]/25 px-4 text-xs font-semibold text-[#D6A373] transition hover:bg-[#D6A373]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {validatingPromo
+                        ? t({ en: "Checking…", ar: "جارٍ التحقق…" })
+                        : t({ en: "Apply", ar: "تطبيق" })}
+                    </button>
+                  </div>
+                  {promoResult && (
+                    <p
+                      role="status"
+                      className={cn(
+                        "mt-2 text-[11px]",
+                        promoResult.status === "valid"
+                          ? "text-emerald-400"
+                          : "text-red-300",
+                      )}
+                    >
+                      {promoResult.status === "valid"
+                        ? t({
+                            en: `${promoResult.code} applied — ${promoResult.discountTotal} EGP off products.`,
+                            ar: `تم تطبيق ${promoResult.code} — خصم ${promoResult.discountTotal} ج.م على المنتجات.`,
+                          })
+                        : t({
+                            en: promoResult.message,
+                            ar: "كود الخصم غير صالح لهذا الطلب.",
+                          })}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2.5 border-t border-[#B6885E]/12 pt-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-[#D6B79A]/58">{t({ en: "Subtotal", ar: "المجموع الجزئي" })}</span>
@@ -967,6 +1067,16 @@ export default function CheckoutPage() {
                       {total} {t({ en: "EGP", ar: "ج.م" })}
                     </span>
                   </div>
+                  {promoDiscount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#D6B79A]/58">
+                        {t({ en: "Product discount", ar: "خصم المنتجات" })}
+                      </span>
+                      <span className="arabic-number font-semibold text-emerald-400">
+                        -{promoDiscount} {t({ en: "EGP", ar: "ج.م" })}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-[#D6B79A]/58">{t({ en: "Delivery", ar: "التوصيل" })}</span>
                     {deliveryZone === null ? (

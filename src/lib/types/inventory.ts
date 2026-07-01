@@ -185,6 +185,66 @@ export interface OrderLotAllocation {
   updatedAt?: ISODateTime;
 }
 
+// Phase 6 packaging is intentionally separate from coffee inventory. It is
+// count-based, deducted at Place Order, and never restored automatically when
+// an order is cancelled.
+export type PackagingKind = "bag" | "jar" | "canister" | "other";
+
+export interface PackagingItem {
+  id: ID;
+  operationalKey: string;
+  name: string;
+  sku?: string;
+  packagingKind: PackagingKind;
+  capacityG?: number;
+  unitType: "count";
+  availableQuantity: number;
+  lowStockThreshold: number;
+  active: boolean;
+  // Private admin/accounting field. Checkout responses never expose it.
+  costPerUnit?: Money;
+  notes?: string;
+  createdAt: ISODateTime;
+  updatedAt?: ISODateTime;
+}
+
+export type PackagingMovementType =
+  | "opening"
+  | "adjustment_in"
+  | "adjustment_out"
+  | "order_deduction";
+
+export interface PackagingMovement {
+  id: ID;
+  packagingItemId: ID;
+  packagingLotId?: ID;
+  orderId?: ID;
+  movementType: PackagingMovementType;
+  quantityDelta: number;
+  // Private FIFO cost basis.
+  unitCost?: Money;
+  note?: string;
+  changedBy?: string;
+  createdAt: ISODateTime;
+}
+
+// Admin-visible packaging snapshot for an order. A shortage is operationally
+// visible but does not reject checkout.
+export interface PackagingRequirement {
+  id: ID;
+  orderId: ID;
+  packagingItemId: ID;
+  operationalKey: string;
+  name: string;
+  requiredQuantity: number;
+  deductedQuantity: number;
+  shortageQuantity: number;
+  // Private aggregate from exact packaging-lot allocations.
+  costTotal: Money;
+  createdAt: ISODateTime;
+  updatedAt?: ISODateTime;
+}
+
 // Supplier lifecycle. "blocked" preserves history while preventing new buys.
 export type SupplierStatus = "active" | "inactive" | "blocked" | "archived";
 

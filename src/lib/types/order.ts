@@ -254,6 +254,20 @@ export interface Order {
   // Supabase mapping: `orders.cogs_total` (migration 20260630130000).
   cogsTotal?: Money | null;
   promoCode?: string;
+  promoSnapshot?: {
+    code: string;
+    discountType: "fixed_amount" | "percentage";
+    value: number;
+    discountTotal: Money;
+  };
+  pricingSnapshot?: CheckoutPricingSnapshot;
+  packagingShortage?: boolean;
+  packagingSnapshot?: {
+    hasShortage: boolean;
+    requiredUnits: number;
+    deductedUnits: number;
+    shortageUnits: number;
+  };
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   statusHistory: OrderStatusEvent[];
@@ -287,6 +301,16 @@ export interface OrderTotals {
   total: Money;
   estimatedCogs?: Money;
   grossProfit?: Money;
+}
+
+// Frozen Phase-7 pricing result. Product subtotal and promo discount are kept
+// separate from delivery so a promo can never reduce delivery revenue.
+export interface CheckoutPricingSnapshot {
+  subtotal: Money;
+  discountTotal: Money;
+  deliveryFee: Money;
+  total: Money;
+  currency: "EGP";
 }
 
 // Customer-facing bilingual status labels (public account/order tracking).
