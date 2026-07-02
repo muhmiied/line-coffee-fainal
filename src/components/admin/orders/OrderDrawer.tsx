@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import OrderDetails from "@/components/admin/orders/OrderDetails";
+import OrderFinancePanel from "@/components/admin/orders/OrderFinancePanel";
 import OrderStatusBadge from "@/components/admin/orders/OrderStatusBadge";
 import {
   ADMIN_ORDER_STATUS_LABELS,
@@ -54,6 +55,15 @@ export default function OrderDrawer({
   }, [isOpen, orderId]);
 
   const activeOrder = order?.id === orderId ? order : null;
+
+  async function reloadOrder() {
+    if (!activeOrder) return;
+    const refreshed = await getAdminOrderById(activeOrder.id);
+    if (refreshed) {
+      setOrder(refreshed);
+      onOrderUpdated(refreshed);
+    }
+  }
 
   async function changeStatus(nextStatus: AdminOrderStatus) {
     if (!activeOrder || updatingTo) return;
@@ -178,6 +188,8 @@ export default function OrderDrawer({
               </section>
 
               <OrderDetails order={activeOrder} />
+
+              <OrderFinancePanel order={activeOrder} onOrderChanged={reloadOrder} />
 
               <Link
                 href={`/admin/orders/${activeOrder.id}`}

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import OrderDetails from "@/components/admin/orders/OrderDetails";
+import OrderFinancePanel from "@/components/admin/orders/OrderFinancePanel";
 import OrderStatusBadge from "@/components/admin/orders/OrderStatusBadge";
 import {
   ADMIN_ORDER_STATUS_LABELS,
@@ -53,6 +54,12 @@ export default function OrderDetailPage() {
       cancelled = true;
     };
   }, [orderId]);
+
+  async function reloadOrder() {
+    if (!order) return;
+    const refreshed = await getAdminOrderById(order.id);
+    if (refreshed) setOrder(refreshed);
+  }
 
   async function changeStatus(nextStatus: AdminOrderStatus) {
     if (!order || updatingTo) return;
@@ -258,6 +265,8 @@ export default function OrderDetailPage() {
       )}
 
       <OrderDetails order={order} />
+
+      <OrderFinancePanel order={order} onOrderChanged={reloadOrder} />
     </div>
   );
 }

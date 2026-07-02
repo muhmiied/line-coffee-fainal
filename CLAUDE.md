@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–9 are applied. Phase-6/7 migration `20260701104031` preserves the Phase-5 coffee FIFO core under its public wrapper and adds packaging/promo pricing. Phase-8/9 migration `20260701120000` extends that core for custom espresso manufacturing and cost-only flavor checkout. Broad mock admin UI wiring remains deferred. **Phase 10 (advanced order lifecycle / payment events / order editing) is next and has not started.**
+**Position:** Phases 1–11 are applied. Phase-6/7 migration `20260701104031` preserves the Phase-5 coffee FIFO core under its public wrapper and adds packaging/promo pricing. Phase-8/9 migration `20260701120000` extends that core for custom espresso manufacturing and cost-only flavor checkout. Phase-10/11 migration `20260703120000` adds admin payments/refunds/returns ledgers + RPCs and safe admin-note editing (money & sellable-restock derived from real data; checkout/FIFO/COGS untouched; order item editing deferred as unsafe). Broad mock admin UI wiring remains deferred. **Phase 12+ (product images / reviews / accounting dashboards / analytics) has not started.**
 
 ---
 
@@ -180,6 +180,30 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-03] — Phase 10–11: Payments · Returns · Refunds · safe metadata editing (applied)
+
+**Goal:** Execute only bundled Phases 10–11 — add a real, auditable money + returns layer on the existing order lifecycle — without touching checkout pricing, delivery, discounts/promo, FIFO reserve/deduct, COGS snapshots, ownership, or checkout idempotency, and without Phase 12/13/14/15 work, public redesign, service-role code, or broad admin mock cleanup.
+
+**Migration `supabase/migrations/20260703120000_phase10_11_payments_returns_refunds.sql` (applied via `supabase db push`, additive only):**
+- **Payments** — `order_payments` ledger + `record_order_payment` RPC (admin-only, `security definer`, `set search_path = ''`). Records partial/full payments (`cash`/`bank_transfer`/`mobile_wallet`/`other`) with amount, reference, notes, date. **paid / remaining / refunded are always derived** from the ledgers; gross overpayment (paid > order total) is rejected; payment blocked on cancelled orders. `_recompute_order_payment_status` sets `orders.payment_status` from real ledger data — orders still **start `pending`**, and `delivered` never auto-marks paid (that RPC is untouched).
+- **Refunds** — `order_refunds` ledger + `record_order_refund` RPC. Separate from returns, full/partial, can never exceed `(paid − previous refunds)`. Refunds move the payment/refund balance only — never subtotal, delivery, discount, stock, or COGS. A return does **not** auto-refund.
+- **Returns** — `order_returns` (+ `order_return_items`) + `record_order_return` RPC. Per item/quantity, with reason/notes and `condition` (`sellable`/`damaged`/`other`), only for `delivered`/`returned` orders. Can never return more than `quantity − returned_quantity` per line (bumps `order_items.returned_quantity`). **Sellable** returns restock ONLY through the order's original **deducted** allocations: coffee via `_restore_product_return_lots` (inventory_lots + inventory_stock), espresso via `_restore_espresso_return_lots` (espresso_bean_lots + espresso_bean_stock), reopening closed lots and writing `adjustment` movements. **Make-Your-Flavor never moves stock** (cost-only); damaged/other never restock; **packaging is never restored**. Safe-or-stop: a sellable restock that its own deducted allocations can't cover RAISES and rolls back.
+- **Return tracking (additive cols)** — `order_lot_allocations.returned_qty_kg` + `order_espresso_bean_allocations.returned_qty_kg` (default 0, guarded `returned <= deducted` CHECKs) prevent double-restore.
+- **Safe editing** — `update_admin_order_note` RPC (admin note, any status; pure metadata). **Item/price editing is deliberately deferred as unsafe** (would corrupt FIFO/allocations/promo/COGS); delivery-fee editing before delivery is the existing Phase-1 RPC.
+- **Security:** the 4 new tables are admin-read-only (RLS `is_admin()`, **no anon access**); all writes go through the SECURITY DEFINER RPCs (`set search_path = ''`, `is_admin()` guard); helpers revoked from client roles. No customer-facing RPC/view reads these; the customer order-detail RPC is untouched and stays cost-free. No service-role code. Checkout and `update_admin_order_status` are NOT modified.
+
+**Data layer (`src/lib/admin/admin-orders.ts`):** added `returnedQuantity` to `AdminOrderItem` (+ column/mapper); new types (`OrderPaymentRecord`/`OrderRefundRecord`/`OrderReturnRecord`/`OrderFinancials`/method+condition unions & labels); reads `getAdminOrderFinancials` (payments/refunds/returns + derived paid/remaining/refunded); writes `recordOrderPayment`/`recordOrderRefund`/`recordOrderReturn`/`updateAdminOrderNote` with friendly error mapping.
+
+**UI:** new `src/components/admin/orders/OrderFinancePanel.tsx` (real payment summary, record-payment/refund forms, per-item returns panel, real payment/refund/return history timeline, safe admin-note editor) rendered in **both** the `/admin/orders/[id]` page and the `OrderDrawer`. No mock/fake payment/return/refund data anywhere; all figures are DB-derived. No public redesign.
+
+**Validation/QA:** `npx tsc --noEmit` → 0 · ESLint on the 4 changed TS/TSX files → 0 · `git diff --check` clean · route smoke (`/`, `/checkout`, `/admin/orders`, `/admin/orders/[id]`) → all HTTP 200 · `supabase migration list` in sync · `supabase db push` applied cleanly (idempotent-skip NOTICEs only). **Phase 10–11 QA orders created via real anon checkout/RPC (marked "Phase 10-11 QA"):** `LC-000009` (normal), `LC-000010` (custom espresso), `LC-000011` (custom flavor) — **all started `payment_status = pending`** (QA #1), and anon `record_order_payment` / `record_order_return` were correctly **REJECTED** (permission denied), confirming the admin gate. The **admin-authenticated** scenarios (partial/full/over payment, partial/over refund, product/espresso/flavor returns, admin-page real data — QA #2–#10) could **not** be executed from this non-interactive session: the direct production-DB path was (correctly) blocked by the safety guardrail and no admin session/credentials were available. They should be confirmed in the live admin UI (now built) against the three QA orders, or by re-running with DB/admin access.
+
+**Deferred (explicitly out of scope):** order item/price editing (unsafe); Phase 12/13/14/15; broad admin mock cleanup; customer-facing payment/return visibility; auto-`returned` status on full return (the itemized return RPC restocks; the `delivered→returned` status label is left independent and does not restock).
+
+**Confirm:** migration applied + local commit only (no remote push) · no checkout/delivery/discount/FIFO/COGS/ownership change · no service-role code · no public redesign · Phase 1/2/5/6/7/8/9 business rules unchanged.
+
+---
 
 ### [2026-07-01] — Phase 8–9: Make Your Espresso real manufacturing + Make Your Flavor cost-only (applied)
 

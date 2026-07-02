@@ -38,6 +38,7 @@ export type AdminOrderItem = {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  returnedQuantity: number;
   customData: unknown;
 };
 
@@ -165,6 +166,7 @@ type OrderItemRow = {
   unit_price: number | string;
   quantity: number;
   line_total: number | string;
+  returned_quantity: number | null;
   custom_data: unknown;
 };
 
@@ -218,6 +220,7 @@ const ORDER_ITEM_COLUMNS = `
   unit_price,
   quantity,
   line_total,
+  returned_quantity,
   custom_data
 `;
 
@@ -380,6 +383,7 @@ function mapDetail(
     unitPrice: money(item.unit_price),
     quantity: item.quantity,
     lineTotal: money(item.line_total),
+    returnedQuantity: Math.max(0, Number(item.returned_quantity) || 0),
     customData: item.custom_data,
   }));
 
@@ -628,4 +632,430 @@ export async function updateAdminOrderDeliveryFee(
   }
 
   return result as AdminOrderDeliveryFeeUpdateResult;
+}
+
+// =====================================================================
+// Phase 10-11 — Payments · Refunds · Returns · safe note editing
+// =====================================================================
+// All amounts (paid / remaining / refunded) are DERIVED from the real
+// order_payments / order_refunds ledgers — never mocked. Writes go through the
+// SECURITY DEFINER RPCs added in migration 20260703120000. These tables are
+// admin-read-only (RLS is_admin); customers never see payment/refund data.
+
+export type PaymentMovementMethod = "cash" | "bank_transfer" | "mobile_wallet" | "other";
+
+export const ADMIN_PAYMENT_MOVEMENT_METHOD_LABELS: Record<PaymentMovementMethod, string> = {
+  cash: "Cash",
+  bank_transfer: "Bank Transfer",
+  mobile_wallet: "Mobile Wallet",
+  other: "Other",
+};
+
+export const RETURN_CONDITION_LABELS: Record<OrderReturnCondition, string> = {
+  sellable: "Sellable (restock)",
+  damaged: "Damaged",
+  other: "Other",
+};
+
+export type OrderReturnCondition = "sellable" | "damaged" | "other";
+
+export type OrderPaymentRecord = {
+  id: string;
+  amount: number;
+  method: PaymentMovementMethod;
+  reference: string | null;
+  notes: string | null;
+  paidAt: string;
+  createdBy: string | null;
+};
+
+export type OrderRefundRecord = {
+  id: string;
+  amount: number;
+  method: PaymentMovementMethod;
+  reference: string | null;
+  notes: string | null;
+  refundedAt: string;
+  createdBy: string | null;
+};
+
+export type OrderReturnLineRecord = {
+  id: string;
+  orderItemId: string;
+  kind: string;
+  quantity: number;
+  condition: OrderReturnCondition;
+  restocked: boolean;
+  restockedKg: number;
+  notes: string | null;
+};
+
+export type OrderReturnRecord = {
+  id: string;
+  reason: string | null;
+  notes: string | null;
+  restockedKg: number;
+  createdBy: string | null;
+  createdAt: string;
+  items: OrderReturnLineRecord[];
+};
+
+export type OrderFinancials = {
+  total: number;
+  paidTotal: number;
+  refundedTotal: number;
+  netPaid: number;
+  remaining: number;
+  payments: OrderPaymentRecord[];
+  refunds: OrderRefundRecord[];
+  returns: OrderReturnRecord[];
+};
+
+export type OrderFinanceMutationResult = {
+  orderId: string;
+  code: string;
+  total: number;
+  paidTotal: number;
+  refundedTotal: number;
+  netPaid: number;
+  remaining: number;
+  paymentStatus: PaymentStatus;
+};
+
+export type OrderReturnInput = {
+  orderItemId: string;
+  quantity: number;
+  condition: OrderReturnCondition;
+  notes?: string;
+};
+
+type PaymentRow = {
+  id: string;
+  amount: number | string;
+  method: string;
+  reference: string | null;
+  notes: string | null;
+  paid_at: string;
+  created_by: string | null;
+};
+
+type RefundRow = {
+  id: string;
+  amount: number | string;
+  method: string;
+  reference: string | null;
+  notes: string | null;
+  refunded_at: string;
+  created_by: string | null;
+};
+
+type ReturnItemRow = {
+  id: string;
+  order_item_id: string;
+  kind: string;
+  quantity: number;
+  condition: string;
+  restocked: boolean;
+  restocked_kg: number | string;
+  notes: string | null;
+};
+
+type ReturnRow = {
+  id: string;
+  reason: string | null;
+  notes: string | null;
+  restocked_kg: number | string;
+  created_by: string | null;
+  created_at: string;
+  order_return_items: ReturnItemRow[] | null;
+};
+
+const PAYMENT_METHOD_SET = new Set<PaymentMovementMethod>([
+  "cash",
+  "bank_transfer",
+  "mobile_wallet",
+  "other",
+]);
+
+function normalizeMovementMethod(value: string): PaymentMovementMethod {
+  return PAYMENT_METHOD_SET.has(value as PaymentMovementMethod)
+    ? (value as PaymentMovementMethod)
+    : "other";
+}
+
+function normalizeReturnCondition(value: string): OrderReturnCondition {
+  return value === "sellable" || value === "damaged" ? value : "other";
+}
+
+export async function getAdminOrderFinancials(
+  orderId: string,
+  orderTotal: number,
+): Promise<OrderFinancials> {
+  const [paymentsResult, refundsResult, returnsResult] = await Promise.all([
+    supabase
+      .from("order_payments")
+      .select("id, amount, method, reference, notes, paid_at, created_by")
+      .eq("order_id", orderId)
+      .order("paid_at", { ascending: true }),
+    supabase
+      .from("order_refunds")
+      .select("id, amount, method, reference, notes, refunded_at, created_by")
+      .eq("order_id", orderId)
+      .order("refunded_at", { ascending: true }),
+    supabase
+      .from("order_returns")
+      .select(
+        "id, reason, notes, restocked_kg, created_by, created_at, order_return_items(id, order_item_id, kind, quantity, condition, restocked, restocked_kg, notes)",
+      )
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const failed = [paymentsResult, refundsResult, returnsResult].find((r) => r.error);
+  if (failed?.error) throw readError("order-financials", failed.error.message);
+
+  const payments: OrderPaymentRecord[] = ((paymentsResult.data ?? []) as PaymentRow[]).map(
+    (row) => ({
+      id: row.id,
+      amount: money(row.amount),
+      method: normalizeMovementMethod(row.method),
+      reference: row.reference,
+      notes: row.notes,
+      paidAt: row.paid_at,
+      createdBy: row.created_by,
+    }),
+  );
+  const refunds: OrderRefundRecord[] = ((refundsResult.data ?? []) as RefundRow[]).map((row) => ({
+    id: row.id,
+    amount: money(row.amount),
+    method: normalizeMovementMethod(row.method),
+    reference: row.reference,
+    notes: row.notes,
+    refundedAt: row.refunded_at,
+    createdBy: row.created_by,
+  }));
+  const returns: OrderReturnRecord[] = ((returnsResult.data ?? []) as ReturnRow[]).map((row) => ({
+    id: row.id,
+    reason: row.reason,
+    notes: row.notes,
+    restockedKg: money(row.restocked_kg),
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    items: (row.order_return_items ?? []).map((item) => ({
+      id: item.id,
+      orderItemId: item.order_item_id,
+      kind: item.kind,
+      quantity: item.quantity,
+      condition: normalizeReturnCondition(item.condition),
+      restocked: Boolean(item.restocked),
+      restockedKg: money(item.restocked_kg),
+      notes: item.notes,
+    })),
+  }));
+
+  const paidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+  const refundedTotal = refunds.reduce((sum, r) => sum + r.amount, 0);
+  const netPaid = Math.round((paidTotal - refundedTotal) * 100) / 100;
+  const remaining = Math.max(0, Math.round((orderTotal - netPaid) * 100) / 100);
+
+  return {
+    total: orderTotal,
+    paidTotal: Math.round(paidTotal * 100) / 100,
+    refundedTotal: Math.round(refundedTotal * 100) / 100,
+    netPaid,
+    remaining,
+    payments,
+    refunds,
+    returns,
+  };
+}
+
+function financeWriteError(scope: string, message: string) {
+  devWarn(scope, message);
+  if (message.includes("exceeds the order total")) {
+    return new AdminOrdersError("That payment would exceed the order total.");
+  }
+  if (message.includes("exceeds the refundable amount")) {
+    return new AdminOrdersError("That refund exceeds the amount available to refund.");
+  }
+  if (message.includes("no recorded payment")) {
+    return new AdminOrdersError("Record a payment before issuing a refund.");
+  }
+  if (message.includes("cancelled order")) {
+    return new AdminOrdersError("You cannot record a payment on a cancelled order.");
+  }
+  if (message.includes("only be created for delivered")) {
+    return new AdminOrdersError("Returns can only be created for delivered orders.");
+  }
+  if (message.includes("only") && message.includes("returnable")) {
+    return new AdminOrdersError("You cannot return more units than remain on that line.");
+  }
+  if (message.includes("Cannot safely restock")) {
+    return new AdminOrdersError(
+      "This sellable return could not be safely restocked from the order's delivered stock. No changes were made.",
+    );
+  }
+  if (message.includes("Admin access required") || message.includes("permission denied")) {
+    return new AdminOrdersError("Admin permission is required.");
+  }
+  if (message.includes("Order not found")) {
+    return new AdminOrdersError("Order not found.");
+  }
+  return new AdminOrdersError("Could not save this change. Please review the values and try again.");
+}
+
+function mapFinanceResult(
+  data: unknown,
+  scope: string,
+): OrderFinanceMutationResult {
+  const result = data as Record<string, unknown> | null;
+  if (
+    !result ||
+    typeof result.order_id !== "string" ||
+    typeof result.code !== "string" ||
+    typeof result.payment_status !== "string"
+  ) {
+    throw new AdminOrdersError(`The ${scope} returned an invalid response.`);
+  }
+  return {
+    orderId: result.order_id,
+    code: result.code,
+    total: money(result.total as number),
+    paidTotal: money(result.paid_total as number),
+    refundedTotal: money(result.refunded_total as number),
+    netPaid: money(result.net_paid as number),
+    remaining: money(result.remaining as number),
+    paymentStatus: result.payment_status as PaymentStatus,
+  };
+}
+
+export async function recordOrderPayment(
+  orderId: string,
+  amount: number,
+  method: PaymentMovementMethod,
+  reference?: string,
+  notes?: string,
+): Promise<OrderFinanceMutationResult> {
+  if (!orderId) throw new AdminOrdersError("Order id is required.");
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new AdminOrdersError("Enter a payment amount greater than zero.");
+  }
+  if (!PAYMENT_METHOD_SET.has(method)) {
+    throw new AdminOrdersError("Choose a valid payment method.");
+  }
+
+  const { data, error } = await supabase.rpc("record_order_payment", {
+    p_order_id: orderId,
+    p_amount: Math.round(amount * 100) / 100,
+    p_method: method,
+    p_reference: reference?.trim() || null,
+    p_notes: notes?.trim() || null,
+  });
+  if (error) throw financeWriteError("record-payment", error.message);
+
+  const result = mapFinanceResult(data, "payment");
+  window.dispatchEvent(new Event(ADMIN_ORDERS_CHANGED_EVENT));
+  return result;
+}
+
+export async function recordOrderRefund(
+  orderId: string,
+  amount: number,
+  method: PaymentMovementMethod,
+  reference?: string,
+  notes?: string,
+): Promise<OrderFinanceMutationResult> {
+  if (!orderId) throw new AdminOrdersError("Order id is required.");
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new AdminOrdersError("Enter a refund amount greater than zero.");
+  }
+  if (!PAYMENT_METHOD_SET.has(method)) {
+    throw new AdminOrdersError("Choose a valid refund method.");
+  }
+
+  const { data, error } = await supabase.rpc("record_order_refund", {
+    p_order_id: orderId,
+    p_amount: Math.round(amount * 100) / 100,
+    p_method: method,
+    p_reference: reference?.trim() || null,
+    p_notes: notes?.trim() || null,
+  });
+  if (error) throw financeWriteError("record-refund", error.message);
+
+  const result = mapFinanceResult(data, "refund");
+  window.dispatchEvent(new Event(ADMIN_ORDERS_CHANGED_EVENT));
+  return result;
+}
+
+export type OrderReturnMutationResult = {
+  returnId: string;
+  orderId: string;
+  code: string;
+  totalRestockedKg: number;
+};
+
+export async function recordOrderReturn(
+  orderId: string,
+  reason: string | undefined,
+  notes: string | undefined,
+  items: OrderReturnInput[],
+): Promise<OrderReturnMutationResult> {
+  if (!orderId) throw new AdminOrdersError("Order id is required.");
+  const cleaned = items
+    .filter((item) => item.orderItemId && Number.isFinite(item.quantity) && item.quantity > 0)
+    .map((item) => ({
+      order_item_id: item.orderItemId,
+      quantity: Math.floor(item.quantity),
+      condition: item.condition,
+      notes: item.notes?.trim() || null,
+    }));
+  if (cleaned.length === 0) {
+    throw new AdminOrdersError("Select at least one item and quantity to return.");
+  }
+
+  const { data, error } = await supabase.rpc("record_order_return", {
+    p_order_id: orderId,
+    p_reason: reason?.trim() || null,
+    p_notes: notes?.trim() || null,
+    p_items: cleaned,
+  });
+  if (error) throw financeWriteError("record-return", error.message);
+
+  const result = data as Record<string, unknown> | null;
+  if (
+    !result ||
+    typeof result.return_id !== "string" ||
+    typeof result.order_id !== "string" ||
+    typeof result.code !== "string"
+  ) {
+    throw new AdminOrdersError("The return returned an invalid response.");
+  }
+  window.dispatchEvent(new Event(ADMIN_ORDERS_CHANGED_EVENT));
+  return {
+    returnId: result.return_id,
+    orderId: result.order_id,
+    code: result.code,
+    totalRestockedKg: money(result.total_restocked_kg as number),
+  };
+}
+
+export async function updateAdminOrderNote(
+  orderId: string,
+  adminNote: string,
+): Promise<string | null> {
+  if (!orderId) throw new AdminOrdersError("Order id is required.");
+  const normalized = adminNote.trim();
+  if (normalized.length > 2000) {
+    throw new AdminOrdersError("Admin note cannot exceed 2000 characters.");
+  }
+
+  const { data, error } = await supabase.rpc("update_admin_order_note", {
+    p_order_id: orderId,
+    p_admin_note: normalized || null,
+  });
+  if (error) throw financeWriteError("order-note", error.message);
+
+  const result = data as { admin_note?: string | null } | null;
+  window.dispatchEvent(new Event(ADMIN_ORDERS_CHANGED_EVENT));
+  return result?.admin_note ?? null;
 }

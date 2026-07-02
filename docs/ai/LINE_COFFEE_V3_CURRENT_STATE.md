@@ -66,7 +66,9 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 
 ## MISSING — no database at all yet
 
-**refunds/returns** records · **reviews** · **contact_messages** · **analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
+**reviews** · **contact_messages** · **analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
+
+> **Payments / Returns / Refunds (Phase 10–11, applied):** migration `20260703120000_phase10_11_payments_returns_refunds.sql` adds admin-only `order_payments` / `order_refunds` / `order_returns` (+ `order_return_items`) ledgers and the RPCs `record_order_payment` / `record_order_refund` / `record_order_return` / `update_admin_order_note`. paid/remaining/refunded are DB-derived; `orders.payment_status` is recomputed from the ledgers (orders still start `pending`; delivered never auto-marks paid). Sellable returns restock through the order's original deducted FIFO/bean allocations (`returned_qty_kg` tracking); flavor never moves stock; packaging is never restored; refunds never touch stock/COGS. Data layer: `src/lib/admin/admin-orders.ts`; UI: `src/components/admin/orders/OrderFinancePanel.tsx` in both the order page and drawer.
 
 > **Phase 6–7 foundation (applied):** migration `20260701104031_phase6_7_packaging_promos_pricing.sql` adds separate count-based packaging inventory, non-blocking shortage snapshots, and retry-safe server promo pricing around the Phase-5 checkout core. Typed data layers: `admin-packaging.ts`, `admin-marketing.ts`; broad mock Inventory/Marketing UI wiring is deferred.
 
@@ -133,4 +135,4 @@ See `LINE_COFFEE_V3_CONTENT_MAP.md` for which file holds each page's text and im
 
 - `CLAUDE.md` now opens with a **Current Architecture + Locked Decisions + Doc Reading Order** block — read that first; the long change log below it is history.
 - `README.md` is an entry point, not the detailed source of truth.
-- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position:** Phases 1–9 are applied. Broad mock Inventory/Marketing/Espresso-Manager/Flavor-Manager UI wiring remains deferred. **Phase 10 (advanced order lifecycle / payment events / order editing) is next and has not started.**
+- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position:** Phases 1–11 are applied (Phase 10–11 = payments, safe admin-note editing, returns, refunds — migration `20260703120000`). Broad mock Inventory/Marketing/Espresso-Manager/Flavor-Manager UI wiring remains deferred; order item/price editing is deliberately deferred as unsafe. **Phase 12+ (product images / reviews / accounting dashboards / analytics) has not started.**
