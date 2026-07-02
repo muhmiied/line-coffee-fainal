@@ -1,9 +1,7 @@
-import { AlertTriangle, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import {
   ADMIN_ORDER_STATUS_LABELS,
   ADMIN_PAYMENT_METHOD_LABELS,
-  ADMIN_PAYMENT_STATUS_LABELS,
-  OUTSTANDING_PAYMENT_STATUSES,
   type AdminOrderDetail,
 } from "@/lib/admin/admin-orders";
 
@@ -67,10 +65,6 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
   const zoneLabel = order.deliveryZone
     ? DELIVERY_ZONE_LABELS[order.deliveryZone] ?? order.deliveryZone
     : null;
-  const deliveredUnpaid =
-    order.status === "delivered" &&
-    OUTSTANDING_PAYMENT_STATUSES.includes(order.paymentStatus);
-
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -126,20 +120,10 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
       </div>
 
       <DetailCard title="Payment">
-        {deliveredUnpaid && (
-          <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[11px] font-semibold text-amber-300">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            Delivered but Unpaid — payment is still {ADMIN_PAYMENT_STATUS_LABELS[order.paymentStatus] ?? order.paymentStatus}.
-          </div>
-        )}
         <div className="grid gap-2.5 sm:grid-cols-2">
           <ValueRow
             label="Method"
             value={ADMIN_PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
-          />
-          <ValueRow
-            label="Status"
-            value={ADMIN_PAYMENT_STATUS_LABELS[order.paymentStatus] ?? order.paymentStatus}
           />
           <ValueRow label="Reference" value={order.paymentReference} />
           <ValueRow label="Payment phone" value={order.paymentPhone} />
