@@ -8,16 +8,19 @@ import {
   ArrowUpRight,
   Banknote,
   Calculator,
+  Check,
   CreditCard,
   Landmark,
   Loader2,
   Package,
+  Plus,
   Receipt,
   RefreshCw,
   TrendingDown,
   TrendingUp,
   Truck,
   Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -28,6 +31,7 @@ import {
   type AdminAccountingData,
   AdminAccountingError,
 } from "@/lib/admin/admin-accounting";
+import { createExpense, AdminPurchasingError } from "@/lib/admin/admin-purchasing";
 import type { OrderStatus } from "@/lib/types/order";
 
 type ActiveTab = "overview" | "revenue" | "purchases" | "expenses" | "suppliers" | "activity";
@@ -108,6 +112,67 @@ function pct(value: number | null) {
 function shortDate(value: string) {
   if (!value) return "—";
   return value.slice(0, 10);
+}
+
+// ── Add Expense form (real insert into the Phase-4 `expenses` table) ────────────
+
+const EXPENSE_CATEGORIES = [
+  "Rent",
+  "Utilities",
+  "Delivery",
+  "Marketing",
+  "Payroll",
+  "Maintenance",
+  "Tools",
+  "Packaging Design",
+  "Other",
+];
+const EXPENSE_METHODS = ["Cash", "Bank Transfer", "Card", "Vodafone Cash"];
+
+type ExpenseFormState = {
+  date: string;
+  category: string;
+  amount: string;
+  method: string;
+  notes: string;
+};
+
+const EMPTY_EXPENSE_FORM: ExpenseFormState = {
+  date: "",
+  category: "",
+  amount: "",
+  method: "Cash",
+  notes: "",
+};
+
+const INPUT_STYLE = {
+  background: "rgba(255,255,255,0.045)",
+  border: "1px solid rgba(182,136,94,0.15)",
+  color: "var(--cream)",
+} as const;
+
+const SELECT_STYLE = { ...INPUT_STYLE, colorScheme: "dark" as const };
+
+// Local YYYY-MM-DD for the default expense date. Called only from event handlers
+// (never during render) so it stays clear of the react-hooks purity rule.
+function todayLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span
+        className="mb-1.5 block text-[10.5px] font-semibold uppercase tracking-wider"
+        style={{ color: "var(--cream-dim)", opacity: 0.5 }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
+  );
 }
 
 // ── Primitives (shared visual language) ────────────────────────────────────────
@@ -299,6 +364,159 @@ function MonthlyTrendChart({ points }: { points: AdminAccountingData["monthly"] 
   );
 }
 
+function AddExpenseDrawer({
+  open,
+  form,
+  saving,
+  error,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  form: ExpenseFormState;
+  saving: boolean;
+  error: string | null;
+  onChange: (patch: Partial<ExpenseFormState>) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <button type="button" aria-label="Close add expense" className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <aside
+        className="relative flex h-full w-full max-w-[460px] flex-col overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #130d09 0%, #0b0806 100%)",
+          borderLeft: "1px solid rgba(182,136,94,0.18)",
+          boxShadow: "-24px 0 80px rgba(0,0,0,0.45)",
+        }}
+      >
+        <div
+          className="flex items-start justify-between gap-4 px-5 py-4"
+          style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}
+        >
+          <div>
+            <p className="text-[18px] font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+              Add Expense
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+              Saves a real operating expense straight to the database.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]"
+            style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+        <form
+          className="flex-1 space-y-4 overflow-y-auto px-5 py-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          {error && <Note tone="red">{error}</Note>}
+          <Note tone="blue">
+            Operating expenses only (rent, utilities, marketing, payroll…). Stock, beans, and packaging belong in Purchases — never here.
+          </Note>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Date">
+              <input
+                type="date"
+                value={form.date}
+                onChange={(event) => onChange({ date: event.target.value })}
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={SELECT_STYLE}
+              />
+            </Field>
+            <Field label="Category">
+              <select
+                value={form.category}
+                onChange={(event) => onChange({ category: event.target.value })}
+                aria-label="Expense category"
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={SELECT_STYLE}
+              >
+                <option value="">Select category…</option>
+                {EXPENSE_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Amount (EGP)">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.amount}
+                onChange={(event) => onChange({ amount: event.target.value })}
+                placeholder="0"
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            <Field label="Payment Method">
+              <select
+                value={form.method}
+                onChange={(event) => onChange({ method: event.target.value })}
+                aria-label="Expense payment method"
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={SELECT_STYLE}
+              >
+                {EXPENSE_METHODS.map((method) => (
+                  <option key={method} value={method}>
+                    {method}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Notes (optional)">
+            <textarea
+              value={form.notes}
+              onChange={(event) => onChange({ notes: event.target.value })}
+              rows={3}
+              placeholder="Short reason for the expense"
+              className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
+              style={INPUT_STYLE}
+            />
+          </Field>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold disabled:opacity-60"
+              style={{ color: "#120d09", background: "var(--gold)" }}
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {saving ? "Saving…" : "Save Expense"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04] disabled:opacity-60"
+              style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </aside>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AccountingPage() {
@@ -307,6 +525,11 @@ export default function AccountingPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("All");
+  const [expenseOpen, setExpenseOpen] = useState(false);
+  const [expenseForm, setExpenseForm] = useState<ExpenseFormState>(EMPTY_EXPENSE_FORM);
+  const [expenseError, setExpenseError] = useState<string | null>(null);
+  const [expenseSaving, setExpenseSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -327,6 +550,59 @@ export default function AccountingPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- initial + refresh data fetch
   useEffect(() => { void load(); }, [load]);
 
+  const openExpenseDrawer = useCallback(() => {
+    setExpenseForm({ ...EMPTY_EXPENSE_FORM, date: todayLocal() });
+    setExpenseError(null);
+    setNotice(null);
+    setExpenseOpen(true);
+  }, []);
+
+  const closeExpenseDrawer = useCallback(() => {
+    setExpenseOpen(false);
+    setExpenseError(null);
+  }, []);
+
+  const submitExpense = useCallback(async () => {
+    const amount = Number(expenseForm.amount);
+    if (!expenseForm.date) {
+      setExpenseError("Choose a date for the expense.");
+      return;
+    }
+    if (!expenseForm.category) {
+      setExpenseError("Choose an expense category.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setExpenseError("Enter an amount greater than 0.");
+      return;
+    }
+
+    setExpenseSaving(true);
+    setExpenseError(null);
+    try {
+      await createExpense({
+        expenseDate: expenseForm.date,
+        category: expenseForm.category,
+        amount,
+        paymentMethod: expenseForm.method || null,
+        notes: expenseForm.notes || null,
+      });
+      setExpenseOpen(false);
+      setExpenseForm(EMPTY_EXPENSE_FORM);
+      setActiveTab("expenses");
+      setNotice("Expense saved — accounting refreshed.");
+      await load();
+    } catch (err) {
+      setExpenseError(
+        err instanceof AdminPurchasingError
+          ? err.message
+          : "Could not save the expense. Please try again.",
+      );
+    } finally {
+      setExpenseSaving(false);
+    }
+  }, [expenseForm, load]);
+
   const filteredActivity = useMemo(
     () => (data?.transactions ?? []).filter((t) => activityFilter === "All" || t.direction === activityFilter),
     [data, activityFilter],
@@ -346,14 +622,24 @@ export default function AccountingPage() {
             Real revenue, collections, COGS, expenses, and supplier balances from live orders and ledgers.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-white/[0.04]"
-          style={{ color: "var(--gold)", background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.24)" }}
-        >
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={openExpenseDrawer}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
+            style={{ color: "#120d09", background: "var(--gold)" }}
+          >
+            <Plus size={14} /> Add Expense
+          </button>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-white/[0.04]"
+            style={{ color: "var(--gold)", background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.24)" }}
+          >
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -366,6 +652,20 @@ export default function AccountingPage() {
           </span>
           <button type="button" onClick={() => void load()} className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "var(--gold)" }}>
             <RefreshCw size={12} /> Retry
+          </button>
+        </div>
+      )}
+
+      {notice && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+          style={{ background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.20)" }}
+        >
+          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#4ade80" }}>
+            <Check size={14} /> {notice}
+          </span>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss notice" style={{ color: "var(--cream-dim)" }}>
+            <X size={13} />
           </button>
         </div>
       )}
@@ -457,7 +757,7 @@ export default function AccountingPage() {
           {activeTab === "overview" && <OverviewTab data={data} />}
           {activeTab === "revenue" && <RevenueTab data={data} />}
           {activeTab === "purchases" && <PurchasesTab data={data} />}
-          {activeTab === "expenses" && <ExpensesTab data={data} />}
+          {activeTab === "expenses" && <ExpensesTab data={data} onAddExpense={openExpenseDrawer} />}
           {activeTab === "suppliers" && <SuppliersTab data={data} />}
           {activeTab === "activity" && (
             <ActivityTab
@@ -469,6 +769,16 @@ export default function AccountingPage() {
           )}
         </>
       )}
+
+      <AddExpenseDrawer
+        open={expenseOpen}
+        form={expenseForm}
+        saving={expenseSaving}
+        error={expenseError}
+        onChange={(patch) => setExpenseForm((current) => ({ ...current, ...patch }))}
+        onClose={closeExpenseDrawer}
+        onSubmit={() => void submitExpense()}
+      />
     </div>
   );
 }
@@ -753,7 +1063,7 @@ function PurchasesTab({ data }: { data: AdminAccountingData }) {
 
 // ── Expenses ─────────────────────────────────────────────────────────────────
 
-function ExpensesTab({ data }: { data: AdminAccountingData }) {
+function ExpensesTab({ data, onAddExpense }: { data: AdminAccountingData; onAddExpense: () => void }) {
   const avg = data.expenses.length > 0 ? data.operatingExpenses / data.expenses.length : 0;
   return (
     <div className="space-y-5">
@@ -787,7 +1097,21 @@ function ExpensesTab({ data }: { data: AdminAccountingData }) {
         </Surface>
       )}
 
-      <Surface title="Operating Expenses" caption="Non-COGS costs that reduce net profit. Stock, beans, and packaging belong in Purchases, not here." icon={Calculator}>
+      <Surface
+        title="Operating Expenses"
+        caption="Non-COGS costs that reduce net profit. Stock, beans, and packaging belong in Purchases, not here."
+        icon={Calculator}
+        right={
+          <button
+            type="button"
+            onClick={onAddExpense}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
+            style={{ color: "#120d09", background: "var(--gold)" }}
+          >
+            <Plus size={14} /> Add Expense
+          </button>
+        }
+      >
         {data.expenses.length === 0 ? (
           <EmptyState icon={Calculator} message="No operating expenses recorded yet." />
         ) : (

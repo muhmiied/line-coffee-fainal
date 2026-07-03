@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15 (Admin Accounting real financials) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; the mock write drawers were dropped (read-only) and `accounting-mock.ts` deleted. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up, real Accounting write UI, and analytics remain unstarted.
+**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15 (Admin Accounting real financials) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; the mock write drawers were dropped (read-only) and `accounting-mock.ts` deleted. **Phase 15B (code-only, no migration)** adds a real **Add Expense** action to Admin Accounting — inserts into the Phase-4 `expenses` table via the existing admin-gated `createExpense` (no new grant/RLS), then refreshes all accounting numbers. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up, real Accounting **Purchase / Pay-Supplier** write UI, and analytics remain unstarted.
 
 ---
 
@@ -180,6 +180,26 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-03] — Phase 15B: Real Add Expense in Admin Accounting (no migration)
+
+**Goal:** Execute only Phase 15B — add a real **Add Expense** action to Admin Accounting backed by Supabase (not local/mock state) — without rebuilding the Accounting UI, adding Purchases/Pay-Supplier UI, changing the purchasing/orders/payments/refunds/returns/COGS logic, cleaning QA data, or touching public visuals.
+
+**No migration.** The Phase-4 `expenses` table already has admin CRUD: RLS `expenses_admin_all` is `for all to authenticated using (public.is_admin()) with check (public.is_admin())` and `grant select, insert, update, delete on public.expenses to authenticated` (migration `20260630120000`). So an authenticated admin can insert directly — Phase 15B is code-only and reuses the existing, already-tested data layer.
+
+**Insert path:** the page calls `createExpense()` from `src/lib/admin/admin-purchasing.ts` (unchanged) → `supabase.from("expenses").insert({ expense_date, category, amount, payment_method, notes })` under admin RLS. No service-role code, no new RPC, no schema change. The `expenses` table has **no vendor/supplier column**, so the optional vendor field was intentionally omitted (schema doesn't support it).
+
+**UI (`src/app/admin/accounting/page.tsx` only):** added an `AddExpenseDrawer` (right-side drawer reusing the page's visual language) plus an **Add Expense** button in the page header and on the Expenses-tab Operating-Expenses surface. Fields: Date (defaults to today, computed in the open handler — never in render), Category (select of practical categories, required), Amount (number, required > 0), Payment Method (select — schema-backed `payment_method`), Notes (optional). Client validation rejects empty date, empty category, and amount ≤ 0 before calling the server; the server/data-layer also validates. On success the drawer closes, the form resets, the active tab switches to Expenses, a green success banner shows, and `getAdminAccounting()` re-runs so **Operating Expenses**, **Net Profit** (= Gross Profit − Operating Expenses), the **Recent Expenses** table, the **Monthly Expenses** chart, and the **Recent Transactions** timeline all update from the real row. Errors surface inside the drawer (friendly `AdminPurchasingError` messages, e.g. admin-permission required) without losing input.
+
+**Phase-15 formulas unchanged:** Operating Expenses = Σ real `expenses.amount` only; Net Profit = delivered Gross Profit − Operating Expenses; supplier purchases are still NOT treated as expenses. No COGS/orders/payments/refunds/returns logic touched.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · ESLint on the changed file → 0 errors/0 warnings · `git diff --check` → clean (only pre-existing CRLF notice) · route smoke on the live dev server (`/admin/accounting`, `/admin/dashboard`) → HTTP 200, no error markers. **Actually saving a row requires the owner's authenticated admin session** (RLS `is_admin()`), which a non-interactive session can't perform — consistent with the Phase 10–15 limitation; the write reuses the already-verified Phase-4 `createExpense`.
+
+**Deferred / out of scope:** real Purchase and Pay-Supplier write UI, Analytics, dashboard cleanup, QA/test-data cleanup, and any purchasing-workflow change.
+
+**Confirm:** code-only (no migration, no remote push) · no Purchases/Pay-Supplier UI · no Analytics · no public redesign · no COGS/order/payment/refund/return change.
+
+---
 
 ### [2026-07-03] — Phase 15: Real Accounting Foundation (no migration)
 
