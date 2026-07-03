@@ -1,6 +1,6 @@
 # LINE COFFEE V3 — Current State
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 This file is the #1 source of truth for future AI sessions. If older planning docs, audits, prompts, or the `CLAUDE.md` change log conflict with this file, **follow this file.**
 
@@ -43,7 +43,7 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 | **Admin CMS** | Real blog posts, review moderation, contact inbox, and legal-page drafts/publishing. Public homepage reads approved reviews only; both contact forms persist through a validated RPC | migration `20260703140000`; `src/lib/admin/admin-cms.ts`; `src/lib/cms/public-cms.ts` |
 | **Admin Customers** (Phase 12A) | Real customer list/detail from `customers` + `customer_addresses` + `orders`; computed segments; real Tags read/write | grants migration `20260703130000`; `src/lib/admin/admin-customers.ts` |
 | **Admin Dashboard** (Phase 14A) | Real KPIs (Sales / Orders / Customers / Net Collected), sales trend, best sellers (from `order_items`), latest orders, alerts, inventory/low-stock, preparing+fulfillment, latest approved review — all from real tables; honest empty states, no mock. No new migration (all sources already admin-readable) | `src/lib/admin/admin-dashboard.ts`; `src/components/admin/dashboard/*` |
-| **Admin Accounting** (Phase 15 / 15B–15D) | Real Sales/Net-Sales/Discounts/Delivery, delivered-basis Gross Profit + Margin (COGS from stored `orders.cogs_total` only), Net Collected + Receivable + payment-method breakdown (`order_payments`/`order_refunds`), real Operating Expenses + Net Profit, purchases + supplier payables, returns, monthly trends, and a unified transactions timeline — all real; honest empty states, no mock. **Phase 15B** adds real Add Expense; **15C** adds Pay Supplier; **15D** adds real draft purchase creation from active suppliers + finished products and draft-only receiving through the existing Phase-4 RPCs. Creation raises supplier payable without changing stock/P&L; receiving atomically creates inventory lots/movements and updates stock. No new migration. | `src/lib/admin/admin-accounting.ts`; `src/app/admin/accounting/page.tsx`; Phase-4 functions in `src/lib/admin/admin-purchasing.ts` |
+| **Admin Accounting** (Phase 15 / 15B–15D) | Real Sales/Net-Sales/Discounts/Delivery, delivered-basis Gross Profit + Margin (COGS from stored `orders.cogs_total` only), Net Collected + Receivable + payment-method breakdown (`order_payments`/`order_refunds`), real Operating Expenses + Net Profit, purchases + supplier payables, returns, monthly trends, and a unified transactions timeline — all real; honest empty states, no mock. **Phase 15B** adds real Add Expense; **15C** adds Pay Supplier; **15D** adds real draft purchase creation from active suppliers + finished products and draft-only receiving through the existing Phase-4 RPCs. The Add Purchase drawer can quick-create a real active supplier through the existing `createSupplier()` data layer, then selects it and refreshes Accounting/purchasing data. Creation raises supplier payable without changing stock/P&L; receiving atomically creates inventory lots/movements and updates stock. No new migration. | `src/lib/admin/admin-accounting.ts`; `src/app/admin/accounting/page.tsx`; Phase-4 functions in `src/lib/admin/admin-purchasing.ts` |
 
 **Inventory lifecycle (Phase 1, applied):** reserve at checkout → keep the reservation through `shipped` → **deduct at `delivered`** → release on cancel. Migration `20260629120000_phase1_delivery_deduction_payment.sql` is applied and matches Locked Decision 6. Delivery never changes `payment_status`. (Phase 5 re-implements deduction at lot level.)
 
@@ -57,7 +57,7 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 
 - Admin **Inventory** UI — `inventory-mock.ts` (coffee and the authored Phase-6 packaging backend are not wired to this broad mock screen)
 - **Marketing** — `marketing-mock.ts` (the broad admin screen remains mock; Phase 7 adds typed real promo data functions, but the mock UI is intentionally not partially rewired)
-- **Accounting** — now REAL (Phase 15/15B–15D, see the REAL table). `accounting-mock.ts` deleted. Add Expense, Pay Supplier, Add Purchase, and draft Receive Purchase are real Supabase-backed workflows.
+- **Accounting** — now REAL (Phase 15/15B–15D, see the REAL table). `accounting-mock.ts` deleted. Add Expense, Pay Supplier, Add Purchase (including active-supplier quick create), and draft Receive Purchase are real Supabase-backed workflows.
 - **Analytics** — `analytics-mock.ts`
 - **Espresso Manager** — beans are local component state
 - **Flavor Manager** — flavors/bases are local component state

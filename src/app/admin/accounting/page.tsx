@@ -34,6 +34,7 @@ import {
 import {
   createExpense,
   createPurchase,
+  createSupplier,
   listPurchasableProducts,
   listSuppliers,
   receivePurchase,
@@ -546,12 +547,26 @@ type PurchaseFormState = {
   items: PurchaseItemFormState[];
 };
 
+type QuickSupplierFormState = {
+  name: string;
+  phone: string;
+  email: string;
+  notes: string;
+};
+
 const EMPTY_PURCHASE_FORM: PurchaseFormState = {
   supplierId: "",
   date: "",
   reference: "",
   notes: "",
   items: [],
+};
+
+const EMPTY_QUICK_SUPPLIER_FORM: QuickSupplierFormState = {
+  name: "",
+  phone: "",
+  email: "",
+  notes: "",
 };
 
 let purchaseItemSequence = 0;
@@ -566,6 +581,170 @@ function emptyPurchaseItem(): PurchaseItemFormState {
   };
 }
 
+function QuickCreateSupplier({
+  onCreated,
+}: {
+  onCreated: (supplier: Supplier) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<QuickSupplierFormState>(EMPTY_QUICK_SUPPLIER_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdName, setCreatedName] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!form.name.trim()) {
+      setError("Supplier name is required.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const supplier = await createSupplier({
+        name: form.name,
+        phone: form.phone || null,
+        email: form.email || null,
+        notes: form.notes || null,
+        status: "active",
+      });
+      await onCreated(supplier);
+      setForm(EMPTY_QUICK_SUPPLIER_FORM);
+      setCreatedName(supplier.name);
+      setOpen(false);
+    } catch (err) {
+      setError(
+        err instanceof AdminPurchasingError
+          ? err.message
+          : "Could not create the supplier. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <div className="mt-2 space-y-2">
+        {createdName && (
+          <p className="text-[11.5px]" style={{ color: "#4ade80" }}>
+            {createdName} created and selected.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setCreatedName(null);
+            setError(null);
+            setOpen(true);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold"
+          style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.18)" }}
+        >
+          <Plus size={12} /> Add Supplier
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mt-2 space-y-3 rounded-lg p-3"
+      style={{ background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.14)" }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          void submit();
+        }
+      }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[12px] font-semibold" style={{ color: "var(--cream)" }}>New Supplier</p>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setOpen(false);
+          }}
+          disabled={saving}
+          aria-label="Cancel adding supplier"
+          className="flex h-7 w-7 items-center justify-center rounded-lg disabled:opacity-50"
+          style={{ color: "var(--cream-dim)" }}
+        >
+          <X size={13} />
+        </button>
+      </div>
+      {error && <Note tone="red">{error}</Note>}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Supplier Name">
+          <input
+            type="text"
+            value={form.name}
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Supplier name"
+            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            style={INPUT_STYLE}
+          />
+        </Field>
+        <Field label="Phone (optional)">
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+            placeholder="+20…"
+            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            style={INPUT_STYLE}
+          />
+        </Field>
+        <Field label="Email (optional)">
+          <input
+            type="email"
+            value={form.email}
+            onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+            placeholder="supplier@example.com"
+            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            style={INPUT_STYLE}
+          />
+        </Field>
+        <Field label="Notes (optional)">
+          <input
+            type="text"
+            value={form.notes}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            placeholder="Short supplier note"
+            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            style={INPUT_STYLE}
+          />
+        </Field>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold disabled:opacity-60"
+          style={{ color: "#120d09", background: "var(--gold)" }}
+        >
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+          {saving ? "Creating…" : "Create Supplier"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setOpen(false);
+          }}
+          disabled={saving}
+          className="rounded-lg px-3 py-2 text-[12px] font-semibold disabled:opacity-50"
+          style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AddPurchaseDrawer({
   open,
   suppliers,
@@ -577,6 +756,7 @@ function AddPurchaseDrawer({
   onItemChange,
   onAddItem,
   onRemoveItem,
+  onSupplierCreated,
   onClose,
   onSubmit,
 }: {
@@ -590,6 +770,7 @@ function AddPurchaseDrawer({
   onItemChange: (key: string, patch: Partial<Omit<PurchaseItemFormState, "key">>) => void;
   onAddItem: () => void;
   onRemoveItem: (key: string) => void;
+  onSupplierCreated: (supplier: Supplier) => Promise<void>;
   onClose: () => void;
   onSubmit: () => void;
 }) {
@@ -652,28 +833,31 @@ function AddPurchaseDrawer({
             Purchases are inventory / cost basis, not operating expenses. Creating this draft does not change stock, COGS, or net profit.
           </Note>
           {activeSuppliers.length === 0 && (
-            <Note tone="amber">No active supplier is available. Add or reactivate a supplier before creating a purchase.</Note>
+            <Note tone="amber">No active supplier is available. Create one below to continue.</Note>
           )}
           {products.length === 0 && (
             <Note tone="amber">No non-archived finished product is available for purchasing.</Note>
           )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Supplier">
-              <select
-                value={form.supplierId}
-                onChange={(event) => onChange({ supplierId: event.target.value })}
-                aria-label="Purchase supplier"
-                disabled={activeSuppliers.length === 0}
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
-                style={SELECT_STYLE}
-              >
-                <option value="">Select supplier…</option>
-                {activeSuppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                ))}
-              </select>
-            </Field>
+            <div>
+              <Field label="Supplier">
+                <select
+                  value={form.supplierId}
+                  onChange={(event) => onChange({ supplierId: event.target.value })}
+                  aria-label="Purchase supplier"
+                  disabled={activeSuppliers.length === 0}
+                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
+                  style={SELECT_STYLE}
+                >
+                  <option value="">Select supplier…</option>
+                  {activeSuppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <QuickCreateSupplier onCreated={onSupplierCreated} />
+            </div>
             <Field label="Purchase Date">
               <input
                 type="date"
@@ -1131,6 +1315,16 @@ export default function AccountingPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- initial + refresh data fetch
   useEffect(() => { void load(); }, [load]);
 
+  const handleSupplierCreated = useCallback(async (supplier: Supplier) => {
+    setSuppliers((current) => (
+      [...current.filter((entry) => entry.id !== supplier.id), supplier]
+        .sort((a, b) => a.name.localeCompare(b.name))
+    ));
+    setPurchaseForm((current) => ({ ...current, supplierId: supplier.id }));
+    setPurchaseError(null);
+    await load();
+  }, [load]);
+
   const openPurchaseDrawer = useCallback(() => {
     setPurchaseForm({
       ...EMPTY_PURCHASE_FORM,
@@ -1587,6 +1781,7 @@ export default function AccountingPage() {
         onItemChange={changePurchaseItem}
         onAddItem={addPurchaseItem}
         onRemoveItem={removePurchaseItem}
+        onSupplierCreated={handleSupplierCreated}
         onClose={closePurchaseDrawer}
         onSubmit={() => void submitPurchase()}
       />

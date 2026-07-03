@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15/15B–15D (Admin Accounting real financials + expense/purchase/supplier-payment writes) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; `accounting-mock.ts` is deleted. **Phase 15B** adds real Add Expense, **15C** adds real Pay Supplier, and **15D** adds real draft Add Purchase + draft-only Receive Purchase using the existing Phase-4 guarded RPCs. Purchase creation raises supplier payable without stock/P&L effects; receiving updates inventory/lots only through `receive_purchase`. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up and analytics remain unstarted.
+**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15/15B–15D (Admin Accounting real financials + expense/purchase/supplier-payment writes) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; `accounting-mock.ts` is deleted. **Phase 15B** adds real Add Expense, **15C** adds real Pay Supplier, and **15D** adds real draft Add Purchase + active-supplier quick create + draft-only Receive Purchase using the existing Phase-4 data layer/RPCs. Purchase creation raises supplier payable without stock/P&L effects; receiving updates inventory/lots only through `receive_purchase`. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up and analytics remain unstarted.
 
 ---
 
@@ -180,6 +180,18 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-04] — Phase 15D Micro-Fix: Add Supplier Quick Create (no migration)
+
+**Problem:** Add Purchase required an active supplier but exposed no way to create one, leaving the real purchase flow blocked when the suppliers table had no active rows.
+
+**Fix (`src/app/admin/accounting/page.tsx`):** added an inline **Add Supplier** panel beside the purchase supplier selector with required name plus optional phone, email, and notes. It calls the existing RLS-gated `createSupplier()` data-layer function with `status: 'active'`; no fake/local row and no new write path. On success, the returned supplier is inserted into the live selector immediately, selected automatically, and the full Accounting/purchasing load refreshes.
+
+**No backend change:** `src/lib/admin/admin-purchasing.ts` already supported all requested fields and active creation using the normal browser Supabase client. No migration, purchase RPC change, receive change, inventory/FIFO/COGS change, Analytics, public-site work, service-role code, or remote push.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · targeted ESLint on `src/app/admin/accounting/page.tsx` → 0 errors/0 warnings · `git diff --check` → clean · isolated `/admin/accounting` dev-server smoke → HTTP 200, protected admin gate rendered, no browser runtime or console errors. A live insert still requires the owner's authenticated admin session.
+
+---
 
 ### [2026-07-03] — Phase 15D: Real Add / Receive Purchase in Admin Accounting (no migration)
 
