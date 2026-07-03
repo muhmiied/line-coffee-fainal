@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–11, Phase 12A (Admin Customers), and Phase 13A (CMS real data) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Broad mock admin UI wiring remains deferred. Product-image follow-up, accounting dashboards, and analytics remain unstarted.
+**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15 (Admin Accounting real financials) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; the mock write drawers were dropped (read-only) and `accounting-mock.ts` deleted. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up, real Accounting write UI, and analytics remain unstarted.
 
 ---
 
@@ -180,6 +180,37 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-03] — Phase 15: Real Accounting Foundation (no migration)
+
+**Goal:** Execute only Phase 15 — replace every fake number in the Admin **Accounting** module with real Supabase data — without cleaning QA/test data, resetting/seeding the DB, rebuilding Analytics, redesigning the public site or the Accounting UI broadly, and without changing checkout/order/payment/refund/return/FIFO/COGS logic.
+
+**No migration.** Every source the Accounting module needs is already admin-only via RLS (`is_admin()`) and already granted SELECT to `authenticated` by earlier migrations, so Phase 15 is code-only (same as Phase 14A): `orders`/`order_items` + `orders.cogs_total` (`20260630130000`) + `order_items.line_cogs` (`20260625120000`); `order_payments`/`order_refunds`/`order_returns` (`20260703120000`); `expenses`/`purchases`/`purchase_items`/`supplier_payments`/`suppliers` (`20260630120000`).
+
+**New data layer `src/lib/admin/admin-accounting.ts`:** one `getAdminAccounting()` runs 8 parallel admin reads and returns a fully typed `AdminAccountingData`. Computed from real rows only:
+- **Sales (Gross)** = Σ `orders.total` EXCLUDING cancelled; **Net Product Sales** = Σ (`subtotal − discount_total`) excl. cancelled; **Discounts** and **Delivery Fees** separated.
+- **COGS** = Σ `orders.cogs_total` for **delivered orders only** (never recomputed from current stock; missing snapshots count as 0 and are surfaced as an honest amber note, never faked). **Gross Profit** = delivered net sales − delivered COGS (delivered basis, so revenue and COGS share the same order set); **Gross Margin** = GP / delivered net sales.
+- **Cash:** **Collected** = Σ `order_payments.amount`; **Refunded** = Σ `order_refunds.amount`; **Net Collected** = paid − refunded; **Receivable** = Σ over non-cancelled orders of `max(total − netPaid, 0)`; **payment-method breakdown** (cash / bank transfer / mobile wallet / other) from `order_payments`.
+- **Expenses** = Σ `expenses.amount` (real Phase-4 table only); **Net Profit** = Gross Profit − Operating Expenses (supplier **purchases are NOT expenses** — inventory/cost basis, never in P&L).
+- **Purchases/Suppliers:** Total Purchases / Paid to Suppliers / **Supplier Payable** = Σ `max(total_amount − paid_amount, 0)` (non-cancelled); per-supplier balances from `purchases` joined to `suppliers` (payable derived from `purchases.paid_amount` to avoid double-counting `supplier_payments`).
+- **Returns** (operational): count + restocked kg from `order_returns`.
+- **Charts/tables:** a 6-month **Monthly Trends** column chart (revenue · collections · gross profit · expenses, all real, bucketed by `placed_at`/`paid_at`/`refunded_at`/`expense_date`), recent-orders table (real code/status/subtotal/discount/total/net-paid/COGS/margin), real purchases table, real expenses table, real supplier-balance cards, and a unified **Recent Transactions** timeline (payment · refund · expense · purchase · supplier payment · return) sorted newest-first.
+
+**UI:** `src/app/admin/accounting/page.tsx` rewritten as a client component that fetches once on mount (established `eslint-disable react-hooks/set-state-in-effect` pattern), with loading / error+retry / honest empty states. Same visual language kept (tabs Overview/Revenue/Purchases/Expenses/Suppliers/Activity, KPI cards, surfaces, status pills). The invented **opening-cash-balance / "cash position" bridge was removed** (no real opening balance exists), the "Mock local" pill and the amber "sample data" banner are gone, and the fake COGS category-cost ratios / "estimated" profit numbers are gone.
+
+**Write drawers deferred (out of scope):** the old mock Add Purchase / Add Expense / Pay Supplier drawers were removed — they wrote local-only fake rows that reset on refresh. The Phase-4 backend exists (`create_purchase`/`receive_purchase`/`record_purchase_payment`/`createExpense`), but wiring the complex per-size/draft/stock-only purchase form and free-balance supplier payment would change the purchasing workflow (explicitly out of scope), so Accounting is now read-only real data. Add-expense/purchase real UI is a documented follow-up.
+
+**Mock cleanup (Accounting only):** deleted `src/lib/mock-data/admin/accounting-mock.ts` (all fabricated orders/purchases/suppliers/expenses/cash-adjustments/opening-balance/category-cost-ratios). Verified no other module imports it before deletion. Unrelated module mocks (Inventory/Marketing/Analytics/Espresso/Flavor) left untouched.
+
+**Formula rules honored:** cancelled orders never count as revenue; refunds reduce collected cash only (never subtotal/COGS); returns don't rewrite history; COGS only from stored delivered snapshots; purchases are not P&L expenses; no opening-cash fiction; honest zeros/empty states when no data.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · ESLint on the 2 changed/added files → 0 errors/0 warnings · `git diff --check` → clean (only pre-existing CRLF notices) · route smoke on the live dev server (`/admin/accounting`, `/admin/dashboard`, `/admin/orders`, `/`) → all HTTP 200, no error markers. **Fully rendered real numbers require the owner's authenticated admin session** (non-interactive session can't sign in as admin), consistent with the Phase 10–14A limitation. QA/test orders remain visible and acceptable for now.
+
+**Deferred / out of scope:** Analytics rebuild, broad Inventory/Marketing/Espresso/Flavor mock cleanup, QA/test-data cleanup, DB reset/seed, real Add-Expense/Purchase/Pay-Supplier write UI, and any checkout/order/payment/refund/return/FIFO/COGS change.
+
+**Confirm:** code-only (no migration, no remote push) · no public redesign · no dashboard/analytics rebuild · no QA data cleanup · Phase 1–14A business rules unchanged.
+
+---
 
 ### [2026-07-03] — Phase 14A: Real Admin Dashboard numbers (no migration)
 
