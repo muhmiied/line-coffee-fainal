@@ -41,6 +41,8 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 | **Header notifications** | Bell dropdown reads real `order_status_events` | `src/components/layout/public/PublicHeader.tsx` |
 | **Auth** | Real Supabase auth; `/admin` gated via `admin_users` (role/status) | `src/lib/auth/admin.ts`, `useCurrentAdmin` |
 | **Admin CMS** | Real blog posts, review moderation, contact inbox, and legal-page drafts/publishing. Public homepage reads approved reviews only; both contact forms persist through a validated RPC | migration `20260703140000`; `src/lib/admin/admin-cms.ts`; `src/lib/cms/public-cms.ts` |
+| **Admin Customers** (Phase 12A) | Real customer list/detail from `customers` + `customer_addresses` + `orders`; computed segments; real Tags read/write | grants migration `20260703130000`; `src/lib/admin/admin-customers.ts` |
+| **Admin Dashboard** (Phase 14A) | Real KPIs (Sales / Orders / Customers / Net Collected), sales trend, best sellers (from `order_items`), latest orders, alerts, inventory/low-stock, preparing+fulfillment, latest approved review — all from real tables; honest empty states, no mock. No new migration (all sources already admin-readable) | `src/lib/admin/admin-dashboard.ts`; `src/components/admin/dashboard/*` |
 
 **Inventory lifecycle (Phase 1, applied):** reserve at checkout → keep the reservation through `shipped` → **deduct at `delivered`** → release on cancel. Migration `20260629120000_phase1_delivery_deduction_payment.sql` is applied and matches Locked Decision 6. Delivery never changes `payment_status`. (Phase 5 re-implements deduction at lot level.)
 
@@ -52,9 +54,7 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 
 These admin modules render from `src/lib/mock-data/admin/*` (or local component state) and **reset on refresh**:
 
-- Admin **Dashboard** (all cards) — `dashboard-mock.ts`
 - Admin **Inventory** UI — `inventory-mock.ts` (coffee and the authored Phase-6 packaging backend are not wired to this broad mock screen)
-- **Customers** — `customers-mock.ts`
 - **Marketing** — `marketing-mock.ts` (the broad admin screen remains mock; Phase 7 adds typed real promo data functions, but the mock UI is intentionally not partially rewired)
 - **Accounting** — `accounting-mock.ts` (purchases / expenses / suppliers all mock)
 - **Analytics** — `analytics-mock.ts`

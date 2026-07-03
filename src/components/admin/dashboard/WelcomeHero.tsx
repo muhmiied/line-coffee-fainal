@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { getAdminDisplayName } from "@/lib/auth/admin";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
-import { ALERTS_DATA, LATEST_ORDERS } from "@/lib/mock-data/admin/dashboard-mock";
+import type { DashboardHeroStats } from "@/lib/admin/admin-dashboard";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -12,14 +12,14 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-export default function WelcomeHero() {
+export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | null }) {
   const { admin } = useCurrentAdmin();
   const adminName = admin ? getAdminDisplayName(admin) : "there";
   const firstName = adminName.split(" ")[0] || adminName;
 
-  const newOrders      = LATEST_ORDERS.filter((o) => o.status === "New").length;
-  const lowStockCount  = ALERTS_DATA.find((a) => a.type === "low-stock")?.count ?? 0;
-  const pendingReviews = ALERTS_DATA.find((a) => a.type === "reviews")?.count ?? 0;
+  const newOrders      = stats?.newOrders ?? 0;
+  const lowStockCount  = stats?.lowStock ?? 0;
+  const pendingReviews = stats?.pendingReviews ?? 0;
 
   return (
     <div

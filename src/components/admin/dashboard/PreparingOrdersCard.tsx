@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Clock, ArrowRight, AlertTriangle } from "lucide-react";
-import { PREPARING_ORDERS_DATA } from "@/lib/mock-data/admin/dashboard-mock";
+import type { DashboardPreparing } from "@/lib/admin/admin-dashboard";
 
-export default function PreparingOrdersCard() {
-  const { total, overdue, overdueIds } = PREPARING_ORDERS_DATA;
+export default function PreparingOrdersCard({ data }: { data: DashboardPreparing }) {
+  const { total, overdue, overdueCodes } = data;
 
   return (
     <div className="admin-kpi-card flex flex-col gap-2.5 min-h-[130px]">
@@ -35,8 +35,8 @@ export default function PreparingOrdersCard() {
 
       {/* Overdue IDs + link */}
       <div style={{ borderTop: "1px solid rgba(182,136,94,0.07)", paddingTop: 8 }}>
-        <p className="text-[11px] leading-relaxed font-mono" style={{ color: "#f59e0b", opacity: 0.75 }}>
-          {overdueIds.join(" · ")}
+        <p className="text-[11px] leading-relaxed font-mono" style={{ color: overdueCodes.length > 0 ? "#f59e0b" : "var(--cream-dim)", opacity: 0.75 }}>
+          {overdueCodes.length > 0 ? overdueCodes.join(" · ") : "None overdue"}
         </p>
         <Link
           href="/admin/orders"

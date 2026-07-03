@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
-import { LOW_STOCK_ITEMS } from "@/lib/mock-data/admin/dashboard-mock";
+import { AlertTriangle, CheckCircle } from "lucide-react";
+import type { DashboardLowStockItem } from "@/lib/admin/admin-dashboard";
 
-export default function LowStockCard() {
+export default function LowStockCard({ items }: { items: DashboardLowStockItem[] }) {
   return (
     <div className="admin-kpi-card flex flex-col gap-3 min-h-[130px]">
       {/* Header */}
@@ -30,29 +30,38 @@ export default function LowStockCard() {
         </Link>
       </div>
 
-      {/* Item list */}
-      <div className="flex flex-col gap-2 flex-1">
-        {LOW_STOCK_ITEMS.map((item) => (
-          <div
-            key={item.name}
-            className="flex items-center justify-between py-1.5 px-2.5 rounded-lg"
-            style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.10)" }}
-          >
-            <p
-              className="text-[12px] font-medium truncate"
-              style={{ color: "var(--cream)" }}
+      {/* Item list / empty state */}
+      {items.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-1.5">
+          <CheckCircle size={20} style={{ color: "#4ade80", opacity: 0.7 }} />
+          <p className="text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+            All tracked stock above threshold
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 flex-1">
+          {items.map((item) => (
+            <div
+              key={item.name}
+              className="flex items-center justify-between py-1.5 px-2.5 rounded-lg"
+              style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.10)" }}
             >
-              {item.name}
-            </p>
-            <span
-              className="text-[10.5px] font-bold ml-2 flex-shrink-0 px-2 py-0.5 rounded-full"
-              style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
-            >
-              {item.remaining}
-            </span>
-          </div>
-        ))}
-      </div>
+              <p
+                className="text-[12px] font-medium truncate"
+                style={{ color: "var(--cream)" }}
+              >
+                {item.name}
+              </p>
+              <span
+                className="text-[10.5px] font-bold ml-2 flex-shrink-0 px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
+              >
+                {item.remaining}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

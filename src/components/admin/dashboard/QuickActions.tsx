@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { Package, Receipt, ShoppingCart, Tag, ArrowUpRight } from "lucide-react";
-import { QUICK_ACTIONS } from "@/lib/mock-data/admin/dashboard-mock";
+
+// Static navigation shortcuts (not metrics). Inlined so the dashboard no longer
+// imports the dashboard mock-data module.
+type QuickAction = { label: string; sublabel: string; href: string; iconName: string };
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { label: "Add Product",       sublabel: "New catalog item",     href: "/admin/products",   iconName: "Package" },
+  { label: "Add Expense",       sublabel: "Log a business cost",  href: "/admin/accounting", iconName: "Receipt" },
+  { label: "Buy Inventory",     sublabel: "Record a purchase",    href: "/admin/inventory",  iconName: "ShoppingCart" },
+  { label: "Create Promo Code", sublabel: "Discount or offer",    href: "/admin/marketing",  iconName: "Tag" },
+];
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Package,

@@ -9,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { SALES_DATA } from "@/lib/mock-data/admin/dashboard-mock";
+import type { DashboardSalesTrend } from "@/lib/admin/admin-dashboard";
 
 type Period = "week" | "month" | "year";
 
@@ -52,11 +52,11 @@ const PERIOD_LABELS: Record<Period, string> = {
   year:  "Year",
 };
 
-export default function SalesChart() {
+export default function SalesChart({ data: trend }: { data: DashboardSalesTrend }) {
   const [period, setPeriod] = useState<Period>("week");
   const [chartWidth, setChartWidth] = useState(0);
   const chartRef = useRef<HTMLDivElement | null>(null);
-  const data = SALES_DATA[period];
+  const data = trend[period];
 
   useEffect(() => {
     const node = chartRef.current;

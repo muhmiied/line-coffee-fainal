@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import {
-  type KPIToggleStat,
-  type KPIPeriod,
-} from "@/lib/mock-data/admin/dashboard-mock";
+  type DashboardKpi,
+  type DashboardPeriod,
+} from "@/lib/admin/admin-dashboard";
 
-const PERIODS: { key: KPIPeriod; label: string }[] = [
+const PERIODS: { key: DashboardPeriod; label: string }[] = [
   { key: "today", label: "1D" },
   { key: "week",  label: "1W" },
   { key: "month", label: "1M" },
@@ -104,8 +104,8 @@ function CustomerSplitBar({
 
 // ── Main card ─────────────────────────────────────────────────────────
 
-export default function KPICard({ stat }: { stat: KPIToggleStat }) {
-  const [period, setPeriod] = useState<KPIPeriod>("today");
+export default function KPICard({ stat }: { stat: DashboardKpi }) {
+  const [period, setPeriod] = useState<DashboardPeriod>("today");
   const current  = stat.values[period];
   const hasTrend = current.trend !== null;
   const isUp     = (current.trend ?? 0) >= 0;

@@ -181,6 +181,36 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-03] — Phase 14A: Real Admin Dashboard numbers (no migration)
+
+**Goal:** Execute only Phase 14A — replace every fake/mock number on the Admin **main dashboard** with real Supabase data — without starting Accounting real reports or an Analytics rebuild, without cleaning QA/test data or unrelated mocks, and without changing checkout/order/payment/stock logic, public visuals, or ownership rules.
+
+**No migration.** Every source the dashboard needs is already admin-only via RLS (`is_admin()`) and already granted SELECT to `authenticated` by earlier migrations: `orders`/`order_items`/`order_status_events` (`20260627110000`), `order_payments`/`order_refunds` (`20260703120000`), `customers` (`20260703130000`), `inventory_stock` (`20260627100000`), `products`/`categories` (`20260625203528`), `reviews`/`contact_messages` (`20260703140000`). So Phase 14A is code-only.
+
+**New data layer `src/lib/admin/admin-dashboard.ts`:** one `getAdminDashboard()` runs ~11 parallel admin reads and returns a fully typed `AdminDashboardData`. It computes, from real rows:
+- **KPI cards (period-aware today/week/month/all, with vs-previous-window trends):** **Sales** = Σ order `total` excluding cancelled (+ 7-day sparkline); **Orders** = order count (+ real status breakdown); **Customers** = signups per window / total (+ new-vs-existing split from real `customers.joined_at`); **Net Collected** = Σ `order_payments.amount` − Σ `order_refunds.amount`, bucketed by `paid_at`/`refunded_at` (relabelled from the old fake "Net Profit" — profit needs COGS/expenses, which is the out-of-scope Accounting phase).
+- **Sales trend chart** (week = 7 daily buckets, month = 6×5-day buckets, year = 12 months) from non-cancelled order totals.
+- **Best sellers** aggregated from `order_items` (excluding cancelled orders) by product, enriched with `products`/`categories` for name/category/image; units = real quantity (dropped the old fake "kg" suffix).
+- **Latest orders** (reuses the real `getAdminOrders()` read; links by real order UUID, shows real code/status/total/relative time).
+- **Alerts center** — low stock (from `inventory_stock` where `available_kg ≤ low_stock_threshold_kg`), overdue-prep orders (`preparing` older than 48h), new `contact_messages`, and `pending` `reviews`.
+- **Inventory / Low-stock cards** — finished-product coffee stock: on-hand kg, reserved kg, products tracked, low-stock list. **No cost/COGS is read or shown** (the old card's cost-derived "Inventory Value" was replaced with a physical "Stock On Hand" kg figure to avoid exposing cost basis).
+- **Preparing** (count + overdue codes) and **Fulfillment** (delivered vs cancelled+returned) — the latter replaces the old **Visitors** card, which had no possible real backing (no session/analytics tracking exists and Analytics is out of scope).
+- **Latest review** = latest approved, non-hidden `reviews` row (+ approved avg/count); honest empty state when none.
+- **Hero stats** (pending orders, low-stock, pending reviews) — real.
+Formula rules honored: cancelled orders never count as revenue; refunds reduce collected cash only (never subtotal); returns don't rewrite history; no profit/COGS computed.
+
+**UI:** `src/app/admin/dashboard/page.tsx` is now a client component that fetches once, shows a loading state, an error+retry state, and honest zeros/empty states when there is no data. Every card component was converted from importing mock constants to receiving **props**: `KPICard`, `SalesChart`, `LatestOrders`, `BestSellersMonth`, `AlertsCenter`, `InventoryCard`, `LowStockCard`, `PreparingOrdersCard`, `LatestReviewCard`, `WelcomeHero`. `QuickActions` kept its static navigation (inlined, no longer imports mock). New `FulfillmentCard.tsx` replaces the deleted `VisitorsCard.tsx`. The dead, unrendered `ActivityFeed.tsx` (fake activity) was deleted.
+
+**Mock cleanup (dashboard only):** `src/lib/mock-data/admin/dashboard-mock.ts` stripped of every fabricated constant (`KPI_TOGGLE_STATS`, `SALES_DATA`, `LATEST_ORDERS`, `ALERTS_DATA`, `BEST_SELLERS_MONTH`, `TOP_REVIEW`, `VISITORS_DATA`, `LOW_STOCK_ITEMS`, `PREPARING_ORDERS_DATA`, `ACTIVITY_FEED`, `QUICK_ACTIONS`, `DASHBOARD_KPIS`, `ADMIN_NOTIFICATIONS`, chart/order interfaces); the file now only re-exports the legacy capitalized `OrderStatus` type that the unrelated, out-of-scope `orders-mock.ts` still imports. `inventory-mock.ts` (broad mock Inventory screen) and `customers-mock.ts` (Marketing `CustomerPickerModal`) were left untouched — out of scope.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · ESLint on the 15 changed/added dashboard files → 0 errors/0 warnings (the page's fetch-on-mount uses the established `eslint-disable-next-line react-hooks/set-state-in-effect` pattern) · `git diff --check` → clean (only pre-existing CRLF notices) · route smoke on the live dev server (`/admin/dashboard`, `/admin/orders`, `/admin/customers`, `/admin/inventory`, `/`) → all HTTP 200, no error markers in the dashboard HTML. **Rendered real numbers require the owner's authenticated admin session** (non-interactive session can't sign in as admin), consistent with the Phase 10–12A limitation.
+
+**Deferred / out of scope:** Accounting real reports, Analytics rebuild (visitor/session tracking still does not exist), broad Inventory/Marketing/Espresso/Flavor mock cleanup, QA/test-data cleanup, and any checkout/order/payment/stock/ownership change.
+
+**Confirm:** code-only (no migration, no remote push) · no public redesign · no Accounting/Analytics rebuild · no QA data cleanup · Phase 1–13A business rules unchanged.
+
+---
+
 ### [2026-07-03] — Phase 13A micro-fix: unified Admin CMS + public Blog data
 
 **Root cause:** Admin CMS correctly read `public.blog_posts`, but `/blog` and `/blog/[slug]` still imported the independent static `src/lib/mock-data/blog-data.ts`. The database was empty, so Admin showed 0 while the public site rendered six disconnected articles.
