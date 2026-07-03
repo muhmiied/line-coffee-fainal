@@ -31,7 +31,17 @@ import {
   type AdminAccountingData,
   AdminAccountingError,
 } from "@/lib/admin/admin-accounting";
-import { createExpense, recordPurchasePayment, AdminPurchasingError } from "@/lib/admin/admin-purchasing";
+import {
+  createExpense,
+  createPurchase,
+  listPurchasableProducts,
+  listSuppliers,
+  receivePurchase,
+  recordPurchasePayment,
+  AdminPurchasingError,
+  type PurchasableProduct,
+  type Supplier,
+} from "@/lib/admin/admin-purchasing";
 import type { OrderStatus } from "@/lib/types/order";
 
 type ActiveTab = "overview" | "revenue" | "purchases" | "expenses" | "suppliers" | "activity";
@@ -517,6 +527,299 @@ function AddExpenseDrawer({
   );
 }
 
+// ── Add Purchase form (real draft purchase via create_purchase RPC) ─────────
+// Creating a purchase establishes inventory cost basis + supplier payable only.
+// Stock/lots change later and only through receive_purchase.
+
+type PurchaseItemFormState = {
+  key: string;
+  productId: string;
+  quantityKg: string;
+  unitCost: string;
+};
+
+type PurchaseFormState = {
+  supplierId: string;
+  date: string;
+  reference: string;
+  notes: string;
+  items: PurchaseItemFormState[];
+};
+
+const EMPTY_PURCHASE_FORM: PurchaseFormState = {
+  supplierId: "",
+  date: "",
+  reference: "",
+  notes: "",
+  items: [],
+};
+
+let purchaseItemSequence = 0;
+
+function emptyPurchaseItem(): PurchaseItemFormState {
+  purchaseItemSequence += 1;
+  return {
+    key: `purchase-item-${purchaseItemSequence}`,
+    productId: "",
+    quantityKg: "",
+    unitCost: "",
+  };
+}
+
+function AddPurchaseDrawer({
+  open,
+  suppliers,
+  products,
+  form,
+  saving,
+  error,
+  onChange,
+  onItemChange,
+  onAddItem,
+  onRemoveItem,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  suppliers: Supplier[];
+  products: PurchasableProduct[];
+  form: PurchaseFormState;
+  saving: boolean;
+  error: string | null;
+  onChange: (patch: Partial<Omit<PurchaseFormState, "items">>) => void;
+  onItemChange: (key: string, patch: Partial<Omit<PurchaseItemFormState, "key">>) => void;
+  onAddItem: () => void;
+  onRemoveItem: (key: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  if (!open) return null;
+
+  const activeSuppliers = suppliers.filter((supplier) => supplier.status === "active");
+  const estimatedTotal = form.items.reduce((sum, item) => {
+    const quantity = Number(item.quantityKg);
+    const unitCost = Number(item.unitCost);
+    return Number.isFinite(quantity) && Number.isFinite(unitCost)
+      ? sum + quantity * unitCost
+      : sum;
+  }, 0);
+  const cannotCreate = activeSuppliers.length === 0 || products.length === 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <button type="button" aria-label="Close add purchase" className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <aside
+        className="relative flex h-full w-full max-w-[620px] flex-col overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #130d09 0%, #0b0806 100%)",
+          borderLeft: "1px solid rgba(182,136,94,0.18)",
+          boxShadow: "-24px 0 80px rgba(0,0,0,0.45)",
+        }}
+      >
+        <div
+          className="flex items-start justify-between gap-4 px-5 py-4"
+          style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}
+        >
+          <div>
+            <p className="text-[18px] font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+              Add Purchase
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+              Creates a real draft purchase and supplier payable. Receive it separately when the goods arrive.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]"
+            style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <form
+          className="flex-1 space-y-4 overflow-y-auto px-5 py-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          {error && <Note tone="red">{error}</Note>}
+          <Note tone="blue">
+            Purchases are inventory / cost basis, not operating expenses. Creating this draft does not change stock, COGS, or net profit.
+          </Note>
+          {activeSuppliers.length === 0 && (
+            <Note tone="amber">No active supplier is available. Add or reactivate a supplier before creating a purchase.</Note>
+          )}
+          {products.length === 0 && (
+            <Note tone="amber">No non-archived finished product is available for purchasing.</Note>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Supplier">
+              <select
+                value={form.supplierId}
+                onChange={(event) => onChange({ supplierId: event.target.value })}
+                aria-label="Purchase supplier"
+                disabled={activeSuppliers.length === 0}
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
+                style={SELECT_STYLE}
+              >
+                <option value="">Select supplier…</option>
+                {activeSuppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Purchase Date">
+              <input
+                type="date"
+                value={form.date}
+                onChange={(event) => onChange({ date: event.target.value })}
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={SELECT_STYLE}
+              />
+            </Field>
+          </div>
+
+          <Field label="Reference (optional)">
+            <input
+              type="text"
+              value={form.reference}
+              onChange={(event) => onChange({ reference: event.target.value })}
+              placeholder="Supplier invoice / PO number"
+              className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+              style={INPUT_STYLE}
+            />
+          </Field>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+                Purchase Items
+              </p>
+              <button
+                type="button"
+                onClick={onAddItem}
+                disabled={products.length === 0}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-50"
+                style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.18)" }}
+              >
+                <Plus size={12} /> Add Item
+              </button>
+            </div>
+            <div className="space-y-3">
+              {form.items.map((item, index) => (
+                <div
+                  key={item.key}
+                  className="rounded-lg p-3"
+                  style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(182,136,94,0.10)" }}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--cream)" }}>Item {index + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveItem(item.key)}
+                      disabled={form.items.length === 1}
+                      aria-label={`Remove purchase item ${index + 1}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg disabled:opacity-30"
+                      style={{ color: "#f87171", border: "1px solid rgba(248,113,113,0.16)" }}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.6fr_0.7fr_0.8fr]">
+                    <Field label="Finished Product">
+                      <select
+                        value={item.productId}
+                        onChange={(event) => onItemChange(item.key, { productId: event.target.value })}
+                        aria-label={`Product for item ${index + 1}`}
+                        className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                        style={SELECT_STYLE}
+                      >
+                        <option value="">Select product…</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.nameEn} · {product.nameAr}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Quantity (kg)">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={item.quantityKg}
+                        onChange={(event) => onItemChange(item.key, { quantityKg: event.target.value })}
+                        placeholder="0"
+                        className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                        style={INPUT_STYLE}
+                      />
+                    </Field>
+                    <Field label="Cost / kg (EGP)">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.unitCost}
+                        onChange={(event) => onItemChange(item.key, { unitCost: event.target.value })}
+                        placeholder="0"
+                        className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                        style={INPUT_STYLE}
+                      />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Field label="Notes (optional)">
+            <textarea
+              value={form.notes}
+              onChange={(event) => onChange({ notes: event.target.value })}
+              rows={3}
+              placeholder="Short note about this purchase"
+              className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
+              style={INPUT_STYLE}
+            />
+          </Field>
+
+          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5" style={{ background: "rgba(182,136,94,0.08)" }}>
+            <span className="text-[12px]" style={{ color: "var(--cream-dim)" }}>Estimated total</span>
+            <span className="text-[14px] font-bold" style={{ color: "var(--gold)" }}>{money(estimatedTotal)}</span>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={saving || cannotCreate}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold disabled:opacity-60"
+              style={{ color: "#120d09", background: "var(--gold)" }}
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {saving ? "Creating…" : "Create Purchase"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04] disabled:opacity-60"
+              style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </aside>
+    </div>
+  );
+}
+
 // ── Pay Supplier form (real payment via record_purchase_payment RPC) ────────────
 // A supplier payment settles a specific unpaid purchase (the backend keys payments
 // to a purchase_id, then rolls them up per supplier). It moves the supplier payable
@@ -785,6 +1088,13 @@ export default function AccountingPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("All");
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchaseProducts, setPurchaseProducts] = useState<PurchasableProduct[]>([]);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState<PurchaseFormState>(EMPTY_PURCHASE_FORM);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [purchaseSaving, setPurchaseSaving] = useState(false);
+  const [receivingPurchaseId, setReceivingPurchaseId] = useState<string | null>(null);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>(EMPTY_EXPENSE_FORM);
   const [expenseError, setExpenseError] = useState<string | null>(null);
@@ -799,10 +1109,17 @@ export default function AccountingPage() {
     setLoading(true);
     setError(null);
     try {
-      setData(await getAdminAccounting());
+      const [accounting, supplierRows, products] = await Promise.all([
+        getAdminAccounting(),
+        listSuppliers(),
+        listPurchasableProducts(),
+      ]);
+      setData(accounting);
+      setSuppliers(supplierRows);
+      setPurchaseProducts(products);
     } catch (err) {
       setError(
-        err instanceof AdminAccountingError
+        err instanceof AdminAccountingError || err instanceof AdminPurchasingError
           ? err.message
           : "Could not load accounting data. Please try again.",
       );
@@ -813,6 +1130,139 @@ export default function AccountingPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- initial + refresh data fetch
   useEffect(() => { void load(); }, [load]);
+
+  const openPurchaseDrawer = useCallback(() => {
+    setPurchaseForm({
+      ...EMPTY_PURCHASE_FORM,
+      date: todayLocal(),
+      items: [emptyPurchaseItem()],
+    });
+    setPurchaseError(null);
+    setNotice(null);
+    setPurchaseOpen(true);
+  }, []);
+
+  const closePurchaseDrawer = useCallback(() => {
+    setPurchaseOpen(false);
+    setPurchaseError(null);
+  }, []);
+
+  const changePurchaseItem = useCallback((
+    key: string,
+    patch: Partial<Omit<PurchaseItemFormState, "key">>,
+  ) => {
+    setPurchaseForm((current) => ({
+      ...current,
+      items: current.items.map((item) => item.key === key ? { ...item, ...patch } : item),
+    }));
+  }, []);
+
+  const addPurchaseItem = useCallback(() => {
+    setPurchaseForm((current) => ({ ...current, items: [...current.items, emptyPurchaseItem()] }));
+  }, []);
+
+  const removePurchaseItem = useCallback((key: string) => {
+    setPurchaseForm((current) => ({
+      ...current,
+      items: current.items.length > 1
+        ? current.items.filter((item) => item.key !== key)
+        : current.items,
+    }));
+  }, []);
+
+  const submitPurchase = useCallback(async () => {
+    if (!purchaseForm.supplierId) {
+      setPurchaseError("Choose a supplier for the purchase.");
+      return;
+    }
+    if (!suppliers.some((supplier) => supplier.id === purchaseForm.supplierId && supplier.status === "active")) {
+      setPurchaseError("That supplier is no longer active. Refresh and choose another supplier.");
+      return;
+    }
+    if (!purchaseForm.date) {
+      setPurchaseError("Choose a purchase date.");
+      return;
+    }
+    if (purchaseForm.items.length === 0) {
+      setPurchaseError("Add at least one purchase item.");
+      return;
+    }
+
+    const items = purchaseForm.items.map((item) => ({
+      productId: item.productId,
+      quantityKg: Number(item.quantityKg),
+      unitCost: Number(item.unitCost),
+    }));
+    for (const item of items) {
+      if (!item.productId || !purchaseProducts.some((product) => product.id === item.productId)) {
+        setPurchaseError("Choose a valid finished product for every item.");
+        return;
+      }
+      if (!Number.isFinite(item.quantityKg) || item.quantityKg <= 0) {
+        setPurchaseError("Enter a quantity greater than 0 kg for every item.");
+        return;
+      }
+      if (!Number.isFinite(item.unitCost) || item.unitCost < 0) {
+        setPurchaseError("Enter a valid cost per kg for every item.");
+        return;
+      }
+    }
+
+    setPurchaseSaving(true);
+    setPurchaseError(null);
+    try {
+      const result = await createPurchase({
+        supplierId: purchaseForm.supplierId,
+        purchaseDate: purchaseForm.date,
+        reference: purchaseForm.reference || null,
+        notes: purchaseForm.notes || null,
+        items,
+      });
+      setPurchaseOpen(false);
+      setPurchaseForm(EMPTY_PURCHASE_FORM);
+      setActiveTab("purchases");
+      setNotice(`Purchase created for ${money(result.totalAmount)} — supplier payable increased. Receive it when the goods arrive.`);
+      await load();
+    } catch (err) {
+      setPurchaseError(
+        err instanceof AdminPurchasingError
+          ? err.message
+          : "Could not create the purchase. Please try again.",
+      );
+    } finally {
+      setPurchaseSaving(false);
+    }
+  }, [purchaseForm, purchaseProducts, suppliers, load]);
+
+  const handleReceivePurchase = useCallback(async (purchaseId: string) => {
+    const purchase = data?.purchases.find((entry) => entry.id === purchaseId) ?? null;
+    if (!purchase || purchase.status !== "draft") {
+      setError("Only a current draft purchase can be received.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Receive purchase ${purchase.reference || shortDate(purchase.date)} from ${purchase.supplierName}? This will add its quantities to inventory and create FIFO lots.`,
+    );
+    if (!confirmed) return;
+
+    setReceivingPurchaseId(purchaseId);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await receivePurchase(purchaseId);
+      setActiveTab("purchases");
+      setNotice(`Purchase received — ${result.lotsCreated} inventory lot(s) created for ${result.totalKg} kg.`);
+      await load();
+    } catch (err) {
+      setError(
+        err instanceof AdminPurchasingError
+          ? err.message
+          : "Could not receive the purchase. Please try again.",
+      );
+    } finally {
+      setReceivingPurchaseId(null);
+    }
+  }, [data, load]);
 
   const openExpenseDrawer = useCallback(() => {
     setExpenseForm({ ...EMPTY_EXPENSE_FORM, date: todayLocal() });
@@ -956,6 +1406,15 @@ export default function AccountingPage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={openPurchaseDrawer}
+            disabled={!data}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors disabled:opacity-50"
+            style={{ color: "#120d09", background: "var(--gold)" }}
+          >
+            <Package size={14} /> Add Purchase
+          </button>
+          <button
+            type="button"
             onClick={openExpenseDrawer}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
             style={{ color: "#120d09", background: "var(--gold)" }}
@@ -1096,7 +1555,14 @@ export default function AccountingPage() {
 
           {activeTab === "overview" && <OverviewTab data={data} />}
           {activeTab === "revenue" && <RevenueTab data={data} />}
-          {activeTab === "purchases" && <PurchasesTab data={data} />}
+          {activeTab === "purchases" && (
+            <PurchasesTab
+              data={data}
+              receivingPurchaseId={receivingPurchaseId}
+              onAddPurchase={openPurchaseDrawer}
+              onReceivePurchase={(purchaseId) => void handleReceivePurchase(purchaseId)}
+            />
+          )}
           {activeTab === "expenses" && <ExpensesTab data={data} onAddExpense={openExpenseDrawer} />}
           {activeTab === "suppliers" && <SuppliersTab data={data} onPaySupplier={openPaySupplierDrawer} />}
           {activeTab === "activity" && (
@@ -1109,6 +1575,21 @@ export default function AccountingPage() {
           )}
         </>
       )}
+
+      <AddPurchaseDrawer
+        open={purchaseOpen}
+        suppliers={suppliers}
+        products={purchaseProducts}
+        form={purchaseForm}
+        saving={purchaseSaving}
+        error={purchaseError}
+        onChange={(patch) => setPurchaseForm((current) => ({ ...current, ...patch }))}
+        onItemChange={changePurchaseItem}
+        onAddItem={addPurchaseItem}
+        onRemoveItem={removePurchaseItem}
+        onClose={closePurchaseDrawer}
+        onSubmit={() => void submitPurchase()}
+      />
 
       <AddExpenseDrawer
         open={expenseOpen}
@@ -1350,7 +1831,17 @@ function OrderRowMobile({ entry }: { entry: AccountingOrderRow }) {
 
 // ── Purchases ────────────────────────────────────────────────────────────────
 
-function PurchasesTab({ data }: { data: AdminAccountingData }) {
+function PurchasesTab({
+  data,
+  receivingPurchaseId,
+  onAddPurchase,
+  onReceivePurchase,
+}: {
+  data: AdminAccountingData;
+  receivingPurchaseId: string | null;
+  onAddPurchase: () => void;
+  onReceivePurchase: (purchaseId: string) => void;
+}) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -1359,15 +1850,29 @@ function PurchasesTab({ data }: { data: AdminAccountingData }) {
         <KpiCard label="Supplier Payable" value={money(data.supplierPayable)} caption="Unpaid purchase balances." tone={data.supplierPayable > 0 ? "amber" : "green"} icon={CreditCard} />
       </div>
 
-      <Surface title="Inventory Purchases" caption="Goods entering stock. These affect cost basis and payables — not P&amp;L operating expenses." icon={Package}>
+      <Surface
+        title="Inventory Purchases"
+        caption="Draft creation establishes the payable; receiving adds stock and lots through the existing backend."
+        icon={Package}
+        right={
+          <button
+            type="button"
+            onClick={onAddPurchase}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
+            style={{ color: "#120d09", background: "var(--gold)" }}
+          >
+            <Plus size={14} /> Add Purchase
+          </button>
+        }
+      >
         {data.purchases.length === 0 ? (
-          <EmptyState icon={Package} message="No purchases recorded yet. Record purchases from the Purchasing / Inventory workflow." />
+          <EmptyState icon={Package} message="No purchases recorded yet. Add the first real supplier purchase here." />
         ) : (
           <div className="overflow-x-auto">
             <div
-              className="grid min-w-[880px] gap-4 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider"
+              className="grid min-w-[1120px] gap-4 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider"
               style={{
-                gridTemplateColumns: "1fr 1.4fr 1.2fr 0.9fr 1fr 1fr 1fr",
+                gridTemplateColumns: "0.8fr 1.3fr 1.1fr 0.8fr 0.8fr 0.85fr 0.85fr 0.85fr 0.9fr",
                 color: "var(--cream-dim)",
                 background: "rgba(182,136,94,0.05)",
                 borderBottom: "1px solid rgba(182,136,94,0.08)",
@@ -1376,17 +1881,19 @@ function PurchasesTab({ data }: { data: AdminAccountingData }) {
               <span>Date</span>
               <span>Supplier</span>
               <span>Reference</span>
-              <span>Status</span>
+              <span>Purchase</span>
+              <span>Payment</span>
               <span className="text-right">Total</span>
               <span className="text-right">Paid</span>
               <span className="text-right">Unpaid</span>
+              <span className="text-right">Action</span>
             </div>
             {data.purchases.map((purchase) => (
               <div
                 key={purchase.id}
-                className="grid min-w-[880px] items-center gap-4 px-5 py-3.5 text-[12.5px]"
+                className="grid min-w-[1120px] items-center gap-4 px-5 py-3.5 text-[12.5px]"
                 style={{
-                  gridTemplateColumns: "1fr 1.4fr 1.2fr 0.9fr 1fr 1fr 1fr",
+                  gridTemplateColumns: "0.8fr 1.3fr 1.1fr 0.8fr 0.8fr 0.85fr 0.85fr 0.85fr 0.9fr",
                   color: "var(--cream)",
                   borderBottom: "1px solid rgba(182,136,94,0.06)",
                 }}
@@ -1395,12 +1902,34 @@ function PurchasesTab({ data }: { data: AdminAccountingData }) {
                 <span className="truncate">{purchase.supplierName}</span>
                 <span className="truncate" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>{purchase.reference || "—"}</span>
                 <StatusPill
+                  label={purchase.status}
+                  tone={purchase.status === "received" ? "green" : purchase.status === "cancelled" ? "red" : "amber"}
+                />
+                <StatusPill
                   label={purchase.paymentStatus}
                   tone={purchase.unpaid > 0 ? (purchase.paid > 0 ? "amber" : "red") : "green"}
                 />
                 <span className="text-right font-semibold">{money(purchase.total)}</span>
                 <span className="text-right" style={{ color: "#fbbf24" }}>{money(purchase.paid)}</span>
                 <span className="text-right" style={{ color: purchase.unpaid > 0 ? "#f87171" : "#4ade80" }}>{money(purchase.unpaid)}</span>
+                <span className="flex justify-end">
+                  {purchase.status === "draft" ? (
+                    <button
+                      type="button"
+                      onClick={() => onReceivePurchase(purchase.id)}
+                      disabled={receivingPurchaseId !== null}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-50"
+                      style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.20)" }}
+                    >
+                      {receivingPurchaseId === purchase.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <Truck size={12} />}
+                      {receivingPurchaseId === purchase.id ? "Receiving…" : "Receive"}
+                    </button>
+                  ) : (
+                    <span style={{ color: "var(--cream-dim)", opacity: 0.45 }}>—</span>
+                  )}
+                </span>
               </div>
             ))}
           </div>

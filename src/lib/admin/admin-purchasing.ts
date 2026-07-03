@@ -51,6 +51,13 @@ export type SupplierInput = {
   status?: SupplierStatus;
 };
 
+export type PurchasableProduct = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  status: string;
+};
+
 export type PurchaseStatus = "draft" | "received" | "cancelled";
 export type PurchasePaymentStatus = "unpaid" | "partial" | "paid";
 
@@ -264,6 +271,13 @@ type SupplierRow = {
   updated_at: string | null;
 };
 
+type PurchasableProductRow = {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  status: string;
+};
+
 type PurchaseRow = {
   id: string;
   supplier_id: string;
@@ -346,6 +360,7 @@ type ExpenseRow = {
 
 const SUPPLIER_COLUMNS =
   "id, name, contact_name, phone, email, address, notes, status, created_at, updated_at";
+const PURCHASABLE_PRODUCT_COLUMNS = "id, name_en, name_ar, status";
 const PURCHASE_COLUMNS =
   "id, supplier_id, reference, notes, status, purchase_date, total_amount, paid_amount, payment_status, received_at, created_at, updated_at";
 const PURCHASE_ITEM_COLUMNS =
@@ -539,6 +554,23 @@ export async function updateSupplier(
 
   if (error) throw writeError("supplier-update", error.message);
   return mapSupplier(data as SupplierRow);
+}
+
+export async function listPurchasableProducts(): Promise<PurchasableProduct[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select(PURCHASABLE_PRODUCT_COLUMNS)
+    .eq("kind", "standard")
+    .neq("status", "archived")
+    .order("name_en", { ascending: true });
+
+  if (error) throw readError("purchasable-products", error.message);
+  return ((data ?? []) as PurchasableProductRow[]).map((row) => ({
+    id: row.id,
+    nameEn: row.name_en,
+    nameAr: row.name_ar,
+    status: row.status,
+  }));
 }
 
 // ---------------------------------------------------------------------------

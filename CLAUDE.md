@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15 (Admin Accounting real financials) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; the mock write drawers were dropped (read-only) and `accounting-mock.ts` deleted. **Phase 15B (code-only, no migration)** adds a real **Add Expense** action to Admin Accounting — inserts into the Phase-4 `expenses` table via the existing admin-gated `createExpense` (no new grant/RLS), then refreshes all accounting numbers. **Phase 15C (code-only, no migration)** adds a real **Pay Supplier** action to Admin Accounting — records a payment against an unpaid purchase via the existing admin-gated `record_purchase_payment` RPC (`recordPurchasePayment` data layer, no new grant/RLS/schema), lowering Supplier Payable and raising Paid to Suppliers without touching COGS, orders, expenses, or net profit. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up, real Accounting **Purchase (create/receive)** write UI, and analytics remain unstarted.
+**Position:** Phases 1–11, Phase 12A (Admin Customers), Phase 13A (CMS real data), Phase 14A (Admin Dashboard real numbers), and Phase 15/15B–15D (Admin Accounting real financials + expense/purchase/supplier-payment writes) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Phase 15 is code-only (no migration) — Admin Accounting reads real revenue/COGS/payments/refunds/expenses/purchases/supplier balances via `src/lib/admin/admin-accounting.ts`; `accounting-mock.ts` is deleted. **Phase 15B** adds real Add Expense, **15C** adds real Pay Supplier, and **15D** adds real draft Add Purchase + draft-only Receive Purchase using the existing Phase-4 guarded RPCs. Purchase creation raises supplier payable without stock/P&L effects; receiving updates inventory/lots only through `receive_purchase`. Broad mock admin UI wiring (Inventory/Marketing/Espresso/Flavor) remains deferred. Product-image follow-up and analytics remain unstarted.
 
 ---
 
@@ -180,6 +180,24 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-03] — Phase 15D: Real Add / Receive Purchase in Admin Accounting (no migration)
+
+**Goal:** Add the real supplier-purchase entry and receiving workflow inside Admin Accounting so Phase 15C Pay Supplier has genuine unpaid purchases to settle, while preserving purchase-as-inventory accounting and the existing FIFO/COGS/order lifecycle.
+
+**No migration.** Phase 4 already provides the admin-gated SECURITY DEFINER `create_purchase(jsonb)` and `receive_purchase(uuid)` RPCs plus typed `createPurchase()` / `receivePurchase()` wrappers. Creation writes a draft purchase and server-computed item/total rows; receiving is draft-only, row-locked, idempotence-guarded, and atomically creates lots + `purchase_receive` movements + the `inventory_stock` increase.
+
+**Data layer (`src/lib/admin/admin-purchasing.ts`):** added `listPurchasableProducts()` for real non-archived `kind='standard'` products. Supplier loading reuses `listSuppliers()`; all purchase mutations continue through the existing RPC wrappers.
+
+**UI (`src/app/admin/accounting/page.tsx`):** added Add Purchase actions in the header and Purchases tab; a real drawer for active supplier, purchase date, reference, notes, and repeatable finished-product lines (`product_id`, `quantity_kg`, `unit_cost`); client validation matching the backend; and a server-authoritative estimated total/refresh flow. Successful creation refreshes the purchases table, Supplier Payable, supplier balances, activity, and Phase 15C's unpaid-purchase choices. The Purchases table now separates purchase status from payment status and exposes Receive only for drafts, with an explicit stock/lot confirmation and busy/error states.
+
+**Accounting boundary:** creating a purchase raises payable but does not change inventory, COGS, expenses, or Net Profit. Receiving changes inventory/lots only through `receive_purchase`; no UI stock-table mutation, FIFO consumption change, or order/checkout/payment/refund/return change.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · ESLint on the changed TS/TSX files → 0 errors/0 warnings · `git diff --check` → clean · isolated dev-server `/admin/accounting` → HTTP 200 and no browser console/runtime error; the unauthenticated browser correctly remained at the protected admin-session gate, so creating/receiving live data still requires the owner's authenticated admin session.
+
+**Confirm:** code-only, no migration · no Analytics · no public redesign · no service-role code · no remote push.
+
+---
 
 ### [2026-07-03] — Phase 15C: Real Pay Supplier in Admin Accounting (no migration)
 
