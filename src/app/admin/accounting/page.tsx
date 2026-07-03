@@ -31,7 +31,7 @@ import {
   type AdminAccountingData,
   AdminAccountingError,
 } from "@/lib/admin/admin-accounting";
-import { createExpense, AdminPurchasingError } from "@/lib/admin/admin-purchasing";
+import { createExpense, recordPurchasePayment, AdminPurchasingError } from "@/lib/admin/admin-purchasing";
 import type { OrderStatus } from "@/lib/types/order";
 
 type ActiveTab = "overview" | "revenue" | "purchases" | "expenses" | "suppliers" | "activity";
@@ -517,6 +517,266 @@ function AddExpenseDrawer({
   );
 }
 
+// ── Pay Supplier form (real payment via record_purchase_payment RPC) ────────────
+// A supplier payment settles a specific unpaid purchase (the backend keys payments
+// to a purchase_id, then rolls them up per supplier). It moves the supplier payable
+// / paid balance ONLY — never orders, COGS, expenses, or net profit.
+
+const SUPPLIER_PAYMENT_METHODS = ["Cash", "Bank Transfer", "Mobile Wallet", "Cheque", "Other"];
+
+type PaySupplierFormState = {
+  supplierId: string;
+  purchaseId: string;
+  amount: string;
+  method: string;
+  reference: string;
+  notes: string;
+  date: string;
+};
+
+const EMPTY_PAY_SUPPLIER_FORM: PaySupplierFormState = {
+  supplierId: "",
+  purchaseId: "",
+  amount: "",
+  method: "Cash",
+  reference: "",
+  notes: "",
+  date: "",
+};
+
+function unpaidPurchasesForSupplier(data: AdminAccountingData, supplierId: string) {
+  return data.purchases.filter(
+    (purchase) =>
+      purchase.supplierId === supplierId &&
+      purchase.status !== "cancelled" &&
+      purchase.unpaid > 0,
+  );
+}
+
+function PaySupplierDrawer({
+  open,
+  data,
+  form,
+  saving,
+  error,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  data: AdminAccountingData | null;
+  form: PaySupplierFormState;
+  saving: boolean;
+  error: string | null;
+  onChange: (patch: Partial<PaySupplierFormState>) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  if (!open || !data) return null;
+
+  const payableSuppliers = data.supplierBalances.filter((supplier) => supplier.payable > 0);
+  const supplierPurchases = form.supplierId
+    ? unpaidPurchasesForSupplier(data, form.supplierId)
+    : [];
+  const selectedPurchase = supplierPurchases.find((purchase) => purchase.id === form.purchaseId) ?? null;
+  const noneToPay = payableSuppliers.length === 0;
+
+  const handleSupplierChange = (supplierId: string) => {
+    const first = unpaidPurchasesForSupplier(data, supplierId)[0] ?? null;
+    onChange({
+      supplierId,
+      purchaseId: first?.id ?? "",
+      amount: first ? String(first.unpaid) : "",
+    });
+  };
+
+  const handlePurchaseChange = (purchaseId: string) => {
+    const purchase = data.purchases.find((entry) => entry.id === purchaseId) ?? null;
+    onChange({ purchaseId, amount: purchase ? String(purchase.unpaid) : "" });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <button type="button" aria-label="Close pay supplier" className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <aside
+        className="relative flex h-full w-full max-w-[460px] flex-col overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #130d09 0%, #0b0806 100%)",
+          borderLeft: "1px solid rgba(182,136,94,0.18)",
+          boxShadow: "-24px 0 80px rgba(0,0,0,0.45)",
+        }}
+      >
+        <div
+          className="flex items-start justify-between gap-4 px-5 py-4"
+          style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}
+        >
+          <div>
+            <p className="text-[18px] font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+              Pay Supplier
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+              Records a real payment against an unpaid purchase and lowers the supplier payable.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]"
+            style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {noneToPay ? (
+          <div className="flex flex-1 flex-col gap-4 px-5 py-5">
+            <Note tone="green">All supplier purchases are settled — there is no outstanding payable to pay right now.</Note>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04]"
+              style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <form
+            className="flex-1 space-y-4 overflow-y-auto px-5 py-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSubmit();
+            }}
+          >
+            {error && <Note tone="red">{error}</Note>}
+            <Note tone="blue">
+              A payment settles one unpaid purchase. This is a cash outflow to a supplier — it is NOT an operating expense and never changes net profit or COGS.
+            </Note>
+            <Field label="Supplier">
+              <select
+                value={form.supplierId}
+                onChange={(event) => handleSupplierChange(event.target.value)}
+                aria-label="Supplier"
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={SELECT_STYLE}
+              >
+                <option value="">Select supplier…</option>
+                {payableSuppliers.map((supplier) => (
+                  <option key={supplier.supplierId} value={supplier.supplierId}>
+                    {supplier.name} · {money(supplier.payable)} due
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Purchase to settle">
+              <select
+                value={form.purchaseId}
+                onChange={(event) => handlePurchaseChange(event.target.value)}
+                aria-label="Purchase to settle"
+                disabled={!form.supplierId}
+                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
+                style={SELECT_STYLE}
+              >
+                <option value="">{form.supplierId ? "Select purchase…" : "Choose a supplier first"}</option>
+                {supplierPurchases.map((purchase) => (
+                  <option key={purchase.id} value={purchase.id}>
+                    {shortDate(purchase.date)} · {purchase.reference || "No ref"} · {money(purchase.unpaid)} due
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Amount (EGP)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(event) => onChange({ amount: event.target.value })}
+                  placeholder="0"
+                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  style={INPUT_STYLE}
+                />
+              </Field>
+              <Field label="Payment Date">
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(event) => onChange({ date: event.target.value })}
+                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  style={SELECT_STYLE}
+                />
+              </Field>
+              <Field label="Payment Method">
+                <select
+                  value={form.method}
+                  onChange={(event) => onChange({ method: event.target.value })}
+                  aria-label="Supplier payment method"
+                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  style={SELECT_STYLE}
+                >
+                  {SUPPLIER_PAYMENT_METHODS.map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Reference (optional)">
+                <input
+                  type="text"
+                  value={form.reference}
+                  onChange={(event) => onChange({ reference: event.target.value })}
+                  placeholder="Transfer / cheque no."
+                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  style={INPUT_STYLE}
+                />
+              </Field>
+            </div>
+            <Field label="Notes (optional)">
+              <textarea
+                value={form.notes}
+                onChange={(event) => onChange({ notes: event.target.value })}
+                rows={3}
+                placeholder="Short note about this payment"
+                className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            {selectedPurchase && (
+              <p className="text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>
+                This purchase still owes {money(selectedPurchase.unpaid)} of {money(selectedPurchase.total)}.
+              </p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold disabled:opacity-60"
+                style={{ color: "#120d09", background: "var(--gold)" }}
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {saving ? "Saving…" : "Record Payment"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04] disabled:opacity-60"
+                style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </aside>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AccountingPage() {
@@ -529,6 +789,10 @@ export default function AccountingPage() {
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>(EMPTY_EXPENSE_FORM);
   const [expenseError, setExpenseError] = useState<string | null>(null);
   const [expenseSaving, setExpenseSaving] = useState(false);
+  const [paySupplierOpen, setPaySupplierOpen] = useState(false);
+  const [paySupplierForm, setPaySupplierForm] = useState<PaySupplierFormState>(EMPTY_PAY_SUPPLIER_FORM);
+  const [paySupplierError, setPaySupplierError] = useState<string | null>(null);
+  const [paySupplierSaving, setPaySupplierSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -603,6 +867,73 @@ export default function AccountingPage() {
     }
   }, [expenseForm, load]);
 
+  const openPaySupplierDrawer = useCallback(() => {
+    setPaySupplierForm({ ...EMPTY_PAY_SUPPLIER_FORM, date: todayLocal() });
+    setPaySupplierError(null);
+    setNotice(null);
+    setPaySupplierOpen(true);
+  }, []);
+
+  const closePaySupplierDrawer = useCallback(() => {
+    setPaySupplierOpen(false);
+    setPaySupplierError(null);
+  }, []);
+
+  const submitPaySupplier = useCallback(async () => {
+    if (!data) return;
+    const amount = Number(paySupplierForm.amount);
+    if (!paySupplierForm.supplierId) {
+      setPaySupplierError("Choose a supplier to pay.");
+      return;
+    }
+    if (!paySupplierForm.purchaseId) {
+      setPaySupplierError("Choose which purchase this payment settles.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaySupplierError("Enter an amount greater than 0.");
+      return;
+    }
+    const purchase = data.purchases.find((entry) => entry.id === paySupplierForm.purchaseId) ?? null;
+    if (!purchase || purchase.status === "cancelled") {
+      setPaySupplierError("That purchase is no longer payable. Refresh and try again.");
+      return;
+    }
+    if (amount > purchase.unpaid + 0.01) {
+      setPaySupplierError(`Amount can't exceed the ${money(purchase.unpaid)} still owed on this purchase.`);
+      return;
+    }
+
+    setPaySupplierSaving(true);
+    setPaySupplierError(null);
+    try {
+      const reference = paySupplierForm.reference.trim();
+      const noteText = paySupplierForm.notes.trim();
+      const composedNotes =
+        [reference ? `Ref: ${reference}` : "", noteText].filter(Boolean).join(" — ") || null;
+      await recordPurchasePayment({
+        purchaseId: paySupplierForm.purchaseId,
+        amount,
+        method: paySupplierForm.method || null,
+        notes: composedNotes,
+        paidAt: paySupplierForm.date || null,
+      });
+      setPaySupplierOpen(false);
+      setPaySupplierForm(EMPTY_PAY_SUPPLIER_FORM);
+      setActiveTab("suppliers");
+      setNotice("Supplier payment recorded — accounting refreshed.");
+      await load();
+    } catch (err) {
+      setPaySupplierError(
+        err instanceof AdminPurchasingError
+          ? err.message
+          : "Could not record the payment. Please try again.",
+      );
+    } finally {
+      setPaySupplierSaving(false);
+    }
+  }, [data, paySupplierForm, load]);
+
   const filteredActivity = useMemo(
     () => (data?.transactions ?? []).filter((t) => activityFilter === "All" || t.direction === activityFilter),
     [data, activityFilter],
@@ -630,6 +961,15 @@ export default function AccountingPage() {
             style={{ color: "#120d09", background: "var(--gold)" }}
           >
             <Plus size={14} /> Add Expense
+          </button>
+          <button
+            type="button"
+            onClick={openPaySupplierDrawer}
+            disabled={!data}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-white/[0.04] disabled:opacity-50"
+            style={{ color: "var(--gold)", background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.24)" }}
+          >
+            <CreditCard size={14} /> Pay Supplier
           </button>
           <button
             type="button"
@@ -758,7 +1098,7 @@ export default function AccountingPage() {
           {activeTab === "revenue" && <RevenueTab data={data} />}
           {activeTab === "purchases" && <PurchasesTab data={data} />}
           {activeTab === "expenses" && <ExpensesTab data={data} onAddExpense={openExpenseDrawer} />}
-          {activeTab === "suppliers" && <SuppliersTab data={data} />}
+          {activeTab === "suppliers" && <SuppliersTab data={data} onPaySupplier={openPaySupplierDrawer} />}
           {activeTab === "activity" && (
             <ActivityTab
               data={data}
@@ -778,6 +1118,17 @@ export default function AccountingPage() {
         onChange={(patch) => setExpenseForm((current) => ({ ...current, ...patch }))}
         onClose={closeExpenseDrawer}
         onSubmit={() => void submitExpense()}
+      />
+
+      <PaySupplierDrawer
+        open={paySupplierOpen}
+        data={data}
+        form={paySupplierForm}
+        saving={paySupplierSaving}
+        error={paySupplierError}
+        onChange={(patch) => setPaySupplierForm((current) => ({ ...current, ...patch }))}
+        onClose={closePaySupplierDrawer}
+        onSubmit={() => void submitPaySupplier()}
       />
     </div>
   );
@@ -1136,7 +1487,7 @@ function ExpensesTab({ data, onAddExpense }: { data: AdminAccountingData; onAddE
 
 // ── Suppliers ────────────────────────────────────────────────────────────────
 
-function SuppliersTab({ data }: { data: AdminAccountingData }) {
+function SuppliersTab({ data, onPaySupplier }: { data: AdminAccountingData; onPaySupplier: () => void }) {
   const openSuppliers = data.supplierBalances.filter((s) => s.payable > 0).length;
   return (
     <div className="space-y-5">
@@ -1146,7 +1497,23 @@ function SuppliersTab({ data }: { data: AdminAccountingData }) {
         <KpiCard label="Suppliers With Balance" value={String(openSuppliers)} tone="gold" icon={Landmark} />
       </div>
 
-      <Surface title="Supplier Balances" caption="Payable = unpaid purchase balances (purchase total − amount paid), from real purchases." icon={CreditCard}>
+      <Surface
+        title="Supplier Balances"
+        caption="Payable = unpaid purchase balances (purchase total − amount paid), from real purchases."
+        icon={CreditCard}
+        right={
+          data.supplierPayable > 0 ? (
+            <button
+              type="button"
+              onClick={onPaySupplier}
+              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
+              style={{ color: "#120d09", background: "var(--gold)" }}
+            >
+              <CreditCard size={14} /> Pay Supplier
+            </button>
+          ) : undefined
+        }
+      >
         {data.supplierBalances.length === 0 ? (
           <EmptyState icon={CreditCard} message="No supplier purchases recorded yet." />
         ) : (

@@ -86,6 +86,7 @@ export type AccountingOrderRow = {
 
 export type AccountingPurchaseRow = {
   id: string;
+  supplierId: string;
   date: string;
   supplierName: string;
   reference: string | null;
@@ -559,6 +560,7 @@ export async function getAdminAccounting(): Promise<AdminAccountingData> {
 
     return {
       id: row.id,
+      supplierId: row.supplier_id,
       date: row.purchase_date,
       supplierName: supplierNameById.get(row.supplier_id) ?? "Supplier",
       reference: row.reference,
