@@ -74,8 +74,8 @@ Last updated: 2026-06-28
 |---|---|---|---|
 | `/about` | Inline constants `INTRO`, `PHILOSOPHY`, `JOURNEY`, `QUOTE`, `CTA_SECTION` in `about/page.tsx` | `dark-roast.png`, `roastery.png` | Static |
 | `/contact` | Inline `SITE_CONTACT` (WhatsApp/phone/email/location) + `FAQ_ITEMS` in `contact/page.tsx` | `roastery.png` | Static |
-| `/blog` | `src/lib/mock-data/blog-data.ts` (`BlogPost[]`) | per-post `image` | Static *(→ future CMS optional)* |
-| `/blog/[slug]` | `blog-data.ts` body blocks | cover image | Static |
+| `/blog` | published rows from Supabase `blog_posts` via `src/lib/cms/public-blog.ts` | `card_image` with `hero_image` fallback | **Real (Phase 13A)** |
+| `/blog/[slug]` | published `blog_posts.content_en/content_ar`, parsed into existing heading/paragraph blocks | `hero_image` with `card_image` fallback | **Real (Phase 13A)** |
 | `/privacy` `/terms` `/shipping` `/returns` | Inline `sections` array in each route via `src/components/ui/LegalPageLayout.tsx` | hero only | Static |
 
 ---

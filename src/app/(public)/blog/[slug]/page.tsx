@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Calendar, Clock, Tag } from "lucide-react";
+import { listPublishedBlogPosts, type PublicBlogPost } from "@/lib/cms/public-blog";
 import { useLanguage } from "@/lib/context/language";
-import { blogPosts } from "@/lib/mock-data/blog-data";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
 
@@ -13,11 +14,62 @@ export default function BlogPostPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { t, dir, language } = useLanguage();
+  const [posts, setPosts] = useState<PublicBlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  const post = blogPosts.find((p) => p.slug === slug);
+  useEffect(() => {
+    let cancelled = false;
+    void listPublishedBlogPosts()
+      .then((publishedPosts) => {
+        if (cancelled) return;
+        setPosts(publishedPosts);
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const post = posts.find((item) => item.slug === slug);
   const related = post
-    ? blogPosts.filter((p) => p.slug !== slug).slice(0, 2)
+    ? posts.filter((item) => item.slug !== slug).slice(0, 2)
     : [];
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
+        <p className="text-lg text-[#D6B79A]/50">
+          {t({ en: "Loading article...", ar: "جارٍ تحميل المقال..." })}
+        </p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
+        <p className="text-lg text-[#D6B79A]/50">
+          {t({
+            en: "Article could not be loaded. Please try again.",
+            ar: "تعذر تحميل المقال. يرجى المحاولة مرة أخرى.",
+          })}
+        </p>
+        <Link
+          href="/blog"
+          className="mt-5 text-sm font-semibold text-[#D6A373] hover:underline"
+        >
+          {t({ en: "Back to Blog", ar: "العودة إلى المدونة" })}
+        </Link>
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -42,7 +94,7 @@ export default function BlogPostPage() {
       <section className="products-hero relative overflow-hidden pb-0 pt-28 lg:pt-36">
         <div className="relative h-[42vh] min-h-[260px] md:h-[52vh]">
           <Image
-            src={post.image}
+            src={post.heroImage}
             alt={t(post.title)}
             fill
             priority

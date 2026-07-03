@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–11, Phase 12A (Admin Customers), and Phase 13A (CMS real data) are applied. Phase-13A migration `20260703140000` adds real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, and real contact submissions. Broad mock admin UI wiring remains deferred. Product-image follow-up, accounting dashboards, and analytics remain unstarted.
+**Position:** Phases 1–11, Phase 12A (Admin Customers), and Phase 13A (CMS real data) are applied. Phase-13A migrations `20260703140000` and `20260703150000` add real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, real contact submissions, and the canonical launch blog seed. Admin CMS and both public blog routes now share `public.blog_posts`. Broad mock admin UI wiring remains deferred. Product-image follow-up, accounting dashboards, and analytics remain unstarted.
 
 ---
 
@@ -180,6 +180,16 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-03] — Phase 13A micro-fix: unified Admin CMS + public Blog data
+
+**Root cause:** Admin CMS correctly read `public.blog_posts`, but `/blog` and `/blog/[slug]` still imported the independent static `src/lib/mock-data/blog-data.ts`. The database was empty, so Admin showed 0 while the public site rendered six disconnected articles.
+
+**Fix:** added and applied additive migration `20260703150000_phase13a_seed_launch_blog.sql`, which idempotently seeds those same six canonical launch articles as published rows (`on conflict (slug) do nothing`, so existing CMS content is never overwritten). Added `src/lib/cms/public-blog.ts` as the published-only browser data layer. The public list/detail routes now use it for articles, featured selection, categories, search/filter, detail content, related articles, dates, and image fields. `blog-data.ts` was deleted; zero published rows now produce an honest empty state.
+
+**Security/validation:** public queries explicitly filter `status = published` and `published_at <= now()` in addition to existing RLS. Live SQL reports 6 published rows; a rolled-back anon test saw 6 published and 0 draft rows. TypeScript, targeted ESLint, migration list/dry-run/push, requested SQL count, `git diff --check`, and route smoke passed. No public/Admin redesign, dashboard cleanup, service-role code, or remote Git push.
+
+---
 
 ### [2026-07-03] — Phase 13A: Admin CMS real data (applied)
 

@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Calendar, Clock, Search, Tag, X } from "lucide-react";
+import { listPublishedBlogPosts, type PublicBlogPost } from "@/lib/cms/public-blog";
 import { useLanguage } from "@/lib/context/language";
-import { blogPosts } from "@/lib/mock-data/blog-data";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
 
@@ -13,20 +13,42 @@ export default function BlogPage() {
   const { t, dir, language } = useLanguage();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [posts, setPosts] = useState<PublicBlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  const featured = blogPosts.find((p) => p.featured);
-  const rest = useMemo(() => blogPosts.filter((p) => !p.featured), []);
+  useEffect(() => {
+    let cancelled = false;
+    void listPublishedBlogPosts()
+      .then((publishedPosts) => {
+        if (cancelled) return;
+        setPosts(publishedPosts);
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const featured = posts.find((post) => post.featured);
+  const rest = useMemo(() => posts.filter((post) => !post.featured), [posts]);
 
   const categories = useMemo(() => {
     const seen = new Set<string>();
-    return blogPosts
+    return posts
       .map((p) => p.category)
       .filter((cat) => {
         if (seen.has(cat.en)) return false;
         seen.add(cat.en);
         return true;
       });
-  }, []);
+  }, [posts]);
 
   const filtered = useMemo(() => {
     const lq = query.toLowerCase();
@@ -212,7 +234,31 @@ export default function BlogPage() {
           </div>
 
           {/* Grid */}
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-20 text-center">
+              <p className="text-[#D6B79A]/50">
+                {t({ en: "Loading articles...", ar: "جارٍ تحميل المقالات..." })}
+              </p>
+            </div>
+          ) : loadError ? (
+            <div className="py-20 text-center">
+              <p className="text-[#D6B79A]/50">
+                {t({
+                  en: "Articles could not be loaded. Please try again.",
+                  ar: "تعذر تحميل المقالات. يرجى المحاولة مرة أخرى.",
+                })}
+              </p>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="py-20 text-center">
+              <p className="text-[#D6B79A]/50">
+                {t({
+                  en: "No published articles yet.",
+                  ar: "لا توجد مقالات منشورة حتى الآن.",
+                })}
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="py-20 text-center">
               <p className="text-[#D6B79A]/50">
                 {t({ en: "No articles found.", ar: "لا توجد مقالات." })}

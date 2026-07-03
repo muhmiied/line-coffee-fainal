@@ -3,8 +3,9 @@
 //
 // Phase 13A. Live database contract reference.
 //
-// Runtime row mapping lives in `admin/admin-cms.ts`; public approved-review and
-// contact-submit boundaries live in `cms/public-cms.ts`.
+// Runtime row mapping lives in `admin/admin-cms.ts`; public blog reads live in
+// `cms/public-blog.ts`; approved-review/contact boundaries live in
+// `cms/public-cms.ts`.
 
 import type {
   ID,
