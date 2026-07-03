@@ -22,13 +22,13 @@
 The app runs browser-only on the Supabase **publishable/anon key**; all writes go through **SECURITY DEFINER RPCs** that validate + recompute server-side. Customer data is scoped by device **`guest_id`**; admin by `admin_users` + `is_admin()`.
 
 - **REAL (Supabase):** public catalog; admin product/category CRUD; **checkout → real orders** (`create_checkout_order`); inventory **reservation in kg per product** (`inventory_stock` + `inventory_movements`); **Admin Orders** (`update_admin_order_status`); **Customer Account** (orders, profile, addresses, wishlist, notifications); real auth.
-- **MOCK (UI only, resets on refresh):** Admin Dashboard, broad Inventory UI, Customers, broad Marketing admin, Accounting, Analytics, CMS, Espresso Manager, Flavor Manager. Phase-6/7 backend/data layers are authored but these broad mock screens are intentionally not partially rewired.
+- **MOCK (UI only, resets on refresh):** Admin Dashboard, broad Inventory UI, broad Marketing admin, Accounting, Analytics, Espresso Manager, Flavor Manager. Phase-6/7 backend/data layers are authored but these broad mock screens are intentionally not partially rewired.
 - **LOCAL:** Cart persists per explicit owner in localStorage (`guest:<guestId>` / `auth:<userId>`); the legacy global `line-cart-v1` key is purged and never read.
 - **PHASE 4 FOUNDATION (applied):** migration `20260630120000` adds admin-only `suppliers` / `purchases` / `purchase_items` / `inventory_lots` / `supplier_payments` / `expenses` + purchasing RPCs. Data layer: `src/lib/admin/admin-purchasing.ts`; broad admin UI wiring remains deferred.
 - **PHASE 5 FIFO ENGINE (applied):** migration `20260630130000` makes finished-product lots operational. Checkout reserves FIFO lots; delivered deducts and snapshots COGS; cancel releases; shipped does not deduct.
 - **PHASE 6-7 PACKAGING + PROMOS (applied):** migration `20260701104031` wraps the Phase-5 checkout core with retry-safe server promo pricing and non-blocking packaging deduction/shortage snapshots.
 - **PHASE 8-9 BUILDERS (applied):** migration `20260701120000` adds the separate raw-bean FIFO resource and cost-only flavor catalog. Checkout accepts, validates, and server-prices `custom_espresso`/`custom_flavor`; espresso reserves bean lots; flavor has no stock effect. Packaging remains product-only by documented deferral.
-- **MISSING (no DB):** refunds/returns · reviews · contact_messages · analytics. **Media Studio does not exist and is cancelled (Decision 1).**
+- **MISSING (no DB):** analytics. **Media Studio does not exist and is cancelled (Decision 1).**
 - **Builders:** `CartItem.customData` carries the structured bean-ratio / base+flavor selection, and live checkout now accepts both builder kinds.
 - **Applied lifecycle:** checkout reserves inventory, `shipped` keeps it reserved, `delivered` deducts it, and `cancelled` releases it.
 
@@ -36,7 +36,7 @@ The app runs browser-only on the Supabase **publishable/anon key**; all writes g
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
-**Position:** Phases 1–11 are applied. Phase-6/7 migration `20260701104031` preserves the Phase-5 coffee FIFO core under its public wrapper and adds packaging/promo pricing. Phase-8/9 migration `20260701120000` extends that core for custom espresso manufacturing and cost-only flavor checkout. Phase-10/11 migration `20260703120000` adds admin payments/refunds/returns ledgers + RPCs and safe admin-note editing (money & sellable-restock derived from real data; checkout/FIFO/COGS untouched; order item editing deferred as unsafe). Broad mock admin UI wiring remains deferred. **Phase 12+ (product images / reviews / accounting dashboards / analytics) has not started.**
+**Position:** Phases 1–11, Phase 12A (Admin Customers), and Phase 13A (CMS real data) are applied. Phase-13A migration `20260703140000` adds real blog/review/contact/legal tables, RLS, admin CMS RPCs, approved-only public reviews, and real contact submissions. Broad mock admin UI wiring remains deferred. Product-image follow-up, accounting dashboards, and analytics remain unstarted.
 
 ---
 
@@ -180,6 +180,20 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-03] — Phase 13A: Admin CMS real data (applied)
+
+**Goal:** Replace only the Admin CMS Blog, Reviews, Contact Messages, and Legal Pages mock state with real Supabase data while preserving the public design and existing public blog routes.
+
+**Migration `supabase/migrations/20260703140000_phase13a_cms_real_data.sql` (applied):** adds `blog_posts`, `reviews`, `contact_messages`, and `legal_pages`; enables RLS on all four; grants public reads only for published blog/legal rows and approved, non-hidden reviews; keeps contact messages admin-readable only; and adds validated SECURITY DEFINER RPCs for admin CMS writes plus public contact submission. No service-role code. No fake blog/review/contact rows were seeded; four empty draft legal-page shells are the only defaults.
+
+**Application:** `src/lib/admin/admin-cms.ts` is the real admin data layer. `src/app/admin/cms/page.tsx` now loads and mutates Supabase rows; review approve/reject, blog draft/publish/feature/archive, contact status/notes, and legal draft/publish are persistent. The fabricated `src/lib/mock-data/admin/cms-mock.ts` and fake Recent Activity card were removed. Public homepage testimonials now query only approved homepage/both reviews, and both contact forms persist through `create_contact_message`. Existing `/blog` and `/blog/[slug]` rendering remains unchanged in this subphase so public editorial routes do not disappear when the new table starts empty.
+
+**Validation:** TypeScript and targeted ESLint passed; migration dry-run and `git diff --check` passed; migration list is synchronized after `db push`; live SQL confirms four RLS-enabled tables, expected policies, no anonymous contact SELECT privilege, and only four empty draft legal shells. Transactional RPC smoke (rolled back) covered review pending→approved→rejected, blog draft→published, and contact creation. Browser smoke passed for `/admin/cms` (protected redirect without a stored admin session), `/blog`, `/blog/origins-of-arabic-coffee`, `/contact`, and `/`, with no console errors. Full signed-in admin visual QA remains owner-session dependent.
+
+**Confirm:** Phase 13A only · no public redesign · no dashboard cleanup · no service role · no remote Git push.
+
+---
 
 ### [2026-07-03] — Phase 12A: Admin Customers real data (applied)
 

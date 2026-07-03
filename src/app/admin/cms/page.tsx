@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import {
   Archive,
   BookOpen,
-  Camera,
   Check,
   Clipboard,
   Copy,
@@ -23,22 +22,18 @@ import {
   Plus,
   Send,
   Star,
-  Trash2,
   X,
 } from "lucide-react";
 import { getAdminDisplayName } from "@/lib/auth/admin";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 import {
-  CMS_ACTIVITY,
-  CMS_ARTICLES,
-  CMS_CONTACT_MESSAGES,
+  getAdminCmsData,
   CMS_IMAGE_OPTIONS,
-  CMS_LEGAL_PAGES,
-  CMS_PROOF_IMAGE_OPTIONS,
-  CMS_REVIEWS,
-  type ActivityTone,
+  saveAdminArticle,
+  saveAdminContactMessage,
+  saveAdminLegalPage,
+  saveAdminReview,
   type ArticleStatus,
-  type CmsActivity,
   type CmsArticle,
   type CmsContactMessage,
   type CmsLegalPage,
@@ -49,13 +44,14 @@ import {
   type ReviewDisplayTarget,
   type ReviewSource,
   type ReviewStatus,
-} from "@/lib/mock-data/admin/cms-mock";
+} from "@/lib/admin/admin-cms";
 
 type ActiveTab = "blog" | "reviews" | "legal" | "contact";
 type ReviewFilter = ReviewStatus | "Featured";
 type Tone = "neutral" | "gold" | "green" | "amber" | "red";
+type ActivityTone = "gold" | "green" | "amber" | "red" | "cream";
 
-const TODAY = "2026-06-22";
+const TODAY = new Date().toISOString().slice(0, 10);
 
 const TAB_OPTIONS: Array<{ key: ActiveTab; label: string; icon: ComponentType<{ size?: number; className?: string }> }> = [
   { key: "blog", label: "Blog", icon: BookOpen },
@@ -96,20 +92,12 @@ const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }
   Both: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#4ade80" },
 };
 
-const ACTIVITY_STYLE: Record<ActivityTone, string> = {
-  gold: "#d6a373",
-  green: "#4ade80",
-  amber: "#fbbf24",
-  red: "#f87171",
-  cream: "#f5e6d8",
-};
-
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function makeId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+function makeId() {
+  return crypto.randomUUID();
 }
 
 function slugify(value: string) {
@@ -140,7 +128,7 @@ function bumpVersion(version: string) {
 
 function createEmptyArticle(authorName = ""): CmsArticle {
   return {
-    id: makeId("ART"),
+    id: makeId(),
     slug: "",
     title: { en: "", ar: "" },
     excerpt: { en: "", ar: "" },
@@ -150,6 +138,7 @@ function createEmptyArticle(authorName = ""): CmsArticle {
     status: "Draft",
     featured: false,
     views: 0,
+    updatedDate: TODAY,
     readTime: { en: "4 min read", ar: "٤ دقائق قراءة" },
     tags: [],
     heroImage: CMS_IMAGE_OPTIONS[0],
@@ -162,14 +151,12 @@ function createEmptyArticle(authorName = ""): CmsArticle {
 
 function createEmptyReview(): CmsReview {
   return {
-    id: makeId("REV"),
-    customer: { name: "", phone: "", email: "" },
+    id: makeId(),
+    customer: { name: "" },
     product: "",
     rating: 5,
     reviewText: { en: "", ar: "" },
     source: "Manual",
-    proofScreenshot: CMS_PROOF_IMAGE_OPTIONS[0],
-    internalNotes: "",
     status: "Pending",
     featured: false,
     hidden: false,
@@ -535,14 +522,12 @@ function ArticleDrawer({
   onClose,
   onSave,
   onDuplicate,
-  onDelete,
 }: {
   article: CmsArticle | null;
   authorName: string;
   onClose: () => void;
   onSave: (article: CmsArticle, activity: string, tone?: ActivityTone) => void;
   onDuplicate: (article: CmsArticle) => void;
-  onDelete: (article: CmsArticle) => void;
 }) {
   const [form, setForm] = useState<CmsArticle>(() => article ?? createEmptyArticle(authorName));
   const [tagsText, setTagsText] = useState(() => (article?.tags ?? []).map((tag) => tag.en).join(", "));
@@ -559,7 +544,7 @@ function ArticleDrawer({
   const buildArticle = (status = form.status): CmsArticle => ({
     ...form,
     status,
-    slug: form.slug || slugify(form.title.en) || makeId("article").toLowerCase(),
+    slug: form.slug || slugify(form.title.en) || makeId(),
     views: Number.isFinite(Number(form.views)) ? Number(form.views) : 0,
     publishDate: status === "Published" ? form.publishDate || TODAY : status === "Draft" ? undefined : form.publishDate,
     tags: parseTags(tagsText),
@@ -679,19 +664,6 @@ function ArticleDrawer({
                 <ActionButton title="Archive article" icon={Archive} tone="amber" onClick={() => { onSave(buildArticle("Archived"), "archived article", "amber"); onClose(); }}>
                   Archive
                 </ActionButton>
-                <ActionButton
-                  title="Delete article"
-                  icon={Trash2}
-                  tone="red"
-                  onClick={() => {
-                    if (window.confirm("Delete this article?")) {
-                      onDelete(form);
-                      onClose();
-                    }
-                  }}
-                >
-                  Delete
-                </ActionButton>
               </>
             )}
           </div>
@@ -717,10 +689,6 @@ function ReviewDrawer({
   const [form, setForm] = useState<CmsReview>(() => review ?? createEmptyReview());
   const isNew = !review;
 
-  const setCustomer = (field: keyof CmsReview["customer"], value: string) => {
-    setForm((current) => ({ ...current, customer: { ...current.customer, [field]: value } }));
-  };
-
   const setReviewText = (lang: keyof LocalizedText, value: string) => {
     setForm((current) => ({ ...current, reviewText: { ...current.reviewText, [lang]: value } }));
   };
@@ -735,16 +703,16 @@ function ReviewDrawer({
       <div className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-5 py-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Customer">
-            <TextInput value={form.customer.name} onChange={(value) => setCustomer("name", value)} />
+            <TextInput
+              value={form.customer.name}
+              onChange={(value) => setForm((current) => ({
+                ...current,
+                customer: { name: value },
+              }))}
+            />
           </Field>
           <Field label="Product">
             <TextInput value={form.product} onChange={(value) => setForm((current) => ({ ...current, product: value }))} />
-          </Field>
-          <Field label="Phone">
-            <TextInput value={form.customer.phone} onChange={(value) => setCustomer("phone", value)} />
-          </Field>
-          <Field label="Email">
-            <TextInput value={form.customer.email} onChange={(value) => setCustomer("email", value)} />
           </Field>
           <Field label="Source">
             <SelectInput value={form.source} onChange={(value) => setForm((current) => ({ ...current, source: value as ReviewSource }))}>
@@ -778,23 +746,6 @@ function ReviewDrawer({
             <TextArea value={form.reviewText.ar} onChange={(value) => setReviewText("ar", value)} dir="rtl" rows={5} />
           </Field>
         </div>
-
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
-          <Field label="Proof Screenshot">
-            <SelectInput value={form.proofScreenshot ?? ""} onChange={(value) => setForm((current) => ({ ...current, proofScreenshot: value || undefined }))}>
-              <option value="">No screenshot</option>
-              {CMS_PROOF_IMAGE_OPTIONS.map((image) => (
-                <option key={image} value={image}>{image}</option>
-              ))}
-            </SelectInput>
-          </Field>
-          <ImagePreview src={form.proofScreenshot} label="Internal proof" />
-        </div>
-        <p className="-mt-3 text-[11px] text-[#6b5744]">Screenshot is internal proof only. It does not need to appear publicly.</p>
-
-        <Field label="Internal Notes">
-          <TextArea value={form.internalNotes} onChange={(value) => setForm((current) => ({ ...current, internalNotes: value }))} rows={4} />
-        </Field>
 
         <div>
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]/55">Website Preview Card</p>
@@ -994,7 +945,6 @@ function BlogTab({
   onEdit,
   onDuplicate,
   onArchive,
-  onDelete,
   onTogglePublish,
   onToggleFeatured,
 }: {
@@ -1003,7 +953,6 @@ function BlogTab({
   onEdit: (article: CmsArticle) => void;
   onDuplicate: (article: CmsArticle) => void;
   onArchive: (article: CmsArticle) => void;
-  onDelete: (article: CmsArticle) => void;
   onTogglePublish: (article: CmsArticle) => void;
   onToggleFeatured: (article: CmsArticle) => void;
 }) {
@@ -1027,6 +976,7 @@ function BlogTab({
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Views</th>
               <th className="px-4 py-3 font-semibold">Publish Date</th>
+              <th className="px-4 py-3 font-semibold">Updated</th>
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
@@ -1054,6 +1004,7 @@ function BlogTab({
                 </td>
                 <td className="px-4 py-3 font-mono text-[#f5e6d8]">{formatNumber(article.views)}</td>
                 <td className="px-4 py-3 text-[#b79b85]">{article.publishDate ?? "—"}</td>
+                <td className="px-4 py-3 text-[#b79b85]">{article.updatedDate || "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
                     <IconButton title="Edit article" icon={Edit3} onClick={() => onEdit(article)} />
@@ -1061,9 +1012,6 @@ function BlogTab({
                     <IconButton title={article.featured ? "Remove featured badge" : "Mark featured"} icon={Star} tone="gold" onClick={() => onToggleFeatured(article)} />
                     <IconButton title={article.status === "Published" ? "Unpublish article" : "Publish article"} icon={article.status === "Published" ? EyeOff : Eye} tone={article.status === "Published" ? "amber" : "green"} onClick={() => onTogglePublish(article)} />
                     <IconButton title="Archive article" icon={Archive} tone="amber" onClick={() => onArchive(article)} />
-                    <IconButton title="Delete article" icon={Trash2} tone="red" onClick={() => {
-                      if (window.confirm("Delete this article?")) onDelete(article);
-                    }} />
                   </div>
                 </td>
               </tr>
@@ -1132,7 +1080,6 @@ function ReviewsTab({
               <th className="px-4 py-3 font-semibold">Product</th>
               <th className="px-4 py-3 font-semibold">Rating</th>
               <th className="px-4 py-3 font-semibold">Show On</th>
-              <th className="px-4 py-3 font-semibold">Proof</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
@@ -1143,16 +1090,13 @@ function ReviewsTab({
                 <td className="px-4 py-3">
                   <button type="button" onClick={() => onOpen(review)} className="text-left">
                     <p className="font-semibold text-[#f5e6d8]">{review.customer.name}</p>
-                    <p className="mt-0.5 text-[10px] text-[#6b5744]">{review.customer.phone}</p>
+                    <p className="mt-0.5 text-[10px] text-[#6b5744]">{review.date}</p>
                   </button>
                 </td>
                 <td className="px-4 py-3"><StatusPill label={review.source} /></td>
                 <td className="px-4 py-3 text-[#b79b85]">{review.product}</td>
                 <td className="px-4 py-3"><Stars rating={review.rating} /></td>
                 <td className="px-4 py-3 text-[#b79b85]">{review.showOn}</td>
-                <td className="px-4 py-3">
-                  {review.proofScreenshot ? <Camera size={14} className="text-[#b6885e]" /> : <span className="text-[#6b5744]">—</span>}
-                </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">
                     <StatusPill label={review.hidden ? "Hidden" : review.status} />
@@ -1326,11 +1270,12 @@ export default function CmsPage() {
   const currentAdminName = admin ? getAdminDisplayName(admin) : "";
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("blog");
-  const [articles, setArticles] = useState<CmsArticle[]>(CMS_ARTICLES);
-  const [reviews, setReviews] = useState<CmsReview[]>(CMS_REVIEWS);
-  const [legalPages, setLegalPages] = useState<CmsLegalPage[]>(CMS_LEGAL_PAGES);
-  const [messages, setMessages] = useState<CmsContactMessage[]>(CMS_CONTACT_MESSAGES);
-  const [activities, setActivities] = useState<CmsActivity[]>(CMS_ACTIVITY);
+  const [articles, setArticles] = useState<CmsArticle[]>([]);
+  const [reviews, setReviews] = useState<CmsReview[]>([]);
+  const [legalPages, setLegalPages] = useState<CmsLegalPage[]>([]);
+  const [messages, setMessages] = useState<CmsContactMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("Pending");
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
 
@@ -1338,6 +1283,33 @@ export default function CmsPage() {
   const [reviewDrawer, setReviewDrawer] = useState<CmsReview | "new" | null>(null);
   const [legalDrawer, setLegalDrawer] = useState<{ page: CmsLegalPage; preview: boolean } | null>(null);
   const [contactDrawer, setContactDrawer] = useState<CmsContactMessage | null>(null);
+
+  useEffect(() => {
+    if (!admin) return;
+    let cancelled = false;
+
+    void getAdminCmsData()
+      .then((data) => {
+        if (cancelled) return;
+        setArticles(data.articles);
+        setReviews(data.reviews);
+        setLegalPages(data.legalPages);
+        setMessages(data.messages);
+        setActionError(null);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setActionError(error instanceof Error ? error.message : "Could not load CMS data.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [admin]);
 
   const health = useMemo(() => ({
     draftArticles: articles.filter((article) => article.status === "Draft").length,
@@ -1353,39 +1325,38 @@ export default function CmsPage() {
     contact: messages.filter((message) => message.status !== "Archived").length,
   }), [articles.length, legalPages.length, messages, reviews]);
 
-  const addActivity = (action: string, target: string, tone: ActivityTone = "gold") => {
-    setActivities((current) => [
-      {
-        id: makeId("ACT"),
-        actor: currentAdminName || "Current admin",
-        action,
-        target,
-        time: "Just now",
-        tone,
-      },
-      ...current,
-    ].slice(0, 8));
-  };
-
   const copyToClipboard = (value: string, label: string) => {
     void navigator.clipboard?.writeText(value).catch(() => undefined);
     setCopiedLabel(label);
     window.setTimeout(() => setCopiedLabel(null), 1400);
   };
 
-  const saveArticle = (article: CmsArticle, activity: string, tone: ActivityTone = "gold") => {
-    setArticles((current) => {
-      const exists = current.some((item) => item.id === article.id);
-      return exists ? current.map((item) => (item.id === article.id ? article : item)) : [article, ...current];
-    });
-    addActivity(activity, article.title.en || "Untitled article", tone);
+  const saveArticle = async (
+    article: CmsArticle,
+    _activity: string,
+    _tone: ActivityTone = "gold",
+  ) => {
+    void _activity;
+    void _tone;
+    try {
+      setActionError(null);
+      const saved = await saveAdminArticle(article);
+      setArticles((current) => {
+        const exists = current.some((item) => item.id === saved.id);
+        return exists
+          ? current.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current];
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not save the article.");
+    }
   };
 
-  const duplicateArticle = (article: CmsArticle) => {
+  const duplicateArticle = async (article: CmsArticle) => {
     const copy: CmsArticle = {
       ...article,
-      id: makeId("ART"),
-      slug: `${article.slug || slugify(article.title.en)}-copy`,
+      id: makeId(),
+      slug: `${article.slug || slugify(article.title.en)}-copy-${makeId().slice(0, 8)}`,
       title: {
         en: `${article.title.en} Copy`,
         ar: `${article.title.ar} نسخة`,
@@ -1393,20 +1364,15 @@ export default function CmsPage() {
       status: "Draft",
       featured: false,
       publishDate: undefined,
+      updatedDate: TODAY,
       views: 0,
     };
-    setArticles((current) => [copy, ...current]);
-    addActivity("duplicated article", article.title.en, "gold");
+    await saveArticle(copy, "duplicated article", "gold");
   };
 
-  const deleteArticle = (article: CmsArticle) => {
-    setArticles((current) => current.filter((item) => item.id !== article.id));
-    addActivity("deleted article", article.title.en, "red");
-  };
-
-  const toggleArticlePublish = (article: CmsArticle) => {
+  const toggleArticlePublish = async (article: CmsArticle) => {
     const published = article.status === "Published";
-    saveArticle(
+    await saveArticle(
       {
         ...article,
         status: published ? "Draft" : "Published",
@@ -1417,30 +1383,65 @@ export default function CmsPage() {
     );
   };
 
-  const toggleArticleFeatured = (article: CmsArticle) => {
-    saveArticle(
+  const toggleArticleFeatured = async (article: CmsArticle) => {
+    await saveArticle(
       { ...article, featured: !article.featured },
       article.featured ? "unfeatured article" : "featured article",
       "gold",
     );
   };
 
-  const saveReview = (review: CmsReview, activity: string, tone: ActivityTone = "gold") => {
-    setReviews((current) => {
-      const exists = current.some((item) => item.id === review.id);
-      return exists ? current.map((item) => (item.id === review.id ? review : item)) : [review, ...current];
-    });
-    addActivity(activity, `${review.customer.name || "Customer"} / ${review.product || "Review"}`, tone);
+  const saveReview = async (
+    review: CmsReview,
+    _activity: string,
+    _tone: ActivityTone = "gold",
+  ) => {
+    void _activity;
+    void _tone;
+    try {
+      setActionError(null);
+      const saved = await saveAdminReview(review);
+      setReviews((current) => {
+        const exists = current.some((item) => item.id === saved.id);
+        return exists
+          ? current.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current];
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not save the review.");
+    }
   };
 
-  const saveLegalPage = (page: CmsLegalPage, activity: string, tone: ActivityTone = "gold") => {
-    setLegalPages((current) => current.map((item) => (item.id === page.id ? page : item)));
-    addActivity(activity, page.page, tone);
+  const saveLegalPage = async (
+    page: CmsLegalPage,
+    _activity: string,
+    _tone: ActivityTone = "gold",
+  ) => {
+    void _activity;
+    void _tone;
+    try {
+      setActionError(null);
+      const saved = await saveAdminLegalPage(page);
+      setLegalPages((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not save the legal page.");
+    }
   };
 
-  const saveMessage = (message: CmsContactMessage, activity: string, tone: ActivityTone = "gold") => {
-    setMessages((current) => current.map((item) => (item.id === message.id ? message : item)));
-    addActivity(activity, message.subject, tone);
+  const saveMessage = async (
+    message: CmsContactMessage,
+    _activity: string,
+    _tone: ActivityTone = "gold",
+  ) => {
+    void _activity;
+    void _tone;
+    try {
+      setActionError(null);
+      const saved = await saveAdminContactMessage(message);
+      setMessages((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not save the contact message.");
+    }
   };
 
   const drawerArticle = articleDrawer === "new" ? null : articleDrawer;
@@ -1450,6 +1451,14 @@ export default function CmsPage() {
     return (
       <div className="admin-surface p-6 text-sm text-[#b79b85]">
         Loading admin session...
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="admin-surface p-6 text-sm text-[#b79b85]">
+        Loading real CMS data...
       </div>
     );
   }
@@ -1474,33 +1483,19 @@ export default function CmsPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="admin-surface overflow-hidden">
-          <SectionTitle icon={FileText} title="Content health" />
-          <div className="grid grid-cols-2 gap-3 p-3 lg:grid-cols-4">
-            <KpiCard label="Draft Articles" value={health.draftArticles} icon={BookOpen} tone="amber" onClick={() => setActiveTab("blog")} />
-            <KpiCard label="Pending Reviews" value={health.pendingReviews} icon={Star} tone="gold" onClick={() => setActiveTab("reviews")} />
-            <KpiCard label="Unanswered Messages" value={health.unansweredMessages} icon={Inbox} tone="red" onClick={() => setActiveTab("contact")} />
-            <KpiCard label="Legal Drafts" value={health.legalDrafts} icon={Gavel} tone={health.legalDrafts > 0 ? "amber" : "green"} onClick={() => setActiveTab("legal")} />
-          </div>
+      {actionError && (
+        <div className="rounded-lg border border-[#f87171]/25 bg-[#f87171]/10 px-4 py-3 text-xs font-semibold text-[#fca5a5]">
+          {actionError}
         </div>
+      )}
 
-        <div className="admin-surface overflow-hidden">
-          <SectionTitle icon={MessageSquare} title="Recent activity" />
-          <div className="space-y-0 px-4 py-1.5">
-            {activities.slice(0, 4).map((activity, index) => (
-              <div key={activity.id} className="relative flex gap-3 py-2.5">
-                {index < Math.min(activities.length, 4) - 1 && <span className="absolute left-[5px] top-6 h-[calc(100%-0.75rem)] w-px bg-[#2a2018]" />}
-                <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: ACTIVITY_STYLE[activity.tone] }} />
-                <div className="min-w-0">
-                  <p className="text-xs text-[#f5e6d8]">
-                    <span className="font-semibold">{activity.actor}</span> {activity.action}
-                  </p>
-                  <p className="mt-0.5 truncate text-[11px] text-[#b79b85]/55">{activity.target} / {activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="admin-surface overflow-hidden">
+        <SectionTitle icon={FileText} title="Content health" />
+        <div className="grid grid-cols-2 gap-3 p-3 lg:grid-cols-4">
+          <KpiCard label="Draft Articles" value={health.draftArticles} icon={BookOpen} tone="amber" onClick={() => setActiveTab("blog")} />
+          <KpiCard label="Pending Reviews" value={health.pendingReviews} icon={Star} tone="gold" onClick={() => setActiveTab("reviews")} />
+          <KpiCard label="Unanswered Messages" value={health.unansweredMessages} icon={Inbox} tone="red" onClick={() => setActiveTab("contact")} />
+          <KpiCard label="Legal Drafts" value={health.legalDrafts} icon={Gavel} tone={health.legalDrafts > 0 ? "amber" : "green"} onClick={() => setActiveTab("legal")} />
         </div>
       </div>
 
@@ -1536,7 +1531,6 @@ export default function CmsPage() {
           onEdit={(article) => setArticleDrawer(article)}
           onDuplicate={duplicateArticle}
           onArchive={(article) => saveArticle({ ...article, status: "Archived" }, "archived article", "amber")}
-          onDelete={deleteArticle}
           onTogglePublish={toggleArticlePublish}
           onToggleFeatured={toggleArticleFeatured}
         />
@@ -1577,7 +1571,6 @@ export default function CmsPage() {
           onClose={() => setArticleDrawer(null)}
           onSave={saveArticle}
           onDuplicate={duplicateArticle}
-          onDelete={deleteArticle}
         />
       )}
 

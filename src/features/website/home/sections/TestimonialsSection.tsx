@@ -2,21 +2,34 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ArrowRight, Quote, Star } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
-import { assets, visualTestimonials } from "@/lib/mock-data/visual-content";
-import type { VisualTestimonial } from "@/types/homepage";
+import { assets } from "@/lib/mock-data/visual-content";
+import {
+  listApprovedHomepageReviews,
+  type PublicReview,
+} from "@/lib/cms/public-cms";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { cn } from "@/lib/utils/cn";
 
-type TestimonialsSectionProps = {
-  testimonials?: VisualTestimonial[];
-};
-
-export function TestimonialsSection({
-  testimonials = visualTestimonials,
-}: TestimonialsSectionProps) {
+export function TestimonialsSection() {
   const { dir, t } = useLanguage();
+  const [testimonials, setTestimonials] = useState<PublicReview[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listApprovedHomepageReviews()
+      .then((reviews) => {
+        if (!cancelled) setTestimonials(reviews);
+      })
+      .catch(() => {
+        if (!cancelled) setTestimonials([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -70,15 +83,24 @@ export function TestimonialsSection({
           </div>
         </div>
 
-        <div className="stagger-children grid gap-5 md:grid-cols-3">
-          {testimonials.map((testimonial) => (
-            <TestimonialCard
-              key={testimonial.name.en}
-              testimonial={testimonial}
-              t={t}
-            />
-          ))}
-        </div>
+        {testimonials.length > 0 ? (
+          <div className="stagger-children grid gap-5 md:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <TestimonialCard
+                key={testimonial.id}
+                testimonial={testimonial}
+                t={t}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-sm text-[#D6B79A]/55">
+            {t({
+              en: "Approved customer reviews will appear here.",
+              ar: "ستظهر آراء العملاء المعتمدة هنا.",
+            })}
+          </p>
+        )}
       </div>
       </section>
     </>
@@ -91,10 +113,10 @@ function TestimonialCard({
   testimonial,
   t,
 }: {
-  testimonial: VisualTestimonial;
+  testimonial: PublicReview;
   t: (v: { en: string; ar: string }) => string;
 }) {
-  const initials = t(testimonial.name)
+  const initials = testimonial.customerName
     .split(/\s+/)
     .map((part) => part[0])
     .slice(0, 2)
@@ -121,7 +143,7 @@ function TestimonialCard({
       </div>
 
       <p className="line-clamp-5 flex-1 text-[0.95rem] leading-[1.85] text-[#F5E6D8]/76">
-        {t(testimonial.quote)}
+        {t(testimonial.comment)}
       </p>
 
       {/* Author */}
@@ -131,10 +153,10 @@ function TestimonialCard({
         </div>
         <div className="min-w-0">
           <p className="truncate text-base font-bold leading-snug text-[#F5E6D8]">
-            {t(testimonial.name)}
+            {testimonial.customerName}
           </p>
           <p className="mt-0.5 truncate text-[11px] font-medium uppercase tracking-[0.14em] text-[#D6A373]/65">
-            {t(testimonial.meta)}
+            {testimonial.productName || t({ en: "Verified customer", ar: "عميل موثّق" })}
           </p>
         </div>
       </div>

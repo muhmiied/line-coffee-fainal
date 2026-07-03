@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
+import { submitContactMessage } from "@/lib/cms/public-cms";
 import { cn } from "@/lib/utils/cn";
 
 // ─── Contact constants ────────────────────────────────────────────────────────
@@ -137,15 +138,49 @@ export default function ContactPage() {
 
   const [form, setForm]           = useState<FormFields>(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [openFaq, setOpenFaq]     = useState<number | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitError(null);
+
+    if (!form.name.trim() || !form.subject || !form.message.trim()) {
+      setSubmitError(t({
+        en: "Please complete the required fields.",
+        ar: "يرجى استكمال الحقول المطلوبة.",
+      }));
+      return;
+    }
+
+    if (!form.phone.trim() && !form.email.trim()) {
+      setSubmitError(t({
+        en: "Please add a phone number or email.",
+        ar: "يرجى إضافة رقم هاتف أو بريد إلكتروني.",
+      }));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await submitContactMessage({
+        ...form,
+        source: "contact_page",
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitError(t({
+        en: "We could not send your message. Please try again.",
+        ar: "تعذر إرسال رسالتك. يرجى المحاولة مرة أخرى.",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -329,9 +364,16 @@ export default function ContactPage() {
                         />
                       </div>
 
+                      {submitError && (
+                        <p className="text-sm text-[#f87171]" role="alert">
+                          {submitError}
+                        </p>
+                      )}
+
                       <button
                         type="submit"
-                        className="premium-button mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold"
+                        disabled={submitting}
+                        className="premium-button mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55"
                       >
                         {t({ en: "Send Message", ar: "إرسال الرسالة" })}
                         <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />

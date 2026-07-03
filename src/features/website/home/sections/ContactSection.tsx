@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
+import { submitContactMessage } from "@/lib/cms/public-cms";
 import { assets, contactItems } from "@/lib/mock-data/visual-content";
 import type { ContactItemKind, VisualContactItem } from "@/types/homepage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -21,6 +22,33 @@ type ContactSectionProps = {
 export function ContactSection({ items = contactItems }: ContactSectionProps) {
   const { t } = useLanguage();
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await submitContactMessage({
+        name: String(form.get("name") ?? ""),
+        email: String(form.get("email") ?? ""),
+        subject: String(form.get("subject") ?? ""),
+        message: String(form.get("message") ?? ""),
+        source: "homepage",
+      });
+      setSent(true);
+    } catch {
+      setSubmitError(t({
+        en: "We could not send your message. Please try again.",
+        ar: "تعذر إرسال رسالتك. يرجى المحاولة مرة أخرى.",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -120,10 +148,7 @@ export function ContactSection({ items = contactItems }: ContactSectionProps) {
             ) : (
               <form
                 className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSent(true);
-                }}
+                onSubmit={handleSubmit}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
@@ -180,9 +205,16 @@ export function ContactSection({ items = contactItems }: ContactSectionProps) {
                   />
                 </div>
 
+                {submitError && (
+                  <p className="text-sm text-[#f87171]" role="alert">
+                    {submitError}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="premium-button w-full rounded-full px-6 py-3 font-semibold tracking-wide"
+                  disabled={submitting}
+                  className="premium-button w-full rounded-full px-6 py-3 font-semibold tracking-wide disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {t({ en: "Send Message", ar: "إرسال الرسالة" })}
                 </button>

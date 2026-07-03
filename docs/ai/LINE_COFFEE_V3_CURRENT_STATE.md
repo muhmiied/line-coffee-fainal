@@ -1,6 +1,6 @@
 # LINE COFFEE V3 — Current State
 
-Last updated: 2026-07-01
+Last updated: 2026-07-03
 
 This file is the #1 source of truth for future AI sessions. If older planning docs, audits, prompts, or the `CLAUDE.md` change log conflict with this file, **follow this file.**
 
@@ -40,6 +40,7 @@ The entire app runs in the browser on the Supabase **anon/publishable key** (`sr
 | **Customer Account** | Orders, order detail, profile, addresses, wishlist, notifications. Ownership resolved per caller — see the Phase 2 note below | `src/lib/account/customer-account.ts` |
 | **Header notifications** | Bell dropdown reads real `order_status_events` | `src/components/layout/public/PublicHeader.tsx` |
 | **Auth** | Real Supabase auth; `/admin` gated via `admin_users` (role/status) | `src/lib/auth/admin.ts`, `useCurrentAdmin` |
+| **Admin CMS** | Real blog posts, review moderation, contact inbox, and legal-page drafts/publishing. Public homepage reads approved reviews only; both contact forms persist through a validated RPC | migration `20260703140000`; `src/lib/admin/admin-cms.ts`; `src/lib/cms/public-cms.ts` |
 
 **Inventory lifecycle (Phase 1, applied):** reserve at checkout → keep the reservation through `shipped` → **deduct at `delivered`** → release on cancel. Migration `20260629120000_phase1_delivery_deduction_payment.sql` is applied and matches Locked Decision 6. Delivery never changes `payment_status`. (Phase 5 re-implements deduction at lot level.)
 
@@ -57,7 +58,6 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 - **Marketing** — `marketing-mock.ts` (the broad admin screen remains mock; Phase 7 adds typed real promo data functions, but the mock UI is intentionally not partially rewired)
 - **Accounting** — `accounting-mock.ts` (purchases / expenses / suppliers all mock)
 - **Analytics** — `analytics-mock.ts`
-- **CMS** — `cms-mock.ts` (reviews approval, blog, contact inbox, legal — all mock)
 - **Espresso Manager** — beans are local component state
 - **Flavor Manager** — flavors/bases are local component state
 - **Cart** — local-only but owner-scoped: `line-cart-v1:guest:<guestId>` or `line-cart-v1:auth:<userId>`. The old global `line-cart-v1` key is purged and never read.
@@ -66,7 +66,9 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 
 ## MISSING — no database at all yet
 
-**reviews** · **contact_messages** · **analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
+**analytics** events. **Media Studio does not exist** — and per Decision 1 it never will (replaced by the Content Map).
+
+> **Phase 13A CMS (applied):** migration `20260703140000_phase13a_cms_real_data.sql` adds RLS-protected `blog_posts`, `reviews`, `contact_messages`, and `legal_pages`; admin-only CMS write RPCs; and a validated public contact-message RPC. Public table policies expose only published blog/legal rows and approved, non-hidden reviews. Contact messages are never public-readable. No fake blog/review/contact rows were seeded; only four empty draft legal-page shells were created. The existing public blog stays code-rendered for continuity in this subphase.
 
 > **Payments / Returns / Refunds (Phase 10–11, applied):** migration `20260703120000_phase10_11_payments_returns_refunds.sql` adds admin-only `order_payments` / `order_refunds` / `order_returns` (+ `order_return_items`) ledgers and the RPCs `record_order_payment` / `record_order_refund` / `record_order_return` / `update_admin_order_note`. paid/remaining/refunded are DB-derived; `orders.payment_status` is recomputed from the ledgers (orders still start `pending`; delivered never auto-marks paid). Sellable returns restock through the order's original deducted FIFO/bean allocations (`returned_qty_kg` tracking); flavor never moves stock; packaging is never restored; refunds never touch stock/COGS. Data layer: `src/lib/admin/admin-orders.ts`; UI: `src/components/admin/orders/OrderFinancePanel.tsx` in both the order page and drawer.
 
@@ -135,4 +137,4 @@ See `LINE_COFFEE_V3_CONTENT_MAP.md` for which file holds each page's text and im
 
 - `CLAUDE.md` now opens with a **Current Architecture + Locked Decisions + Doc Reading Order** block — read that first; the long change log below it is history.
 - `README.md` is an entry point, not the detailed source of truth.
-- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position:** Phases 1–11 are applied (Phase 10–11 = payments, safe admin-note editing, returns, refunds — migration `20260703120000`). Broad mock Inventory/Marketing/Espresso-Manager/Flavor-Manager UI wiring remains deferred; order item/price editing is deliberately deferred as unsafe. **Phase 12+ (product images / reviews / accounting dashboards / analytics) has not started.**
+- The phased plan (what to build next, in order) lives in `LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` (canonical). **Current position:** Phases 1–11, Phase 12A (Admin Customers), and Phase 13A (CMS real data) are applied. Broad mock Inventory/Marketing/Espresso-Manager/Flavor-Manager UI wiring remains deferred; order item/price editing is deliberately deferred as unsafe. Product-image follow-up, accounting dashboards, and analytics remain unstarted.

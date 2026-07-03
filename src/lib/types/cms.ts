@@ -1,11 +1,10 @@
 // Line Coffee V3 - Launch-Core CMS Contract
 // cms.ts - canonical blog, review, legal page, and contact message contracts.
 //
-// Phase 3D. Type-only. Additive. Imported by nothing yet.
+// Phase 13A. Live database contract reference.
 //
-// These contracts prepare CMS data ownership for public blog articles, reviews,
-// legal pages, and contact messages without connecting Admin CMS to public
-// pages or implementing a contact backend.
+// Runtime row mapping lives in `admin/admin-cms.ts`; public approved-review and
+// contact-submit boundaries live in `cms/public-cms.ts`.
 
 import type {
   ID,
@@ -51,11 +50,16 @@ export interface BlogPost {
   seoDescription?: LocalizedValue;
 }
 
-export type ReviewStatus = "pending" | "approved" | "rejected" | "archived";
+export type ReviewStatus = "pending" | "approved" | "rejected";
 
-export type ReviewSource = "website" | "manual" | "social" | "whatsapp";
+export type ReviewSource =
+  | "website"
+  | "manual"
+  | "whatsapp"
+  | "facebook"
+  | "instagram";
 
-export type ReviewDisplayTarget = "homepage" | "product" | "hidden";
+export type ReviewDisplayTarget = "homepage" | "product" | "both";
 
 // Review/testimonial contract that can support manually-entered, social,
 // WhatsApp, and future website-submitted reviews.
@@ -68,6 +72,8 @@ export interface Review {
   source: ReviewSource;
   status: ReviewStatus;
   displayTarget: ReviewDisplayTarget;
+  featured: boolean;
+  hidden: boolean;
   productId?: ID;
   productSlug?: string;
   proofImage?: ImageAssetRef;
@@ -92,16 +98,15 @@ export interface LegalPage {
   updatedAt?: ISODateTime;
 }
 
-export type ContactMessageStatus = "new" | "read" | "replied" | "archived";
+export type ContactMessageStatus = "new" | "in_progress" | "replied" | "archived";
 
 export type ContactMessageSource =
   | "contact_page"
-  | "footer"
+  | "homepage"
   | "whatsapp"
   | "manual";
 
-// Future contact form submission contract. No backend write is implemented in
-// this phase.
+// Public form submission + admin-only inbox contract.
 // Supabase mapping: `contact_messages` table.
 export interface ContactMessage {
   id: ID;

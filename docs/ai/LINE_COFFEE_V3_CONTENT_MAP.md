@@ -30,9 +30,9 @@ Last updated: 2026-06-28
 | Features (4-grid) | `FeaturesSection.tsx` | `visualFeatures` in `visual-content.ts` | `roastery.png` ambient | Static |
 | Story | `StorySection.tsx` | `storyCopy` in `visual-content.ts` | `assets.story.roastery` | Static |
 | Journal | `JournalSection.tsx` | `visualJournal` in `visual-content.ts` | inline | Static |
-| Testimonials | `TestimonialsSection.tsx` | `visualTestimonials` in `visual-content.ts` | `dark-roast.png` ambient | Static *(→ Phase 13: real `reviews`)* |
+| Testimonials | `TestimonialsSection.tsx` | approved homepage/both rows from Supabase `reviews` | `dark-roast.png` ambient | **Real (Phase 13A)** |
 | Social gallery | `SocialGallerySection.tsx` | `socialGalleryImages` in `visual-content.ts` | gallery paths | Static |
-| Contact | `ContactSection.tsx` | `contactItems` in `visual-content.ts` | `roastery.png` ambient | Static |
+| Contact | `ContactSection.tsx` | `contactItems` in `visual-content.ts`; form writes via `create_contact_message` | `roastery.png` ambient | Contact info static; form **real (Phase 13A)** |
 
 > `visual-content.ts` exports: `assets`, `heroSlides`, `heroStats`, `visualCategories`, `visualProducts`, `visualFeatures`, `storyCopy`, `visualJournal`, `visualTestimonials`, `contactItems`, `socialGalleryImages`.
 
