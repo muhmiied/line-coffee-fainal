@@ -6,6 +6,16 @@ import { PublicFooter } from "@/components/layout/public/PublicFooter";
 import { PublicHeader } from "@/components/layout/public/PublicHeader";
 import { LanguageProvider, type Language } from "@/lib/context/language";
 import { CartProvider } from "@/lib/context/cart";
+import {
+  BRAND_LOGO,
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_TITLE,
+  SITE_KEYWORDS,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo/site";
+import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import "./globals.css";
 
 const playfairDisplay = localFont({
@@ -61,10 +71,51 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "Line Coffee",
-  description: "Premium coffee experience by Line Coffee.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "Food & Drink",
+  // No global canonical: the home page sets canonical "/" itself, and each
+  // public page/layout sets its own. Leaving it unset here means any route
+  // without an explicit canonical self-canonicalizes (correct) instead of
+  // wrongly pointing at "/".
   icons: {
-    icon: "/brand/logo-colored.svg",
+    icon: BRAND_LOGO,
+  },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    url: SITE_URL,
+    locale: "en_US",
+    alternateLocale: ["ar_EG"],
+    images: [{ url: DEFAULT_OG_IMAGE, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
 };
 
@@ -92,6 +143,7 @@ export default async function RootLayout({
       className={`${playfairDisplay.variable} ${cairo.variable} ${tajawal.variable}`}
     >
       <body>
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <LanguageProvider initialLanguage={initialLanguage}>
           <CartProvider>
             <PublicHeader />

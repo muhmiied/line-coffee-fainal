@@ -184,6 +184,26 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-04] — Phase 20A: SEO + AI Search Foundation (code-only, no migration)
+
+**Goal:** Add launch-ready SEO, structured data, sitemap/robots, and AI-search discovery to the public site with **no UI/design change**, no migration, and no business-logic change (no checkout/orders/payments/refunds/returns, no inventory/FIFO/COGS, no accounting/analytics/promo, no service-role, no reset/seed, no QA-data cleanup, no remote push).
+
+**Architecture note (why a new server read path):** every public page is `"use client"` and fetches via the browser Supabase client, but metadata/JSON-LD/sitemap render on the **server**. Added `src/lib/seo/data.ts` — a lazy **anon** server Supabase client (`persistSession:false`, no service role; same pattern as the Phase-18B Telegram route) reading ONLY already-public anon views/tables (`public_products`, `public_product_variants`, `public_categories`, and `blog_posts` published-only). Every read is wrapped to degrade to `null`/`[]` and **never throw**, so an SEO read can't break a build or page render; per-request reads are deduped via React `cache()`.
+
+**New SEO lib (`src/lib/seo/`):** `site.ts` (env-driven `SITE_URL` = `NEXT_PUBLIC_SITE_URL` with brand-safe `https://linecoffee.eg` fallback, brand constants/keywords/category list, `absoluteUrl`/`seoText` helpers), `data.ts` (server-safe reads above), `metadata.ts` (`pageMetadata`/`articleMetadata` builders that emit a full canonical + Open Graph + Twitter block so per-page OG never drops the root image), `jsonld.tsx` (schema.org builders + a `<JsonLd>` server component that renders `<`-escaped `application/ld+json`).
+
+**Global metadata + JSON-LD (`src/app/layout.tsx`):** `metadataBase`, title template `%s | Line Coffee`, default description, keywords, authors/creator/publisher, Open Graph + Twitter defaults, and a real `robots` policy. Global **Organization + WebSite** JSON-LD rendered in `<body>`. Removed the global canonical so non-overridden routes self-canonicalize (home sets its own in `page.tsx`).
+
+**Page-level metadata (server `layout.tsx` wrappers around the client pages — zero UI change):** Home, Products listing, **Product detail** (`generateMetadata` from the real product + **Product/Breadcrumb** JSON-LD with the real min-variant price in EGP — **no fake ratings/reviews**), **Category** (`generateMetadata` + **CollectionPage/Breadcrumb**), About (+AboutPage), Contact (+ContactPage), Blog listing, **Blog post** (`generateMetadata` article + **Article/Breadcrumb**), Make Your Espresso/Flavor, and the four legal pages (Privacy/Terms/Shipping/Returns). Titles/descriptions/OG use real DB names/images when available; missing products/posts return a `noindex` generic.
+
+**Sitemap / robots / AI discovery:** `src/app/sitemap.ts` (static routes + live product/category/blog URLs, `revalidate=3600`, DB failure falls back to static-only), `src/app/robots.ts` (allows public pages; disallows `/admin` `/account` `/checkout` `/order-success` `/cart` `/auth` `/api`; points to the sitemap), and `src/app/llms.txt/route.ts` (concise factual brand/categories/builders/ordering/contact summary + key links + sitemap, served static).
+
+**Files:** modified `src/app/layout.tsx`, `src/app/page.tsx`; added `src/lib/seo/{site,data,metadata}.ts` + `src/lib/seo/jsonld.tsx`, `src/app/sitemap.ts`, `src/app/robots.ts`, `src/app/llms.txt/route.ts`, and 13 public SEO `layout.tsx` wrappers (`products`, `products/[slug]`, `products/category/[slug]`, `blog`, `blog/[slug]`, `about`, `contact`, `make-your-espresso`, `make-your-flavor`, `privacy`, `terms`, `shipping`, `returns`). Doc: `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`, `CLAUDE.md`.
+
+**Validation:** `npx tsc --noEmit` → 0 errors in `src/` (the only failures are stale `.next/dev` generated route-type artifacts from the live dev server, which regenerate). ESLint on all changed files → 0 errors / 0 warnings. `git diff --check` → clean (pre-existing CRLF notices only). `npm run build` intentionally skipped — a live `next dev` on `:3000` shares `.next` (documented ChunkLoadError/file-lock risk); validated instead by full per-route dev-server compilation smokes. Route smokes (live dev server, all **HTTP 200**): `/`, `/products`, `/products/category/espresso-blends`, `/products/strike-coffee`, `/about`, `/contact`, `/blog`, `/blog/origins-of-arabic-coffee`, plus `/sitemap.xml` (148 URLs incl. 131 real products), `/robots.txt` (correct policy), `/llms.txt`. Verified correct per-page title/canonical/OG; all `application/ld+json` blocks parse as valid JSON; Product Offer carries a real price (225 EGP) with no `aggregateRating`/`review`; private `/cart` no longer emits a wrong canonical.
+
+**Confirm:** code-only, no migration · no UI/design change · no reset/seed · no QA-data cleanup · no price/checkout/order/payment/refund/return change · no inventory/FIFO/COGS change · no accounting/analytics/promo change · no admin/private data exposed · no service-role · no remote push.
+
 ### [2026-07-04] — Phase 19D: Purchase/Supplier Flow Polish
 
 **Goal:** Make Add Supplier, Add Purchase, Receive Purchase, and Pay Supplier practical and clear for launch while preserving the existing Phase-4/15 backend and all accounting, inventory, FIFO, and COGS behavior.
