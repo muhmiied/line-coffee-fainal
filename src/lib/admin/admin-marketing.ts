@@ -106,6 +106,14 @@ export async function savePromoCode(input: PromoCodeInput): Promise<PromoCode> {
     },
   });
 
+  if (error?.code === "23505") {
+    throw new AdminMarketingError("A promo code with this word already exists.");
+  }
+  if (error?.code === "22023") {
+    throw new AdminMarketingError(
+      "Review the promo value, limits, and availability dates.",
+    );
+  }
   if (error) throw new AdminMarketingError("Could not save the promo code.");
   return mapPromo(data as PromoCodeRow);
 }
@@ -115,6 +123,8 @@ export async function deactivatePromoCode(id: string): Promise<PromoCode> {
     p_promo_code_id: id,
   });
 
-  if (error) throw new AdminMarketingError("Could not deactivate the promo code.");
+  if (error) {
+    throw new AdminMarketingError("Could not deactivate the promo code.");
+  }
   return mapPromo(data as PromoCodeRow);
 }

@@ -98,13 +98,31 @@ export function isCheckoutOrderResult(value: unknown): value is CheckoutOrderRes
   if (!value || typeof value !== "object") return false;
 
   const result = value as Partial<CheckoutOrderResult>;
+  const numericValues = [
+    result.subtotal,
+    result.discount_total,
+    result.delivery_fee,
+    result.total,
+  ];
+  const hasSafeTotals =
+    numericValues.every(
+      (amount) => typeof amount === "number" && Number.isFinite(amount),
+    ) &&
+    (result.subtotal ?? -1) >= 0 &&
+    (result.discount_total ?? -1) >= 0 &&
+    (result.delivery_fee ?? -1) >= 0 &&
+    (result.total ?? -1) >= 0 &&
+    (result.discount_total ?? 0) <= (result.subtotal ?? 0) + 0.01 &&
+    Math.abs(
+      (result.total ?? 0) -
+        ((result.subtotal ?? 0) -
+          (result.discount_total ?? 0) +
+          (result.delivery_fee ?? 0)),
+    ) < 0.01;
   return (
     typeof result.order_id === "string" &&
     typeof result.code === "string" &&
-    typeof result.subtotal === "number" &&
-    typeof result.discount_total === "number" &&
-    typeof result.delivery_fee === "number" &&
-    typeof result.total === "number" &&
+    hasSafeTotals &&
     (result.promo_code === undefined ||
       result.promo_code === null ||
       typeof result.promo_code === "string") &&
@@ -223,6 +241,17 @@ export async function validatePromoCode(
 
   const minimumSubtotal =
     row.minimum_subtotal == null ? undefined : Number(row.minimum_subtotal);
+  const hasSafeDiscount =
+    subtotal >= 0 &&
+    discountTotal >= 0 &&
+    discountTotal <= subtotal + 0.01 &&
+    discountedSubtotal >= 0 &&
+    Math.abs(discountedSubtotal - (subtotal - discountTotal)) < 0.01 &&
+    (status === "valid" || discountTotal === 0);
+
+  if (!hasSafeDiscount) {
+    throw new Error("Promo validation returned unsafe totals.");
+  }
 
   return {
     status,

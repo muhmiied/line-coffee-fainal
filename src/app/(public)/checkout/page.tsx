@@ -625,6 +625,42 @@ export default function CheckoutPage() {
         ar: "المتجر مغلق حالياً ولا يستقبل طلبات جديدة. يرجى المحاولة لاحقاً.",
       });
     }
+    if (message?.includes("Promo code has expired")) {
+      return t({
+        en: "This promo code has expired.",
+        ar: "انتهت صلاحية كود الخصم.",
+      });
+    }
+    if (message?.includes("Promo code is inactive")) {
+      return t({
+        en: "This promo code is inactive.",
+        ar: "كود الخصم غير نشط.",
+      });
+    }
+    if (message?.includes("Promo code is not active yet")) {
+      return t({
+        en: "This promo code is not active yet.",
+        ar: "كود الخصم غير متاح للاستخدام بعد.",
+      });
+    }
+    if (message?.includes("promo minimum")) {
+      return t({
+        en: "Your product subtotal does not meet this promo code's minimum.",
+        ar: "قيمة المنتجات لا تحقق الحد الأدنى المطلوب لهذا الكود.",
+      });
+    }
+    if (message?.includes("your usage limit")) {
+      return t({
+        en: "You have reached the usage limit for this promo code.",
+        ar: "لقد وصلت إلى الحد المسموح لاستخدام كود الخصم.",
+      });
+    }
+    if (message?.includes("usage limit")) {
+      return t({
+        en: "This promo code has reached its usage limit.",
+        ar: "وصل كود الخصم إلى الحد الأقصى للاستخدام.",
+      });
+    }
     if (message?.includes("Promo code rejected")) {
       return t({
         en: "This promo code cannot be applied to the current order.",
@@ -700,6 +736,61 @@ export default function CheckoutPage() {
     } finally {
       setValidatingPromo(false);
     }
+  }
+
+  function getPromoFeedback(result: PromoValidationResult) {
+    if (result.status === "valid" && promoMatchesSubtotal) {
+      return t({
+        en: `${result.code} applied — ${result.discountTotal} EGP off the product subtotal.`,
+        ar: `تم تطبيق ${result.code} — خصم ${result.discountTotal} ج.م من قيمة المنتجات.`,
+      });
+    }
+    if (result.status === "valid") {
+      return t({
+        en: "Your cart changed. Apply the promo code again to refresh the discount.",
+        ar: "تغيرت السلة. أعد تطبيق كود الخصم لتحديث قيمة الخصم.",
+      });
+    }
+
+    const messages: Record<
+      PromoValidationResult["status"],
+      { en: string; ar: string }
+    > = {
+      valid: { en: "", ar: "" },
+      invalid: {
+        en: "This promo code is invalid.",
+        ar: "كود الخصم غير صالح.",
+      },
+      not_started: {
+        en: "This promo code is not active yet.",
+        ar: "كود الخصم غير متاح للاستخدام بعد.",
+      },
+      expired: {
+        en: "This promo code has expired.",
+        ar: "انتهت صلاحية كود الخصم.",
+      },
+      inactive: {
+        en: "This promo code is inactive.",
+        ar: "كود الخصم غير نشط.",
+      },
+      usage_limit_reached: {
+        en: "This promo code has reached its usage limit.",
+        ar: "وصل كود الخصم إلى الحد الأقصى للاستخدام.",
+      },
+      minimum_not_met: {
+        en: result.minimumSubtotal
+          ? `Product subtotal must be at least ${result.minimumSubtotal} EGP for this code.`
+          : "The product subtotal does not meet this code's minimum.",
+        ar: result.minimumSubtotal
+          ? `يجب ألا تقل قيمة المنتجات عن ${result.minimumSubtotal} ج.م لاستخدام هذا الكود.`
+          : "قيمة المنتجات لا تحقق الحد الأدنى المطلوب لهذا الكود.",
+      },
+      customer_limit_reached: {
+        en: "You have reached the usage limit for this promo code.",
+        ar: "لقد وصلت إلى الحد المسموح لاستخدام كود الخصم.",
+      },
+    };
+    return t(messages[result.status]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1217,22 +1308,20 @@ export default function CheckoutPage() {
                       role="status"
                       className={cn(
                         "mt-2 text-[11px]",
-                        promoResult.status === "valid"
+                        promoResult.status === "valid" && promoMatchesSubtotal
                           ? "text-emerald-400"
                           : "text-red-300",
                       )}
                     >
-                      {promoResult.status === "valid"
-                        ? t({
-                            en: `${promoResult.code} applied — ${promoResult.discountTotal} EGP off products.`,
-                            ar: `تم تطبيق ${promoResult.code} — خصم ${promoResult.discountTotal} ج.م على المنتجات.`,
-                          })
-                        : t({
-                            en: promoResult.message,
-                            ar: "كود الخصم غير صالح لهذا الطلب.",
-                          })}
+                      {getPromoFeedback(promoResult)}
                     </p>
                   )}
+                  <p className="mt-2 text-[10px] leading-4 text-[#D6B79A]/42">
+                    {t({
+                      en: "Discount applies to product subtotal only. Delivery fee is calculated separately and is not discounted.",
+                      ar: "يُطبق الخصم على قيمة المنتجات فقط. تُحسب رسوم التوصيل بشكل منفصل ولا يشملها الخصم.",
+                    })}
+                  </p>
                 </div>
 
                 <div className="space-y-2.5 border-t border-[#B6885E]/12 pt-4">

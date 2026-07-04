@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import CustomerPickerModal from "@/components/admin/marketing/CustomerPickerModal";
+import PromoCodesPanel from "@/components/admin/marketing/PromoCodesPanel";
 import {
   ANNOUNCEMENT_MESSAGES,
   OFFERS,
@@ -1387,6 +1388,7 @@ function OffersTab({
 }
 
 interface PromoCodesTabProps {
+  useLiveData?: boolean;
   codes: PromoCode[];
   messages: AnnouncementMessage[];
   copiedCode: string | null;
@@ -1400,6 +1402,7 @@ interface PromoCodesTabProps {
 }
 
 function PromoCodesTab({
+  useLiveData = false,
   codes,
   messages,
   copiedCode,
@@ -1418,6 +1421,10 @@ function PromoCodesTab({
   const displayed = showArchived
     ? codes.filter((code) => code.status === "Archived")
     : codes.filter((code) => code.status === filter);
+
+  // Phase 19C wires only the Promo Codes tab. The legacy mock branch remains
+  // available while Offers/Announcements/Performance still share its shapes.
+  if (useLiveData) return <PromoCodesPanel />;
 
   return (
     <div className="space-y-4">
@@ -2198,7 +2205,7 @@ export default function MarketingPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard label="Active Offers" value={kpis.activeOffers} icon={Tag} tone="gold" onClick={() => setActiveTab("offers")} />
-        <KpiCard label="Active Promo Codes" value={kpis.activeCodes} icon={Percent} tone="gold" onClick={() => setActiveTab("promos")} />
+        <KpiCard label="Promo Codes" value="Live" icon={Percent} tone="gold" sub="managed from the Promo Codes tab" onClick={() => setActiveTab("promos")} />
         <KpiCard label="Total Usage" value={kpis.totalUsage} icon={Users} sub="offers + codes" />
         <KpiCard label="Discount Given" value={money(kpis.totalDiscount)} icon={Gift} tone="red" />
         <KpiCard label="Paid Revenue" value={money(kpis.paidRevenue)} icon={Sparkles} tone="green" sub={`before discount ${money(kpis.originalRevenue)}`} />
@@ -2262,6 +2269,7 @@ export default function MarketingPage() {
 
       {activeTab === "promos" && (
         <PromoCodesTab
+          useLiveData
           codes={codes}
           messages={sortedMessages}
           copiedCode={copiedCode}
