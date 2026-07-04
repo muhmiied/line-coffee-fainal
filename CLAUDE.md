@@ -184,6 +184,16 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-04] — Phase 19D: Purchase/Supplier Flow Polish
+
+**Goal:** Make Add Supplier, Add Purchase, Receive Purchase, and Pay Supplier practical and clear for launch while preserving the existing Phase-4/15 backend and all accounting, inventory, FIFO, and COGS behavior.
+
+**Implementation:** Admin Accounting now validates optional supplier phone/email values at both the quick-create UI and purchasing data boundary, supports active-supplier search, auto-selects a newly created supplier locally, and avoids treating a secondary refresh failure as a failed creation. Add Purchase keeps the real `create_purchase` RPC while adding matching quantity/cost limits, required fields, line totals, and an explicit draft-total/payable-impact summary. Purchase rows use readable lifecycle/payment labels; Receive remains draft-only, confirmation-gated, and reports created lots plus stock added. Pay Supplier keeps `record_purchase_payment`, supports partial/full payments with date/method/reference/note, shows the projected remaining balance, validates supplier/purchase consistency, blocks client-side overpayment, and reports whether the purchase is partially or fully settled. Monetary displays now retain cents where present.
+
+**Files:** `src/app/admin/accounting/page.tsx`, `src/lib/admin/admin-purchasing.ts`, `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`, and `CLAUDE.md`.
+
+**Safety:** No migration, service-role code, public supplier/purchase exposure, checkout/order/pricing/promo/delivery change, inventory FIFO/COGS deduction change, accounting-formula change, QA-data cleanup, reset/seed, or remote push.
+
 ### [2026-07-04] — Phase 19C: Promo Codes UI + Checkout Discount Safety
 
 **Goal:** Make promo-code management practical and real while verifying that checkout discounts remain server-authoritative, product-subtotal-only, and unable to reduce delivery or create negative totals.

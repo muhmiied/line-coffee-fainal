@@ -100,10 +100,10 @@ const KIND_LABEL: Record<AccountingTransaction["kind"], string> = {
   return: "Return",
 };
 
-const moneyFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const moneyFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 
 function fmt(value: number) {
-  return moneyFormatter.format(Math.round(value));
+  return moneyFormatter.format(Math.round(value * 100) / 100);
 }
 
 function money(value: number) {
@@ -300,6 +300,7 @@ function Note({ children, tone = "gold" }: { children: ReactNode; tone?: Tone })
   const style = TONE_STYLE[tone];
   return (
     <div
+      role={tone === "red" ? "alert" : undefined}
       className="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed"
       style={{ color: "var(--cream-dim)", background: style.bg, borderColor: style.border }}
     >
@@ -554,6 +555,26 @@ type QuickSupplierFormState = {
   notes: string;
 };
 
+const SUPPLIER_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUPPLIER_PHONE_PATTERN = /^\+?[\d\s().-]+$/;
+
+function quickSupplierValidationError(form: QuickSupplierFormState): string | null {
+  const name = form.name.trim();
+  const phone = form.phone.trim();
+  const email = form.email.trim();
+  const phoneDigits = phone.replace(/\D/g, "");
+
+  if (!name) return "Supplier name is required.";
+  if (name.length > 160) return "Supplier name must be 160 characters or fewer.";
+  if (phone && (!SUPPLIER_PHONE_PATTERN.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15)) {
+    return "Enter a valid supplier phone number, or leave it blank.";
+  }
+  if (email && (email.length > 254 || !SUPPLIER_EMAIL_PATTERN.test(email))) {
+    return "Enter a valid supplier email address, or leave it blank.";
+  }
+  return null;
+}
+
 const EMPTY_PURCHASE_FORM: PurchaseFormState = {
   supplierId: "",
   date: "",
@@ -581,10 +602,18 @@ function emptyPurchaseItem(): PurchaseItemFormState {
   };
 }
 
+function purchaseLineTotal(item: PurchaseItemFormState): number {
+  const quantity = Number(item.quantityKg);
+  const unitCost = Number(item.unitCost);
+  if (!Number.isFinite(quantity) || quantity <= 0) return 0;
+  if (!Number.isFinite(unitCost) || unitCost < 0) return 0;
+  return Math.round(quantity * unitCost * 100) / 100;
+}
+
 function QuickCreateSupplier({
   onCreated,
 }: {
-  onCreated: (supplier: Supplier) => Promise<void>;
+  onCreated: (supplier: Supplier) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<QuickSupplierFormState>(EMPTY_QUICK_SUPPLIER_FORM);
@@ -593,8 +622,9 @@ function QuickCreateSupplier({
   const [createdName, setCreatedName] = useState<string | null>(null);
 
   const submit = async () => {
-    if (!form.name.trim()) {
-      setError("Supplier name is required.");
+    const validationError = quickSupplierValidationError(form);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -603,9 +633,9 @@ function QuickCreateSupplier({
     try {
       const supplier = await createSupplier({
         name: form.name,
-        phone: form.phone || null,
-        email: form.email || null,
-        notes: form.notes || null,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        notes: form.notes.trim() || null,
         status: "active",
       });
       await onCreated(supplier);
@@ -680,8 +710,13 @@ function QuickCreateSupplier({
           <input
             type="text"
             value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            onChange={(event) => {
+              setError(null);
+              setForm((current) => ({ ...current, name: event.target.value }));
+            }}
             placeholder="Supplier name"
+            maxLength={160}
+            autoComplete="organization"
             className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
             style={INPUT_STYLE}
           />
@@ -690,8 +725,13 @@ function QuickCreateSupplier({
           <input
             type="tel"
             value={form.phone}
-            onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+            onChange={(event) => {
+              setError(null);
+              setForm((current) => ({ ...current, phone: event.target.value }));
+            }}
             placeholder="+20…"
+            maxLength={30}
+            autoComplete="tel"
             className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
             style={INPUT_STYLE}
           />
@@ -700,8 +740,13 @@ function QuickCreateSupplier({
           <input
             type="email"
             value={form.email}
-            onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+            onChange={(event) => {
+              setError(null);
+              setForm((current) => ({ ...current, email: event.target.value }));
+            }}
             placeholder="supplier@example.com"
+            maxLength={254}
+            autoComplete="email"
             className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
             style={INPUT_STYLE}
           />
@@ -710,8 +755,12 @@ function QuickCreateSupplier({
           <input
             type="text"
             value={form.notes}
-            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            onChange={(event) => {
+              setError(null);
+              setForm((current) => ({ ...current, notes: event.target.value }));
+            }}
             placeholder="Short supplier note"
+            maxLength={500}
             className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
             style={INPUT_STYLE}
           />
@@ -770,25 +819,45 @@ function AddPurchaseDrawer({
   onItemChange: (key: string, patch: Partial<Omit<PurchaseItemFormState, "key">>) => void;
   onAddItem: () => void;
   onRemoveItem: (key: string) => void;
-  onSupplierCreated: (supplier: Supplier) => Promise<void>;
+  onSupplierCreated: (supplier: Supplier) => void | Promise<void>;
   onClose: () => void;
   onSubmit: () => void;
 }) {
+  const [supplierQuery, setSupplierQuery] = useState("");
+
   if (!open) return null;
 
   const activeSuppliers = suppliers.filter((supplier) => supplier.status === "active");
-  const estimatedTotal = form.items.reduce((sum, item) => {
-    const quantity = Number(item.quantityKg);
-    const unitCost = Number(item.unitCost);
-    return Number.isFinite(quantity) && Number.isFinite(unitCost)
-      ? sum + quantity * unitCost
-      : sum;
-  }, 0);
+  const normalizedSupplierQuery = supplierQuery.trim().toLocaleLowerCase();
+  const matchingSuppliers = normalizedSupplierQuery
+    ? activeSuppliers.filter((supplier) => (
+      supplier.name.toLocaleLowerCase().includes(normalizedSupplierQuery) ||
+      supplier.contactName?.toLocaleLowerCase().includes(normalizedSupplierQuery) ||
+      supplier.phone?.toLocaleLowerCase().includes(normalizedSupplierQuery) ||
+      supplier.email?.toLocaleLowerCase().includes(normalizedSupplierQuery)
+    ))
+    : activeSuppliers;
+  const selectedSupplier = activeSuppliers.find((supplier) => supplier.id === form.supplierId) ?? null;
+  const visibleSuppliers = selectedSupplier && !matchingSuppliers.some((supplier) => supplier.id === selectedSupplier.id)
+    ? [selectedSupplier, ...matchingSuppliers]
+    : matchingSuppliers;
+  const estimatedTotal = form.items.reduce((sum, item) => sum + purchaseLineTotal(item), 0);
   const cannotCreate = activeSuppliers.length === 0 || products.length === 0;
+
+  const handleSupplierCreated = async (supplier: Supplier) => {
+    setSupplierQuery("");
+    await onSupplierCreated(supplier);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button type="button" aria-label="Close add purchase" className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <button
+        type="button"
+        aria-label="Close add purchase"
+        className="absolute inset-0 bg-black/55 disabled:cursor-wait"
+        onClick={onClose}
+        disabled={saving}
+      />
       <aside
         className="relative flex h-full w-full max-w-[620px] flex-col overflow-hidden"
         style={{
@@ -812,9 +881,10 @@ function AddPurchaseDrawer({
           <button
             type="button"
             onClick={onClose}
+            disabled={saving}
             title="Close"
             aria-label="Close"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05] disabled:opacity-50"
             style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
           >
             <X size={15} />
@@ -841,6 +911,18 @@ function AddPurchaseDrawer({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
+              <Field label="Find Supplier">
+                <input
+                  type="search"
+                  value={supplierQuery}
+                  onChange={(event) => setSupplierQuery(event.target.value)}
+                  placeholder="Search name, phone, or email"
+                  aria-label="Search suppliers"
+                  disabled={activeSuppliers.length === 0}
+                  className="mb-2 w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
+                  style={INPUT_STYLE}
+                />
+              </Field>
               <Field label="Supplier">
                 <select
                   value={form.supplierId}
@@ -851,18 +933,24 @@ function AddPurchaseDrawer({
                   style={SELECT_STYLE}
                 >
                   <option value="">Select supplier…</option>
-                  {activeSuppliers.map((supplier) => (
+                  {visibleSuppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                   ))}
                 </select>
               </Field>
-              <QuickCreateSupplier onCreated={onSupplierCreated} />
+              {normalizedSupplierQuery && matchingSuppliers.length === 0 && (
+                <p className="mt-1.5 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>
+                  No supplier matches this search.
+                </p>
+              )}
+              <QuickCreateSupplier onCreated={handleSupplierCreated} />
             </div>
             <Field label="Purchase Date">
               <input
                 type="date"
                 value={form.date}
                 onChange={(event) => onChange({ date: event.target.value })}
+                required
                 className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                 style={SELECT_STYLE}
               />
@@ -875,6 +963,7 @@ function AddPurchaseDrawer({
               value={form.reference}
               onChange={(event) => onChange({ reference: event.target.value })}
               placeholder="Supplier invoice / PO number"
+              maxLength={120}
               className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
               style={INPUT_STYLE}
             />
@@ -888,7 +977,7 @@ function AddPurchaseDrawer({
               <button
                 type="button"
                 onClick={onAddItem}
-                disabled={products.length === 0}
+                disabled={products.length === 0 || form.items.length >= 200}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-50"
                 style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.18)" }}
               >
@@ -921,6 +1010,7 @@ function AddPurchaseDrawer({
                         value={item.productId}
                         onChange={(event) => onItemChange(item.key, { productId: event.target.value })}
                         aria-label={`Product for item ${index + 1}`}
+                        required
                         className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                         style={SELECT_STYLE}
                       >
@@ -935,11 +1025,13 @@ function AddPurchaseDrawer({
                     <Field label="Quantity (kg)">
                       <input
                         type="number"
-                        min="0"
+                        min="0.001"
+                        max="100000"
                         step="0.001"
                         value={item.quantityKg}
                         onChange={(event) => onItemChange(item.key, { quantityKg: event.target.value })}
                         placeholder="0"
+                        required
                         className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                         style={INPUT_STYLE}
                       />
@@ -948,15 +1040,20 @@ function AddPurchaseDrawer({
                       <input
                         type="number"
                         min="0"
+                        max="1000000"
                         step="0.01"
                         value={item.unitCost}
                         onChange={(event) => onItemChange(item.key, { unitCost: event.target.value })}
                         placeholder="0"
+                        required
                         className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                         style={INPUT_STYLE}
                       />
                     </Field>
                   </div>
+                  <p className="mt-2 text-right text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.7 }}>
+                    Line total: <span className="font-semibold" style={{ color: "var(--cream)" }}>{money(purchaseLineTotal(item))}</span>
+                  </p>
                 </div>
               ))}
             </div>
@@ -968,13 +1065,14 @@ function AddPurchaseDrawer({
               onChange={(event) => onChange({ notes: event.target.value })}
               rows={3}
               placeholder="Short note about this purchase"
+              maxLength={2000}
               className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
               style={INPUT_STYLE}
             />
           </Field>
 
           <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5" style={{ background: "rgba(182,136,94,0.08)" }}>
-            <span className="text-[12px]" style={{ color: "var(--cream-dim)" }}>Estimated total</span>
+            <span className="text-[12px]" style={{ color: "var(--cream-dim)" }}>Draft total · payable increase</span>
             <span className="text-[14px] font-bold" style={{ color: "var(--gold)" }}>{money(estimatedTotal)}</span>
           </div>
 
@@ -1040,6 +1138,20 @@ function unpaidPurchasesForSupplier(data: AdminAccountingData, supplierId: strin
   );
 }
 
+function purchaseStatusLabel(status: string): string {
+  if (status === "draft") return "Draft";
+  if (status === "received") return "Received";
+  if (status === "cancelled") return "Cancelled";
+  return status;
+}
+
+function purchasePaymentStatusLabel(status: string): string {
+  if (status === "unpaid") return "Unpaid";
+  if (status === "partial") return "Partially paid";
+  if (status === "paid") return "Paid";
+  return status;
+}
+
 function PaySupplierDrawer({
   open,
   data,
@@ -1084,7 +1196,13 @@ function PaySupplierDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button type="button" aria-label="Close pay supplier" className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <button
+        type="button"
+        aria-label="Close pay supplier"
+        className="absolute inset-0 bg-black/55 disabled:cursor-wait"
+        onClick={onClose}
+        disabled={saving}
+      />
       <aside
         className="relative flex h-full w-full max-w-[460px] flex-col overflow-hidden"
         style={{
@@ -1108,9 +1226,10 @@ function PaySupplierDrawer({
           <button
             type="button"
             onClick={onClose}
+            disabled={saving}
             title="Close"
             aria-label="Close"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05] disabled:opacity-50"
             style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
           >
             <X size={15} />
@@ -1178,11 +1297,13 @@ function PaySupplierDrawer({
               <Field label="Amount (EGP)">
                 <input
                   type="number"
-                  min="0"
+                  min="0.01"
+                  max={selectedPurchase?.unpaid}
                   step="0.01"
                   value={form.amount}
                   onChange={(event) => onChange({ amount: event.target.value })}
                   placeholder="0"
+                  required
                   className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                   style={INPUT_STYLE}
                 />
@@ -1192,6 +1313,7 @@ function PaySupplierDrawer({
                   type="date"
                   value={form.date}
                   onChange={(event) => onChange({ date: event.target.value })}
+                  required
                   className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                   style={SELECT_STYLE}
                 />
@@ -1217,6 +1339,7 @@ function PaySupplierDrawer({
                   value={form.reference}
                   onChange={(event) => onChange({ reference: event.target.value })}
                   placeholder="Transfer / cheque no."
+                  maxLength={120}
                   className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
                   style={INPUT_STYLE}
                 />
@@ -1228,14 +1351,32 @@ function PaySupplierDrawer({
                 onChange={(event) => onChange({ notes: event.target.value })}
                 rows={3}
                 placeholder="Short note about this payment"
+                maxLength={800}
                 className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
                 style={INPUT_STYLE}
               />
             </Field>
             {selectedPurchase && (
-              <p className="text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>
-                This purchase still owes {money(selectedPurchase.unpaid)} of {money(selectedPurchase.total)}.
-              </p>
+              <div className="space-y-2 rounded-lg px-3 py-2.5" style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.12)" }}>
+                <div className="flex items-center justify-between gap-3 text-[11.5px]">
+                  <span style={{ color: "var(--cream-dim)" }}>Outstanding on purchase</span>
+                  <span className="font-semibold" style={{ color: "#fbbf24" }}>{money(selectedPurchase.unpaid)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-[11.5px]">
+                  <span style={{ color: "var(--cream-dim)" }}>Balance after this payment</span>
+                  <span className="font-semibold" style={{ color: "var(--cream)" }}>
+                    {money(Math.max(0, selectedPurchase.unpaid - (Number(form.amount) || 0)))}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onChange({ amount: String(selectedPurchase.unpaid) })}
+                  className="text-[11px] font-semibold"
+                  style={{ color: "var(--gold)" }}
+                >
+                  Use full outstanding amount
+                </button>
+              </div>
             )}
             <div className="flex gap-2 pt-1">
               <button
@@ -1315,15 +1456,14 @@ export default function AccountingPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- initial + refresh data fetch
   useEffect(() => { void load(); }, [load]);
 
-  const handleSupplierCreated = useCallback(async (supplier: Supplier) => {
+  const handleSupplierCreated = useCallback((supplier: Supplier) => {
     setSuppliers((current) => (
       [...current.filter((entry) => entry.id !== supplier.id), supplier]
         .sort((a, b) => a.name.localeCompare(b.name))
     ));
     setPurchaseForm((current) => ({ ...current, supplierId: supplier.id }));
     setPurchaseError(null);
-    await load();
-  }, [load]);
+  }, []);
 
   const openPurchaseDrawer = useCallback(() => {
     setPurchaseForm({
@@ -1345,6 +1485,7 @@ export default function AccountingPage() {
     key: string,
     patch: Partial<Omit<PurchaseItemFormState, "key">>,
   ) => {
+    setPurchaseError(null);
     setPurchaseForm((current) => ({
       ...current,
       items: current.items.map((item) => item.key === key ? { ...item, ...patch } : item),
@@ -1352,10 +1493,12 @@ export default function AccountingPage() {
   }, []);
 
   const addPurchaseItem = useCallback(() => {
+    setPurchaseError(null);
     setPurchaseForm((current) => ({ ...current, items: [...current.items, emptyPurchaseItem()] }));
   }, []);
 
   const removePurchaseItem = useCallback((key: string) => {
+    setPurchaseError(null);
     setPurchaseForm((current) => ({
       ...current,
       items: current.items.length > 1
@@ -1381,6 +1524,18 @@ export default function AccountingPage() {
       setPurchaseError("Add at least one purchase item.");
       return;
     }
+    if (purchaseForm.items.length > 200) {
+      setPurchaseError("A purchase can contain at most 200 items.");
+      return;
+    }
+    if (purchaseForm.reference.trim().length > 120) {
+      setPurchaseError("Purchase reference must be 120 characters or fewer.");
+      return;
+    }
+    if (purchaseForm.notes.trim().length > 2000) {
+      setPurchaseError("Purchase notes must be 2,000 characters or fewer.");
+      return;
+    }
 
     const items = purchaseForm.items.map((item) => ({
       productId: item.productId,
@@ -1396,8 +1551,16 @@ export default function AccountingPage() {
         setPurchaseError("Enter a quantity greater than 0 kg for every item.");
         return;
       }
+      if (item.quantityKg > 100000) {
+        setPurchaseError("Item quantity cannot exceed 100,000 kg.");
+        return;
+      }
       if (!Number.isFinite(item.unitCost) || item.unitCost < 0) {
         setPurchaseError("Enter a valid cost per kg for every item.");
+        return;
+      }
+      if (item.unitCost > 1000000) {
+        setPurchaseError("Item cost cannot exceed 1,000,000 EGP per kg.");
         return;
       }
     }
@@ -1408,8 +1571,8 @@ export default function AccountingPage() {
       const result = await createPurchase({
         supplierId: purchaseForm.supplierId,
         purchaseDate: purchaseForm.date,
-        reference: purchaseForm.reference || null,
-        notes: purchaseForm.notes || null,
+        reference: purchaseForm.reference.trim() || null,
+        notes: purchaseForm.notes.trim() || null,
         items,
       });
       setPurchaseOpen(false);
@@ -1445,7 +1608,9 @@ export default function AccountingPage() {
     try {
       const result = await receivePurchase(purchaseId);
       setActiveTab("purchases");
-      setNotice(`Purchase received — ${result.lotsCreated} inventory lot(s) created for ${result.totalKg} kg.`);
+      setNotice(
+        `Purchase received — ${result.lotsCreated} inventory ${result.lotsCreated === 1 ? "lot" : "lots"} created and ${result.totalKg} kg added to stock.`,
+      );
       await load();
     } catch (err) {
       setError(
@@ -1525,7 +1690,7 @@ export default function AccountingPage() {
 
   const submitPaySupplier = useCallback(async () => {
     if (!data) return;
-    const amount = Number(paySupplierForm.amount);
+    const amount = Math.round(Number(paySupplierForm.amount) * 100) / 100;
     if (!paySupplierForm.supplierId) {
       setPaySupplierError("Choose a supplier to pay.");
       return;
@@ -1538,8 +1703,17 @@ export default function AccountingPage() {
       setPaySupplierError("Enter an amount greater than 0.");
       return;
     }
+    if (!paySupplierForm.date) {
+      setPaySupplierError("Choose the supplier payment date.");
+      return;
+    }
     const purchase = data.purchases.find((entry) => entry.id === paySupplierForm.purchaseId) ?? null;
-    if (!purchase || purchase.status === "cancelled") {
+    if (
+      !purchase ||
+      purchase.supplierId !== paySupplierForm.supplierId ||
+      purchase.status === "cancelled" ||
+      purchase.unpaid <= 0
+    ) {
       setPaySupplierError("That purchase is no longer payable. Refresh and try again.");
       return;
     }
@@ -1555,7 +1729,7 @@ export default function AccountingPage() {
       const noteText = paySupplierForm.notes.trim();
       const composedNotes =
         [reference ? `Ref: ${reference}` : "", noteText].filter(Boolean).join(" — ") || null;
-      await recordPurchasePayment({
+      const result = await recordPurchasePayment({
         purchaseId: paySupplierForm.purchaseId,
         amount,
         method: paySupplierForm.method || null,
@@ -1565,7 +1739,12 @@ export default function AccountingPage() {
       setPaySupplierOpen(false);
       setPaySupplierForm(EMPTY_PAY_SUPPLIER_FORM);
       setActiveTab("suppliers");
-      setNotice("Supplier payment recorded — accounting refreshed.");
+      const remaining = Math.max(0, Math.round((result.totalAmount - result.paidAmount) * 100) / 100);
+      setNotice(
+        remaining > 0
+          ? `Supplier payment recorded — ${money(remaining)} remains on this purchase and the payable was reduced.`
+          : "Supplier payment recorded — this purchase is fully paid and the supplier payable was reduced.",
+      );
       await load();
     } catch (err) {
       setPaySupplierError(
@@ -1777,7 +1956,10 @@ export default function AccountingPage() {
         form={purchaseForm}
         saving={purchaseSaving}
         error={purchaseError}
-        onChange={(patch) => setPurchaseForm((current) => ({ ...current, ...patch }))}
+        onChange={(patch) => {
+          setPurchaseError(null);
+          setPurchaseForm((current) => ({ ...current, ...patch }));
+        }}
         onItemChange={changePurchaseItem}
         onAddItem={addPurchaseItem}
         onRemoveItem={removePurchaseItem}
@@ -1802,7 +1984,10 @@ export default function AccountingPage() {
         form={paySupplierForm}
         saving={paySupplierSaving}
         error={paySupplierError}
-        onChange={(patch) => setPaySupplierForm((current) => ({ ...current, ...patch }))}
+        onChange={(patch) => {
+          setPaySupplierError(null);
+          setPaySupplierForm((current) => ({ ...current, ...patch }));
+        }}
         onClose={closePaySupplierDrawer}
         onSubmit={() => void submitPaySupplier()}
       />
@@ -2097,11 +2282,11 @@ function PurchasesTab({
                 <span className="truncate">{purchase.supplierName}</span>
                 <span className="truncate" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>{purchase.reference || "—"}</span>
                 <StatusPill
-                  label={purchase.status}
+                  label={purchaseStatusLabel(purchase.status)}
                   tone={purchase.status === "received" ? "green" : purchase.status === "cancelled" ? "red" : "amber"}
                 />
                 <StatusPill
-                  label={purchase.paymentStatus}
+                  label={purchasePaymentStatusLabel(purchase.paymentStatus)}
                   tone={purchase.unpaid > 0 ? (purchase.paid > 0 ? "amber" : "red") : "green"}
                 />
                 <span className="text-right font-semibold">{money(purchase.total)}</span>
@@ -2122,7 +2307,16 @@ function PurchasesTab({
                       {receivingPurchaseId === purchase.id ? "Receiving…" : "Receive"}
                     </button>
                   ) : (
-                    <span style={{ color: "var(--cream-dim)", opacity: 0.45 }}>—</span>
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold"
+                      style={{
+                        color: purchase.status === "received" ? "#4ade80" : "var(--cream-dim)",
+                        opacity: purchase.status === "received" ? 1 : 0.58,
+                      }}
+                    >
+                      {purchase.status === "received" && <Check size={12} />}
+                      {purchase.status === "received" ? "Received" : "Cancelled"}
+                    </span>
                   )}
                 </span>
               </div>
@@ -2131,7 +2325,7 @@ function PurchasesTab({
         )}
       </Surface>
 
-      <Note tone="blue">Purchases increase inventory / cost basis. COGS is only recognized later, at delivery, from the FIFO lot snapshot — not when the purchase is made.</Note>
+      <Note tone="blue">Creating a purchase increases supplier payable. Receiving it adds stock and FIFO lots. COGS is only recognized later, at delivery — purchases are not P&amp;L expenses.</Note>
     </div>
   );
 }

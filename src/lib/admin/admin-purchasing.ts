@@ -493,6 +493,32 @@ function trimmedOrNull(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+const SUPPLIER_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUPPLIER_PHONE_PATTERN = /^\+?[\d\s().-]+$/;
+
+function validateSupplierInput(input: SupplierInput): {
+  name: string;
+  phone: string | null;
+  email: string | null;
+} {
+  const name = (input.name ?? "").trim();
+  const phone = trimmedOrNull(input.phone);
+  const email = trimmedOrNull(input.email);
+  const phoneDigits = phone?.replace(/\D/g, "") ?? "";
+
+  if (!name) throw new AdminPurchasingError("Supplier name is required.");
+  if (name.length > 160) {
+    throw new AdminPurchasingError("Supplier name must be 160 characters or fewer.");
+  }
+  if (phone && (!SUPPLIER_PHONE_PATTERN.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15)) {
+    throw new AdminPurchasingError("Enter a valid supplier phone number, or leave it blank.");
+  }
+  if (email && (email.length > 254 || !SUPPLIER_EMAIL_PATTERN.test(email))) {
+    throw new AdminPurchasingError("Enter a valid supplier email address, or leave it blank.");
+  }
+  return { name, phone, email };
+}
+
 // ---------------------------------------------------------------------------
 // Suppliers
 // ---------------------------------------------------------------------------
@@ -508,16 +534,15 @@ export async function listSuppliers(): Promise<Supplier[]> {
 }
 
 export async function createSupplier(input: SupplierInput): Promise<Supplier> {
-  const name = (input.name ?? "").trim();
-  if (!name) throw new AdminPurchasingError("Supplier name is required.");
+  const { name, phone, email } = validateSupplierInput(input);
 
   const { data, error } = await supabase
     .from("suppliers")
     .insert({
       name,
       contact_name: trimmedOrNull(input.contactName),
-      phone: trimmedOrNull(input.phone),
-      email: trimmedOrNull(input.email),
+      phone,
+      email,
       address: trimmedOrNull(input.address),
       notes: trimmedOrNull(input.notes),
       status: input.status ?? "active",
@@ -534,16 +559,15 @@ export async function updateSupplier(
   input: SupplierInput,
 ): Promise<Supplier> {
   if (!id) throw new AdminPurchasingError("Supplier id is required.");
-  const name = (input.name ?? "").trim();
-  if (!name) throw new AdminPurchasingError("Supplier name is required.");
+  const { name, phone, email } = validateSupplierInput(input);
 
   const { data, error } = await supabase
     .from("suppliers")
     .update({
       name,
       contact_name: trimmedOrNull(input.contactName),
-      phone: trimmedOrNull(input.phone),
-      email: trimmedOrNull(input.email),
+      phone,
+      email,
       address: trimmedOrNull(input.address),
       notes: trimmedOrNull(input.notes),
       ...(input.status ? { status: input.status } : {}),
