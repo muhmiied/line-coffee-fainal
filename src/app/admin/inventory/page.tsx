@@ -6,14 +6,15 @@ import {
   Package, Boxes, AlertTriangle, TrendingDown, ArrowUp, ArrowDown,
   Plus, X, Check, ChevronDown, Phone, MessageCircle, Star, RefreshCw,
   History, ShoppingCart, Settings2, Flame, RotateCcw, MinusCircle,
-  Edit2, Archive, Save, Leaf, PackagePlus,
+  Save, Leaf, PackagePlus,
 } from "lucide-react";
 import {
-  FINISHED_PRODUCTS, ESPRESSO_BEANS, PACKAGING_ITEMS, SUPPLIERS, STOCK_MOVEMENTS,
+  FINISHED_PRODUCTS, ESPRESSO_BEANS, SUPPLIERS, STOCK_MOVEMENTS,
   getStatus, productWorstStatus, productValue, beanValue, CATEGORY_LABEL,
   type FinishedProduct, type EspressoBean, type PackagingItem, type Supplier,
   type StockMovement, type MovementType, type ItemType, type StockStatus,
 } from "@/lib/mock-data/admin/inventory-mock";
+import PackagingInventoryPanel from "@/components/admin/inventory/PackagingInventoryPanel";
 import { getAdminDisplayName } from "@/lib/auth/admin";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 
@@ -791,72 +792,6 @@ function SupplierDrawer({ supplier, movements, onClose, onSave }: {
   );
 }
 
-// ── PackagingFormModal ────────────────────────────────────────────────────────
-
-function PackagingFormModal({ item, onClose, onSave }: {
-  item: PackagingItem | "new" | null;
-  onClose: () => void;
-  onSave: (data: Omit<PackagingItem, "archived">) => void;
-}) {
-  const isNew = item === "new";
-  const base  = isNew ? null : (item as PackagingItem);
-  const [name, setName]   = useState(base?.name ?? "");
-  const [type, setType]   = useState<PackagingItem["type"]>(base?.type ?? "Bag");
-  const [qty,  setQty]    = useState(String(base?.quantity ?? 0));
-  const [thr,  setThr]    = useState(String(base?.threshold ?? 50));
-  const [cost, setCost]   = useState(String(base?.costPerUnit ?? 0));
-  const [saved, setSaved] = useState(false);
-
-  if (!item) return null;
-
-  function handleSave() {
-    const slug = isNew ? `pkg-${Date.now()}` : (base?.slug ?? `pkg-${Date.now()}`);
-    onSave({ slug, name, type, quantity: parseFloat(qty)||0, threshold: parseFloat(thr)||0, costPerUnit: parseFloat(cost)||0 });
-    setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 1100);
-  }
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[300]" style={{ background: "rgba(0,0,0,0.65)" }} onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[301] w-[90vw] max-w-[420px] rounded-2xl"
-        style={{ background: "var(--coffee-surface)", border: "1px solid rgba(182,136,94,0.15)", transform: "translate(-50%,-50%)" }}>
-
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}>
-          <span className="font-semibold text-sm" style={{ color: "var(--cream)" }}>{isNew ? "Add Packaging Item" : `Edit: ${base?.name}`}</span>
-          <button type="button" onClick={onClose}><X size={15} style={{ color: "var(--cream-dim)" }} /></button>
-        </div>
-
-        <div className="p-5 flex flex-col gap-4">
-          <Field label="Item Name"><input value={name} onChange={e => setName(e.target.value)} className={inputCls} style={inputSty} /></Field>
-          <Field label="Type">
-            <div className="relative">
-              <select value={type} onChange={e => setType(e.target.value as PackagingItem["type"])} className={`${inputCls} appearance-none pr-8`} style={inputSty}>
-                {["Bag", "Sticker", "Valve", "Box"].map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--cream-dim)" }} />
-            </div>
-          </Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Quantity"><input type="number" min="0" value={qty} onChange={e => setQty(e.target.value)} className={inputCls} style={inputSty} /></Field>
-            <Field label="Threshold"><input type="number" min="0" value={thr} onChange={e => setThr(e.target.value)} className={inputCls} style={inputSty} /></Field>
-            <Field label="Cost/Unit"><input type="number" min="0" step="0.1" value={cost} onChange={e => setCost(e.target.value)} className={inputCls} style={inputSty} /></Field>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 px-5 py-3" style={{ borderTop: "1px solid rgba(182,136,94,0.08)" }}>
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm" style={{ color: "var(--cream-dim)" }}>Cancel</button>
-          <button type="button" onClick={handleSave} disabled={!name}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: saved ? "rgba(74,222,128,0.15)" : "rgba(182,136,94,0.18)", color: saved ? "#4ade80" : "var(--gold)", opacity: !name ? 0.4 : 1 }}>
-            {saved ? <><Check size={13} /> Saved!</> : <><Save size={13} /> Save</>}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 // ── FinishedProductsTab ───────────────────────────────────────────────────────
 
 function FinishedProductsTab({ products, catFilter, onCatChange, onRestock, onAdjust, onViewMovements }: {
@@ -1042,62 +977,6 @@ function EspressoBeansTab({ beans, onRestock, onAdjust }: {
   );
 }
 
-// ── PackagingTab ──────────────────────────────────────────────────────────────
-
-function PackagingTab({ items, onRestock, onAdjust, onEdit, onArchive, onAddNew }: {
-  items: PackagingItem[];
-  onRestock: (i: PackagingItem) => void; onAdjust: (i: PackagingItem) => void;
-  onEdit: (i: PackagingItem) => void; onArchive: (slug: string) => void;
-  onAddNew: () => void;
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-[11px]" style={{ color: "var(--cream-dim)" }}>{items.length} items</p>
-        <button type="button" onClick={onAddNew}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold"
-          style={{ background: "rgba(182,136,94,0.14)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.20)" }}>
-          <Plus size={13} /> Add Item
-        </button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}>
-              {["Item", "Type", "Quantity", "Unit Cost", "Threshold", "Status", "Actions"].map(h => (
-                <th key={h} className="text-left px-3 py-3 text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--cream-dim)" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map(item => {
-              const status = getStatus(item.quantity, item.threshold);
-              return (
-                <tr key={item.slug} className="hover:bg-white/[0.02] transition-colors" style={{ borderBottom: "1px solid rgba(182,136,94,0.05)" }}>
-                  <td className="px-3 py-3 font-medium" style={{ color: "var(--cream)" }}>{item.name}</td>
-                  <td className="px-3 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-semibold" style={{ background: "rgba(96,165,250,0.10)", color: "#93c5fd" }}>{item.type}</span></td>
-                  <td className="px-3 py-3 font-bold tabular-nums" style={{ color: stockColor(status) }}>{item.quantity.toLocaleString()}</td>
-                  <td className="px-3 py-3 text-[11px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{item.costPerUnit} EGP</td>
-                  <td className="px-3 py-3 text-[11px] tabular-nums" style={{ color: "var(--cream-dim)" }}>{item.threshold}</td>
-                  <td className="px-3 py-3"><StatusBadge status={status} /></td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-1">
-                      <button type="button" onClick={() => onRestock(item)} title="Restock" className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.08]" style={{ color: "#4ade80" }}><Plus size={12} /></button>
-                      <button type="button" onClick={() => onAdjust(item)} title="Adjust" className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.08]" style={{ color: "#fbbf24" }}><RefreshCw size={11} /></button>
-                      <button type="button" onClick={() => onEdit(item)} title="Edit" className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.08]" style={{ color: "#93c5fd" }}><Edit2 size={11} /></button>
-                      <button type="button" onClick={() => onArchive(item.slug)} title="Archive" className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/[0.08]" style={{ color: "var(--cream-dim)" }}><Archive size={11} /></button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // ── SuppliersTab ──────────────────────────────────────────────────────────────
 
 function SuppliersTab({ suppliers, onOpen, onAddNew }: {
@@ -1261,14 +1140,12 @@ export default function InventoryPage() {
   const [restockTarget,   setRestockTarget]   = useState<RestockTarget | null>(null);
   const [adjustTarget,    setAdjustTarget]    = useState<AdjustTarget | null>(null);
   const [supplierOpen,    setSupplierOpen]    = useState<Supplier | null>(null);
-  const [packagingForm,   setPackagingForm]   = useState<PackagingItem | "new" | null>(null);
   const [lowStockOpen,    setLowStockOpen]    = useState(false);
 
   // Local overrides (mock — no persistence)
   const [finishedOv, setFinishedOv] = useState<Record<string, { stock250g: number; stock500g: number; stock1kg: number }>>({});
   const [beanOv,     setBeanOv]     = useState<Record<string, number>>({});
   const [packOv,     setPackOv]     = useState<Record<string, Partial<PackagingItem>>>({});
-  const [addedPack,  setAddedPack]  = useState<PackagingItem[]>([]);
   const [supOv,      setSupOv]      = useState<Record<string, Partial<Supplier>>>({});
   const [addedSups,  setAddedSups]  = useState<Supplier[]>([]);
   const [movements,  setMovements]  = useState<StockMovement[]>(STOCK_MOVEMENTS);
@@ -1282,11 +1159,6 @@ export default function InventoryPage() {
     ESPRESSO_BEANS.map(b => beanOv[b.slug] !== undefined ? { ...b, stockKg: beanOv[b.slug] } : b)
   , [beanOv]);
 
-  const displayPackaging = useMemo(() => {
-    const base = PACKAGING_ITEMS.map(i => packOv[i.slug] ? { ...i, ...packOv[i.slug] } : i);
-    return [...addedPack, ...base].filter(i => !i.archived);
-  }, [packOv, addedPack]);
-
   const displaySuppliers = useMemo(() => {
     const base = SUPPLIERS.map(s => supOv[s.id] ? { ...s, ...supOv[s.id] } : s);
     return [...addedSups, ...base];
@@ -1296,19 +1168,16 @@ export default function InventoryPage() {
   const kpis = useMemo(() => {
     const fv = displayFinished.reduce((s, p) => s + productValue(p), 0);
     const bv = displayBeans.reduce((s, b) => s + beanValue(b), 0);
-    const pv = displayPackaging.reduce((s, i) => s + i.quantity * i.costPerUnit, 0);
     return {
-      totalValue:      Math.round(fv + bv + pv),
+      totalValue:      Math.round(fv + bv),
       finishedUnits:   displayFinished.reduce((s, p) => s + p.stock250g + p.stock500g + p.stock1kg, 0),
       beanKg:          Math.round(displayBeans.reduce((s, b) => s + b.stockKg, 0) * 10) / 10,
       lowStockCount:   displayFinished.filter(p => productWorstStatus(p) === "Low Stock").length
-                     + displayBeans.filter(b => getStatus(b.stockKg, b.lowStockKg) === "Low Stock").length
-                     + displayPackaging.filter(i => getStatus(i.quantity, i.threshold) === "Low Stock").length,
+                     + displayBeans.filter(b => getStatus(b.stockKg, b.lowStockKg) === "Low Stock").length,
       outOfStockCount: displayFinished.filter(p => productWorstStatus(p) === "Out of Stock").length
-                     + displayBeans.filter(b => b.stockKg === 0).length
-                     + displayPackaging.filter(i => i.quantity === 0).length,
+                     + displayBeans.filter(b => b.stockKg === 0).length,
     };
-  }, [displayFinished, displayBeans, displayPackaging]);
+  }, [displayFinished, displayBeans]);
 
   // Low stock entries (per-size for finished products)
   const lowStockEntries = useMemo((): LowStockEntry[] => {
@@ -1319,9 +1188,8 @@ export default function InventoryPage() {
       if (getStatus(p.stock1kg,  p.threshold1kg)  !== "In Stock") out.push({ kind: "finished", product: p, size: "1kg",  current: p.stock1kg,  threshold: p.threshold1kg });
     }
     for (const b of displayBeans)    if (getStatus(b.stockKg, b.lowStockKg) !== "In Stock") out.push({ kind: "bean", bean: b });
-    for (const i of displayPackaging) if (getStatus(i.quantity, i.threshold) !== "In Stock") out.push({ kind: "packaging", item: i });
     return out;
-  }, [displayFinished, displayBeans, displayPackaging]);
+  }, [displayFinished, displayBeans]);
 
   // Filtered movements
   const movementsFiltered = useMemo(() => {
@@ -1467,20 +1335,6 @@ export default function InventoryPage() {
     setSupplierOpen(newSup);
   }
 
-  function handlePackagingSave(data: Omit<PackagingItem, "archived">) {
-    const existing = PACKAGING_ITEMS.find(i => i.slug === data.slug) || addedPack.find(i => i.slug === data.slug);
-    if (existing) {
-      setPackOv(prev => ({ ...prev, [data.slug]: { ...data, archived: false } }));
-    } else {
-      setAddedPack(prev => [{ ...data, archived: false }, ...prev.filter(i => i.slug !== data.slug)]);
-    }
-    setPackagingForm(null);
-  }
-
-  function handleArchive(slug: string) {
-    setPackOv(prev => ({ ...prev, [slug]: { ...(prev[slug] ?? {}), archived: true } }));
-  }
-
   const totalAlert = kpis.lowStockCount + kpis.outOfStockCount;
 
   if (!admin) {
@@ -1499,7 +1353,7 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>Inventory</h1>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)" }}>
-            {FINISHED_PRODUCTS.length} products · {ESPRESSO_BEANS.length} bean origins · {displayPackaging.length} packaging items
+            Coffee stock stays in its existing views · Packaging is managed separately in units
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1517,11 +1371,11 @@ export default function InventoryPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KPICard label="Inventory Value"   value={kpis.totalValue.toLocaleString()}  unit="EGP"      icon={Boxes}         color="var(--gold)" />
+        <KPICard label="Coffee Inventory Value" value={kpis.totalValue.toLocaleString()} unit="EGP" icon={Boxes} color="var(--gold)" />
         <KPICard label="Finished Units"    value={kpis.finishedUnits.toLocaleString()} unit="units"   icon={Package}       color="#93c5fd" />
         <KPICard label="Espresso Beans"    value={kpis.beanKg}                          unit="KG"      icon={Leaf}          color="#4ade80" />
-        <KPICard label="Low Stock"         value={kpis.lowStockCount}                   unit="items"   icon={AlertTriangle} color="#fbbf24" />
-        <KPICard label="Out of Stock"      value={kpis.outOfStockCount}                 unit="items"   icon={TrendingDown}  color="#f87171" />
+        <KPICard label="Coffee Low Stock"  value={kpis.lowStockCount}                   unit="items"   icon={AlertTriangle} color="#fbbf24" />
+        <KPICard label="Coffee Out of Stock" value={kpis.outOfStockCount}               unit="items"   icon={TrendingDown}  color="#f87171" />
       </div>
 
       {/* Tabs */}
@@ -1558,14 +1412,7 @@ export default function InventoryPage() {
             />
           )}
           {activeTab === "Packaging" && (
-            <PackagingTab
-              items={displayPackaging}
-              onRestock={i   => setRestockTarget({ kind: "packaging", item: i })}
-              onAdjust={i    => setAdjustTarget({ kind: "packaging", item: i })}
-              onEdit={i      => setPackagingForm(i)}
-              onArchive={handleArchive}
-              onAddNew={() => setPackagingForm("new")}
-            />
+            <PackagingInventoryPanel />
           )}
           {activeTab === "Suppliers" && (
             <SuppliersTab
@@ -1610,11 +1457,6 @@ export default function InventoryPage() {
         movements={movements}
         onClose={() => setSupplierOpen(null)}
         onSave={handleSupplierSave}
-      />
-      <PackagingFormModal
-        item={packagingForm}
-        onClose={() => setPackagingForm(null)}
-        onSave={handlePackagingSave}
       />
     </div>
   );
