@@ -15,6 +15,7 @@ import {
   Receipt,
   BarChart3,
   FileText,
+  Settings,
   ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/accounting",       icon: Receipt,         label: "Accounting" },
   { href: "/admin/analytics",        icon: BarChart3,       label: "Analytics" },
   { href: "/admin/cms",              icon: FileText,        label: "CMS" },
+  { href: "/admin/settings",         icon: Settings,        label: "Settings" },
 ];
 
 interface SidebarContentProps {

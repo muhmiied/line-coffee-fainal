@@ -11,6 +11,7 @@ import {
   ExternalLink,
   LogOut,
   User,
+  Settings,
   Clock3,
   Truck,
   CircleDollarSign,
@@ -36,6 +37,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/accounting":       "Accounting",
   "/admin/analytics":        "Analytics",
   "/admin/cms":              "CMS",
+  "/admin/settings":         "Settings",
 };
 
 export default function AdminTopBar({
@@ -278,32 +280,36 @@ export default function AdminTopBar({
                 </span>
               </div>
 
-              {/* Workspace switcher */}
+              {/* Quick links — honest navigation, no fake workspace switching */}
               <div className="px-3 pt-2.5 pb-1">
                 <p
                   className="text-[10px] font-semibold uppercase tracking-widest px-1 mb-1.5"
                   style={{ color: "var(--cream-dim)", opacity: 0.5 }}
                 >
-                  Switch Workspace
+                  Quick Links
                 </p>
 
-                {/* Admin Dashboard — active */}
-                <div
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] mb-0.5"
-                  style={{
-                    background: "rgba(182,136,94,0.08)",
-                    color: "var(--cream)",
-                  }}
+                {/* Dashboard */}
+                <Link
+                  href="/admin/dashboard"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] hover:bg-white/5 transition-colors"
+                  style={{ color: "var(--cream-dim)" }}
                 >
-                  <LayoutDashboard size={13} style={{ color: "var(--gold)" }} />
-                  <span className="flex-1">Admin Dashboard</span>
-                  <span
-                    className="text-[10px] font-bold"
-                    style={{ color: "var(--gold)" }}
-                  >
-                    ✓
-                  </span>
-                </div>
+                  <LayoutDashboard size={13} />
+                  <span className="flex-1">Dashboard</span>
+                </Link>
+
+                {/* Settings */}
+                <Link
+                  href="/admin/settings"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] hover:bg-white/5 transition-colors"
+                  style={{ color: "var(--cream-dim)" }}
+                >
+                  <Settings size={13} />
+                  <span className="flex-1">Settings</span>
+                </Link>
 
                 {/* Website Preview */}
                 <Link
