@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Upload, ImageIcon, ImageOff, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw, Star, Trash2 } from "lucide-react";
+import { X, Upload, ImageIcon, ImageOff, Eye, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw, Star, Trash2 } from "lucide-react";
 import {
   archiveAdminProduct,
   restoreAdminProduct,
@@ -35,7 +35,7 @@ const TABS: { key: DrawerTab; label: string }[] = [
   { key: "seo",        label: "SEO"        },
 ];
 
-const MEDIA_NOTICE = "Images are stored in Supabase Storage. Changes save immediately and appear on the public site.";
+const MEDIA_NOTICE = "Uploads are stored in the gallery. Preview the selected image on the public site, then use Save Changes to publish it as primary.";
 const INVENTORY_NOTICE = "Inventory is managed through the Inventory module using stock movements.";
 
 interface ProductDrawerProps {
@@ -152,12 +152,13 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
 
-  // Media tab: images are a separate one-shot write flow (like archive/restore),
-  // not part of the form Save/dirty cycle. imageBusy holds "upload" while
-  // uploading or the URL of the image currently being set-primary/deleted.
+  // Media uploads/deletes write the gallery immediately. Primary/default choice
+  // is staged and joins the drawer's Save/Cancel flow.
   const [images, setImages] = useState<ProductImage[]>([]);
   const [imageBusy, setImageBusy] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [savedPrimaryUrl, setSavedPrimaryUrl] = useState<string | null>(null);
+  const [pendingPrimaryUrl, setPendingPrimaryUrl] = useState<string | null | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isArchived = product?.catalogStatus === "archived";
@@ -178,62 +179,97 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     setForm(initForm(product));
     setConfirmArchive(false);
     setLifecycleError(null);
-    // Derive the initial image set from the already-loaded product (no extra
-    // fetch). product.gallery is the primary-first, deduped URL list.
-    setImages(toProductImages(product.image, product.gallery));
+    // Keep the static fallback visible beside managed gallery images. The raw
+    // primary stays separate so selecting Default can be staged safely.
+    setImages(toProductImages(product.primaryImageUrl, [product.fallbackImage, ...product.gallery]));
+    setSavedPrimaryUrl(product.primaryImageUrl);
+    setPendingPrimaryUrl(undefined);
     setImageBusy(null);
     setImageError(null);
   }, [product?.slug, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const mediaDirty =
+    pendingPrimaryUrl !== undefined && pendingPrimaryUrl !== savedPrimaryUrl;
+  const hasPendingChanges = form.dirty || mediaDirty;
+  const selectedPrimaryUrl =
+    pendingPrimaryUrl !== undefined ? pendingPrimaryUrl : savedPrimaryUrl;
+  const selectedImageUrl = selectedPrimaryUrl ?? product?.fallbackImage ?? "";
+  const displayedImages = product
+    ? toProductImages(selectedPrimaryUrl, [
+        product.fallbackImage,
+        ...images.map((image) => image.url),
+      ]).map((image) => ({
+        ...image,
+        isPrimary:
+          selectedPrimaryUrl === null
+            ? image.url === product.fallbackImage
+            : image.url === selectedPrimaryUrl,
+      }))
+    : images;
+
   const handleSave = async () => {
-    if (!product || form.saving) return;
+    if (!product || form.saving || imageBusy || !hasPendingChanges) return;
 
     setForm((prev) => ({ ...prev, saving: true, errorMsg: null, saved: false }));
     try {
       const nextSlug = form.slugVal.trim().toLowerCase();
-      // Only update variant prices for sizes the product actually has.
-      // 1kg variant tracks the per-kg sale price (1kg pack == per-kg price).
-      const variantPrices: AdminVariantPriceInput[] = product.sizes.map((size) => ({
-        size: size.label,
-        price:
-          size.label === "250g" ? form.price250 :
-          size.label === "500g" ? form.price500 : form.price1kg,
-      }));
+      if (form.dirty) {
+        // Only update variant prices for sizes the product actually has.
+        // 1kg variant tracks the per-kg sale price (1kg pack == per-kg price).
+        const variantPrices: AdminVariantPriceInput[] = product.sizes.map((size) => ({
+          size: size.label,
+          price:
+            size.label === "250g" ? form.price250 :
+            size.label === "500g" ? form.price500 : form.price1kg,
+        }));
 
-      // Compute new_until from the isNew toggle:
-      //   on  → now + 40 days (refreshes the timer each save)
-      //   off → null (clears the badge)
-      const newUntil: string | null = form.isNew
-        ? new Date(Date.now() + 40 * 24 * 60 * 60 * 1000).toISOString()
-        : null;
+        // Compute new_until from the isNew toggle:
+        //   on  → now + 40 days (refreshes the timer each save)
+        //   off → null (clears the badge)
+        const newUntil: string | null = form.isNew
+          ? new Date(Date.now() + 40 * 24 * 60 * 60 * 1000).toISOString()
+          : null;
 
-      // Lifecycle status driven by the Active/Hidden toggle:
-      //   Showing (Active)  → publish: status='active'
-      //   Hiding            → preserve the current lifecycle status (draft stays
-      //                        draft, active stays active-but-off-site, archived
-      //                        stays archived). Un-archiving is done via Restore,
-      //                        not by hiding/showing.
-      const nextStatus: AdminProductLifecycleStatus = form.hidden
-        ? product.catalogStatus
-        : "active";
+        // Lifecycle status driven by the Active/Hidden toggle:
+        //   Showing (Active)  → publish: status='active'
+        //   Hiding            → preserve the current lifecycle status (draft stays
+        //                        draft, active stays active-but-off-site, archived
+        //                        stays archived). Un-archiving is done via Restore,
+        //                        not by hiding/showing.
+        const nextStatus: AdminProductLifecycleStatus = form.hidden
+          ? product.catalogStatus
+          : "active";
 
-      await updateAdminProduct(product.id, {
-        name: { en: form.nameEn, ar: form.nameAr },
-        note: { en: form.descEn, ar: form.descAr },
-        slug: nextSlug,
-        salePricePerKg: form.price1kg,
-        showOnWebsite: !form.hidden,
-        visibility: form.hidden ? "hidden" : "public",
-        catalogStatus: nextStatus,
-        featured: form.featured,
-        bestSeller: form.bestSeller,
-        newUntil,
-        metaTitle: { en: form.metaTitleEn, ar: form.metaTitleAr },
-        metaDescription: { en: form.metaDescEn, ar: form.metaDescAr },
-      });
+        await updateAdminProduct(product.id, {
+          name: { en: form.nameEn, ar: form.nameAr },
+          note: { en: form.descEn, ar: form.descAr },
+          slug: nextSlug,
+          salePricePerKg: form.price1kg,
+          showOnWebsite: !form.hidden,
+          visibility: form.hidden ? "hidden" : "public",
+          catalogStatus: nextStatus,
+          featured: form.featured,
+          bestSeller: form.bestSeller,
+          newUntil,
+          metaTitle: { en: form.metaTitleEn, ar: form.metaTitleAr },
+          metaDescription: { en: form.metaDescEn, ar: form.metaDescAr },
+        });
 
-      if (variantPrices.length > 0) {
-        await updateAdminProductVariantPrices(product.id, variantPrices);
+        if (variantPrices.length > 0) {
+          await updateAdminProductVariantPrices(product.id, variantPrices);
+        }
+      }
+
+      if (mediaDirty && pendingPrimaryUrl !== undefined) {
+        const nextImages = pendingPrimaryUrl === null
+          ? await restoreDefaultProductImage(product.id)
+          : await setPrimaryProductImage(product.id, pendingPrimaryUrl);
+        setImages(toProductImages(pendingPrimaryUrl, [
+          product.fallbackImage,
+          ...nextImages.map((image) => image.url),
+        ]));
+        setSavedPrimaryUrl(pendingPrimaryUrl);
+        setPendingPrimaryUrl(undefined);
       }
 
       const slugChanged = nextSlug !== product.slug;
@@ -283,7 +319,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     }
   };
 
-  // ── Media handlers (immediate one-shot writes; onSaved refreshes card + site) ──
+  // ── Media handlers ── Upload/delete update the gallery immediately. The
+  // selected primary/default remains local until Save Changes is pressed.
 
   const handleUploadClick = () => {
     if (imageBusy) return;
@@ -297,8 +334,14 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     setImageBusy("upload");
     setImageError(null);
     try {
+      const previousUrls = new Set(images.map((image) => image.url));
       const next = await uploadProductImage(product.id, file);
-      setImages(next);
+      const uploaded = next.find((image) => !previousUrls.has(image.url));
+      setImages(toProductImages(savedPrimaryUrl, [
+        product.fallbackImage,
+        ...next.map((image) => image.url),
+      ]));
+      if (uploaded) setPendingPrimaryUrl(uploaded.url);
       await onSaved();
     } catch (error) {
       setImageError(error instanceof Error ? error.message : "Upload failed. Please try again.");
@@ -307,19 +350,10 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     }
   };
 
-  const handleSetPrimary = async (url: string) => {
+  const handleSetPrimary = (url: string) => {
     if (!product || imageBusy) return;
-    setImageBusy(url);
     setImageError(null);
-    try {
-      const next = await setPrimaryProductImage(product.id, url);
-      setImages(next);
-      await onSaved();
-    } catch (error) {
-      setImageError(error instanceof Error ? error.message : "Could not set primary image.");
-    } finally {
-      setImageBusy(null);
-    }
+    setPendingPrimaryUrl(url);
   };
 
   const handleDeleteImage = async (url: string) => {
@@ -328,7 +362,13 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     setImageError(null);
     try {
       const next = await deleteProductImage(product.id, url);
-      setImages(next);
+      const nextSavedPrimary = next.find((image) => image.isPrimary)?.url ?? null;
+      setImages(toProductImages(nextSavedPrimary, [
+        product.fallbackImage,
+        ...next.map((image) => image.url),
+      ]));
+      setSavedPrimaryUrl(nextSavedPrimary);
+      setPendingPrimaryUrl((current) => current === url ? undefined : current);
       await onSaved();
     } catch (error) {
       setImageError(error instanceof Error ? error.message : "Could not delete image.");
@@ -337,26 +377,31 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     }
   };
 
-  // Restore the site default: clear the primary (products.image_url = null) but
-  // keep uploaded images in the gallery so they can be re-selected later. No
-  // Storage object is deleted — this only detaches the primary.
-  const handleRestoreDefault = async () => {
+  // Stage the site fallback. Saving clears products.image_url but keeps every
+  // uploaded gallery image available for later selection.
+  const handleRestoreDefault = () => {
     if (!product || imageBusy) return;
-    setImageBusy("restore-default");
     setImageError(null);
-    try {
-      const next = await restoreDefaultProductImage(product.id);
-      setImages(next);
-      await onSaved();
-    } catch (error) {
-      setImageError(error instanceof Error ? error.message : "Could not restore the default image.");
-    } finally {
-      setImageBusy(null);
-    }
+    setPendingPrimaryUrl(null);
+  };
+
+  const handlePreview = () => {
+    if (!product || !selectedImageUrl) return;
+    const params = new URLSearchParams({
+      category: product.category,
+      previewProduct: product.slug,
+      previewImage: selectedImageUrl,
+    });
+    window.open(`/products?${params.toString()}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCancel = () => {
+    if (form.saving || imageBusy) return;
+    setPendingPrimaryUrl(undefined);
+    onClose();
   };
 
   const managedImageCount = images.filter((image) => image.isManaged).length;
-  const hasManagedPrimary = images.some((image) => image.isPrimary && image.isManaged);
 
   const margin = product ? marginPct(product.salePricePerKg, product.purchaseCostPerKg) : 0;
 
@@ -364,7 +409,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     <>
       {/* Backdrop */}
       <div
-        onClick={onClose}
+        onClick={handleCancel}
         aria-hidden="true"
         style={{
           position: "fixed", inset: 0, zIndex: 100,
@@ -432,7 +477,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                 </span>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleCancel}
                   className="hover:opacity-100 transition-opacity"
                   style={{ color: "var(--cream-dim)", opacity: 0.4, lineHeight: 0 }}
                 >
@@ -524,7 +569,23 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                     <FL>Product Images</FL>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      {hasManagedPrimary && (
+                      <button
+                        type="button"
+                        onClick={handlePreview}
+                        disabled={imageBusy !== null}
+                        title="Open a temporary public-site preview without publishing this image."
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                          background: imageBusy ? "rgba(182,136,94,0.05)" : "rgba(214,163,115,0.10)",
+                          color: imageBusy ? "rgba(245,232,209,0.3)" : "var(--gold)",
+                          border: "1px solid rgba(214,163,115,0.28)",
+                          cursor: imageBusy ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <Eye size={12} /> Preview on Site
+                      </button>
+                      {selectedPrimaryUrl !== null && (
                         <button
                           type="button"
                           onClick={handleRestoreDefault}
@@ -539,9 +600,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                             cursor: imageBusy ? "not-allowed" : "pointer",
                           }}
                         >
-                          {imageBusy === "restore-default"
-                            ? <><Loader2 size={12} className="animate-spin" /> Restoring…</>
-                            : <><ImageOff size={12} /> Use Default Image</>}
+                          <ImageOff size={12} /> Use Default Image
                         </button>
                       )}
                       <button
@@ -571,11 +630,22 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     </p>
                   )}
 
-                  {managedImageCount > 0 && !hasManagedPrimary && (
+                  {managedImageCount > 0 && selectedPrimaryUrl === null && (
                     <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
-                      No primary image is set, so public cards show the default image. Use
+                      The default image is selected. Use
                       <strong style={{ color: "var(--gold)", fontWeight: 600 }}> Set primary </strong>
-                      on any image below to show it instead.
+                      on an upload, preview it, then save when it looks right.
+                    </p>
+                  )}
+
+                  {mediaDirty && (
+                    <p style={{
+                      fontSize: 11, color: "var(--gold)", lineHeight: 1.5, marginTop: -6,
+                      padding: "8px 10px", borderRadius: 8,
+                      background: "rgba(214,163,115,0.07)",
+                      border: "1px solid rgba(214,163,115,0.16)",
+                    }}>
+                      Image selection is ready to preview. Save Changes publishes it; Cancel discards the selection.
                     </p>
                   )}
 
@@ -583,7 +653,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   <div style={{
                     display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12,
                   }}>
-                    {images.map((image) => {
+                    {displayedImages.map((image) => {
                       const busy = imageBusy === image.url;
                       return (
                         <div
@@ -610,7 +680,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                                 padding: "3px 7px", borderRadius: 99, textTransform: "uppercase",
                                 background: "rgba(214,163,115,0.92)", color: "#2A1500",
                               }}>
-                                <Star size={9} style={{ fill: "#2A1500" }} /> Primary
+                                <Star size={9} style={{ fill: "#2A1500" }} />
+                                {mediaDirty ? "Selected" : "Primary"}
                               </span>
                             )}
                             {!image.isManaged && (
@@ -649,7 +720,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                                   cursor: image.isPrimary || imageBusy ? "not-allowed" : "pointer",
                                 }}
                               >
-                                <Star size={11} /> {image.isPrimary ? "Primary" : "Set primary"}
+                                <Star size={11} />
+                                {image.isPrimary ? (mediaDirty ? "Selected" : "Primary") : "Set primary"}
                               </button>
                               <button
                                 type="button"
@@ -679,8 +751,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     product cards, the category page, and as the main product photo.
                   </p>
                   <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, lineHeight: 1.5, marginTop: -8 }}>
-                    Recommended product card image: 1200×900 or 4:3 horizontal. Portrait images may
-                    crop on product cards but can still work in the detail/gallery view.
+                    Recommended product card image: 1600×1000 (8:5 horizontal). Keep important
+                    content away from the outer 5%. Portrait images remain fully visible with side spacing.
                   </p>
                 </div>
               )}
@@ -975,14 +1047,16 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
               )}
               <button
                 type="button"
-                onClick={onClose}
-                disabled={form.saving}
+                onClick={handleCancel}
+                disabled={form.saving || imageBusy !== null}
                 className="hover:opacity-100 transition-opacity"
                 style={{
                   padding: "9px 16px", borderRadius: 9, fontSize: 12.5,
-                  color: "var(--cream-dim)", opacity: form.saving ? 0.3 : 0.55,
+                  color: hasPendingChanges ? "var(--cream)" : "var(--cream-dim)",
+                  opacity: form.saving || imageBusy ? 0.3 : hasPendingChanges ? 0.82 : 0.55,
+                  background: hasPendingChanges ? "rgba(255,255,255,0.035)" : "transparent",
                   border: "1px solid rgba(182,136,94,0.12)",
-                  cursor: form.saving ? "not-allowed" : "pointer",
+                  cursor: form.saving || imageBusy ? "not-allowed" : "pointer",
                 }}
               >
                 Cancel
@@ -990,14 +1064,14 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={!form.dirty || form.saving}
-                title={!form.dirty ? "Edit a field to enable saving" : undefined}
+                disabled={!hasPendingChanges || form.saving || imageBusy !== null}
+                title={!hasPendingChanges ? "Edit a field or select a primary image to enable saving" : undefined}
                 style={{
                   padding: "9px 22px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                  background: !form.dirty || form.saving ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
-                  color: !form.dirty || form.saving ? "rgba(245,232,209,0.30)" : "var(--gold)",
+                  background: !hasPendingChanges || form.saving || imageBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
+                  color: !hasPendingChanges || form.saving || imageBusy ? "rgba(245,232,209,0.30)" : "var(--gold)",
                   border: "1px solid rgba(182,136,94,0.30)",
-                  cursor: !form.dirty || form.saving ? "not-allowed" : "pointer",
+                  cursor: !hasPendingChanges || form.saving || imageBusy ? "not-allowed" : "pointer",
                 }}
               >
                 {form.saving ? "Saving…" : "Save Changes"}

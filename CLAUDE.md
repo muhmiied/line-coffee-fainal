@@ -184,6 +184,18 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-04] — Phase 19A-Fix Follow-up: Taller Image Frames + Draft Preview/Save Flow
+
+**Goal:** Make product-card image areas slightly taller, define an exact production-image ratio, and make admin primary-image changes previewable and governed by the drawer's Save/Cancel controls.
+
+**Public cards:** `ProductCard` and `CatalogProductCard` now use an 8:5 image frame on desktop/category cards (measured at 300×188 in the `/products` smoke viewport, up from the previous 176px fixed desktop height). Recommended source art is **1600×1000 px** with important content inside the outer 5% safe margin. Managed portrait uploads remain `object-contain`; static category/default imagery remains `object-cover`.
+
+**Admin draft flow:** `AdminProduct` now exposes raw `primaryImageUrl` separately from `fallbackImage`. Upload writes the new public URL to the existing gallery but leaves `products.image_url` unchanged; the drawer selects the upload locally, enables Save/Cancel, and labels the choice **Selected**. **Preview on Site** opens `/products` with a validated temporary image override and an explicit not-published banner. **Save Changes** publishes the staged Primary/Default selection; **Cancel** discards the selection. Restore Default remains non-destructive, and Delete remains an explicit immediate gallery/storage action.
+
+**Files:** `src/lib/admin/admin-catalog.ts`, `src/lib/admin/admin-product-images.ts`, `src/components/admin/products/ProductDrawer.tsx`, `src/components/product/ProductCard.tsx`, `src/components/product/CatalogProductCard.tsx`, `src/app/(public)/products/page.tsx`, and `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+
+**Validation:** `npx tsc --noEmit`, changed-file ESLint, `git diff --check`, and the production build passed. Browser smoke confirmed 8:5 product-card frames, the temporary preview banner/image override, and no public-page console errors. No migration, service-role code, pricing/inventory/order/accounting change, data cleanup, or redesign.
+
 ### [2026-07-04] — Phase 19A-Fix: Product Card Image UX + Blend Card Simplification
 
 **Goal:** Improve product-card image behavior and simplify Turkish/Espresso listing cards without redesigning the site or changing product, pricing, inventory, order, or accounting data.

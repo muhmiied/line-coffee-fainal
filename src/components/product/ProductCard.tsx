@@ -129,7 +129,7 @@ export function ProductCard({
       )}
     >
       {/* Image zone */}
-      <div className="relative h-32 overflow-hidden bg-[#120D09] min-[380px]:h-36 sm:h-40 lg:h-44">
+      <div className="relative h-40 overflow-hidden bg-[#120D09] min-[380px]:h-44 sm:h-48 lg:aspect-[8/5] lg:h-auto">
         {product.image ? (
           <Image
             src={product.image}

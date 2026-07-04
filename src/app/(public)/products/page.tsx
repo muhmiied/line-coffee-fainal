@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { ChevronRight, Search, Sparkles } from "lucide-react";
+import { ChevronRight, Eye, Search, Sparkles } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { ProductCard } from "@/components/product/ProductCard";
 import {
@@ -100,6 +100,8 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
 
   const rawCat = searchParams.get("category") ?? searchParams.get("cat");
+  const previewProductSlug = searchParams.get("previewProduct");
+  const previewImageUrl = searchParams.get("previewImage");
   const sidebarItems = useMemo(() => buildSidebarItems(categories), [categories]);
   const validCategories = useMemo(
     () => new Set<ActiveCategory>([...categories.map((category) => category.slug), ...STUDIO_CATEGORY_IDS]),
@@ -139,6 +141,22 @@ export default function ProductsPage() {
     router.replace(`/products?category=${cat}`, { scroll: false });
   };
 
+  const previewOverride = useMemo(() => {
+    if (!previewProductSlug || !previewImageUrl) return null;
+    const previewProduct = products.find((product) => product.slug === previewProductSlug);
+    if (!previewProduct) return null;
+    const categoryImage = categories.find(
+      (category) => category.slug === previewProduct.category,
+    )?.image;
+    const imageIsAllowed =
+      previewProduct.image === previewImageUrl ||
+      previewProduct.gallery.includes(previewImageUrl) ||
+      categoryImage === previewImageUrl;
+    return imageIsAllowed
+      ? { slug: previewProduct.slug, image: previewImageUrl }
+      : null;
+  }, [categories, previewImageUrl, previewProductSlug, products]);
+
   const filtered = useMemo(() => {
     if (!activeCategory || isStudioCategory(activeCategory)) return [];
 
@@ -151,8 +169,15 @@ export default function ProductsPage() {
           p.name.ar.includes(q),
       );
     }
+    if (previewOverride) {
+      list = list.map((product) =>
+        product.slug === previewOverride.slug
+          ? { ...product, image: previewOverride.image }
+          : product,
+      );
+    }
     return list;
-  }, [activeCategory, products, search]);
+  }, [activeCategory, previewOverride, products, search]);
 
   const isStudio = activeCategory ? isStudioCategory(activeCategory) : false;
 
@@ -270,6 +295,16 @@ export default function ProductsPage() {
                   {filtered.length}{" "}
                   {t({ en: "products", ar: "منتج" })}
                 </p>
+
+                {previewOverride && (
+                  <div className="mb-5 flex items-center gap-2 rounded-xl border border-[#D6A373]/25 bg-[#D6A373]/8 px-4 py-3 text-xs text-[#D6B79A]/80">
+                    <Eye className="h-4 w-4 shrink-0 text-[#D6A373]" />
+                    {t({
+                      en: "Image preview — this change is not published yet.",
+                      ar: "معاينة الصورة — لم يتم نشر هذا التغيير بعد.",
+                    })}
+                  </div>
+                )}
 
                 {filtered.length > 0 ? (
                   <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:grid-cols-3">

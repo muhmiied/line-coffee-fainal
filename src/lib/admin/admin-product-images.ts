@@ -174,9 +174,10 @@ function validateFile(file: File): string {
 }
 
 /**
- * Upload an image to the product-scoped storage folder, then record its public
- * URL on the product. If the product has no managed primary yet (null or a static
- * fallback), the new upload becomes the primary. Returns the refreshed image set.
+ * Upload an image to the product-scoped storage folder, then add its public URL
+ * to the product gallery. The current primary is intentionally left unchanged:
+ * ProductDrawer stages the uploaded image as a candidate so the admin can preview
+ * it and explicitly save it as primary.
  */
 export async function uploadProductImage(
   productId: string,
@@ -201,19 +202,17 @@ export async function uploadProductImage(
   const url = publicUrlForPath(path);
   const { imageUrl, gallery } = await readImageRow(productId);
 
-  const currentPrimaryManaged = imageUrl != null && storagePathFromUrl(imageUrl) !== null;
-  const nextPrimary = currentPrimaryManaged ? imageUrl : url;
   const nextGallery = uniqueUrls([...gallery, url]);
 
   try {
-    await writeImages(productId, nextPrimary, nextGallery);
+    await writeImages(productId, imageUrl, nextGallery);
   } catch (error) {
     // Roll back the orphaned storage object if the DB write failed.
     await supabase.storage.from(PRODUCT_IMAGE_BUCKET).remove([path]).catch(() => {});
     throw error;
   }
 
-  return toProductImages(nextPrimary, nextGallery);
+  return toProductImages(imageUrl, nextGallery);
 }
 
 /** Set an existing managed image as the product's primary image. */

@@ -65,6 +65,10 @@ export interface AdminProduct extends AdminProductMeta {
   purchaseCostPerKg: number;
   sizes: AdminProductSize[];
   image: string;
+  /** Raw products.image_url. Null means the public catalog is using fallbackImage. */
+  primaryImageUrl: string | null;
+  /** Category image (or global product fallback) used when primaryImageUrl is null. */
+  fallbackImage: string;
   catalogStatus: AdminProductLifecycleStatus;
   visibility: AdminProductVisibility;
   showOnWebsite: boolean;
@@ -388,7 +392,8 @@ function mapProductRows(
     );
     const subtitle = localized(row.subtitle_en, row.subtitle_ar);
     const description = localized(row.description_en, row.description_ar);
-    const image = row.image_url ?? category?.image ?? getFallbackImage(categorySlug);
+    const fallbackImage = category?.image ?? getFallbackImage(categorySlug);
+    const image = row.image_url ?? fallbackImage;
     const gallery = Array.from(new Set([image, ...normalizeGallery(row.gallery)]));
     const stockStatus = getProductStockStatus(variants);
     const sku = variants.find((variant) => variant.sku)?.sku ?? row.slug;
@@ -410,6 +415,8 @@ function mapProductRows(
       purchaseCostPerKg: toNumber(row.purchase_cost_per_kg),
       sizes: variants,
       image,
+      primaryImageUrl: row.image_url,
+      fallbackImage,
       status: stockStatus,
       catalogStatus: row.status,
       visibility: row.visibility,

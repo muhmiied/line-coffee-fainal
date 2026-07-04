@@ -45,7 +45,7 @@ export function CatalogProductCard({
       )}
     >
       <Link href={`/products/${product.slug}`} className="flex h-full flex-col">
-        <div className="relative h-36 overflow-hidden bg-[#120D09] sm:h-44 lg:h-48">
+        <div className="relative aspect-[8/5] overflow-hidden bg-[#120D09]">
           <Image
             src={product.image}
             alt={primaryName}
