@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Upload, ImageIcon, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw } from "lucide-react";
+import { X, Upload, ImageIcon, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw, Star, Trash2 } from "lucide-react";
 import {
   archiveAdminProduct,
   restoreAdminProduct,
@@ -13,6 +13,13 @@ import {
   type AdminProductLifecycleStatus,
   type AdminVariantPriceInput,
 } from "@/lib/admin/admin-catalog";
+import {
+  toProductImages,
+  uploadProductImage,
+  setPrimaryProductImage,
+  deleteProductImage,
+  type ProductImage,
+} from "@/lib/admin/admin-product-images";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -27,7 +34,7 @@ const TABS: { key: DrawerTab; label: string }[] = [
   { key: "seo",        label: "SEO"        },
 ];
 
-const MEDIA_NOTICE = "Media upload will be implemented in the Media/Storage layer.";
+const MEDIA_NOTICE = "Images are stored in Supabase Storage. Changes save immediately and appear on the public site.";
 const INVENTORY_NOTICE = "Inventory is managed through the Inventory module using stock movements.";
 
 interface ProductDrawerProps {
@@ -144,6 +151,14 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
 
+  // Media tab: images are a separate one-shot write flow (like archive/restore),
+  // not part of the form Save/dirty cycle. imageBusy holds "upload" while
+  // uploading or the URL of the image currently being set-primary/deleted.
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [imageBusy, setImageBusy] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const isArchived = product?.catalogStatus === "archived";
 
   // Editing a content field marks the form dirty (enables Save). Tab/flag changes don't.
@@ -162,6 +177,11 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     setForm(initForm(product));
     setConfirmArchive(false);
     setLifecycleError(null);
+    // Derive the initial image set from the already-loaded product (no extra
+    // fetch). product.gallery is the primary-first, deduped URL list.
+    setImages(toProductImages(product.image, product.gallery));
+    setImageBusy(null);
+    setImageError(null);
   }, [product?.slug, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
@@ -261,6 +281,62 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
       setLifecycleBusy(false);
     }
   };
+
+  // ── Media handlers (immediate one-shot writes; onSaved refreshes card + site) ──
+
+  const handleUploadClick = () => {
+    if (imageBusy) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-selecting the same file later
+    if (!file || !product) return;
+    setImageBusy("upload");
+    setImageError(null);
+    try {
+      const next = await uploadProductImage(product.id, file);
+      setImages(next);
+      await onSaved();
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : "Upload failed. Please try again.");
+    } finally {
+      setImageBusy(null);
+    }
+  };
+
+  const handleSetPrimary = async (url: string) => {
+    if (!product || imageBusy) return;
+    setImageBusy(url);
+    setImageError(null);
+    try {
+      const next = await setPrimaryProductImage(product.id, url);
+      setImages(next);
+      await onSaved();
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : "Could not set primary image.");
+    } finally {
+      setImageBusy(null);
+    }
+  };
+
+  const handleDeleteImage = async (url: string) => {
+    if (!product || imageBusy) return;
+    setImageBusy(url);
+    setImageError(null);
+    try {
+      const next = await deleteProductImage(product.id, url);
+      setImages(next);
+      await onSaved();
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : "Could not delete image.");
+    } finally {
+      setImageBusy(null);
+    }
+  };
+
+  const managedImageCount = images.filter((image) => image.isManaged).length;
 
   const margin = product ? marginPct(product.salePricePerKg, product.purchaseCostPerKg) : 0;
 
@@ -395,59 +471,163 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
 
               {/* MEDIA */}
               {form.activeTab === "media" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{
                     display: "flex", alignItems: "flex-start", gap: 8,
                     padding: "10px 12px", borderRadius: 10,
-                    background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.18)",
+                    background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.16)",
                   }}>
-                    <AlertTriangle size={14} style={{ color: "#fbbf24", marginTop: 1, flexShrink: 0 }} />
+                    <ImageIcon size={14} style={{ color: "var(--gold)", marginTop: 1, flexShrink: 0 }} />
                     <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{MEDIA_NOTICE}</p>
                   </div>
-                  <div>
-                    <FL>Main Image</FL>
+
+                  {imageError && (
                     <div style={{
-                      position: "relative", width: 200, height: 200, borderRadius: 12, overflow: "hidden",
-                      background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.14)",
+                      display: "flex", alignItems: "flex-start", gap: 6,
+                      padding: "9px 11px", borderRadius: 9,
+                      background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)",
                     }}>
-                      <Image src={product.image} alt={product.name.en} fill sizes="200px" className="object-contain p-6" />
+                      <AlertTriangle size={13} style={{ color: "#f87171", marginTop: 1, flexShrink: 0 }} />
+                      <p style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.45 }}>{imageError}</p>
                     </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <button type="button" disabled title={MEDIA_NOTICE} style={{
-                        display: "flex", alignItems: "center", gap: 5,
-                        padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 500,
-                        color: "rgba(245,232,209,0.30)", border: "1px solid rgba(182,136,94,0.12)",
-                        background: "rgba(182,136,94,0.04)", cursor: "not-allowed",
-                      }}>
-                        <Upload size={12} /> Upload New
-                      </button>
-                      <button type="button" disabled title={MEDIA_NOTICE} style={{
-                        padding: "6px 12px", borderRadius: 8, fontSize: 12,
-                        color: "rgba(245,232,209,0.30)", opacity: 0.6,
-                        border: "1px solid rgba(255,255,255,0.06)", cursor: "not-allowed",
-                      }}>
-                        Remove
-                      </button>
-                    </div>
+                  )}
+
+                  {/* Hidden native file input driven by the Upload button */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                  />
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <FL>Product Images</FL>
+                    <button
+                      type="button"
+                      onClick={handleUploadClick}
+                      disabled={imageBusy !== null}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        background: imageBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
+                        color: imageBusy ? "rgba(245,232,209,0.35)" : "var(--gold)",
+                        border: "1px solid rgba(182,136,94,0.30)",
+                        cursor: imageBusy ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {imageBusy === "upload"
+                        ? <><Loader2 size={12} className="animate-spin" /> Uploading…</>
+                        : <><Upload size={12} /> Upload Image</>}
+                    </button>
                   </div>
-                  <div>
-                    <FL>Gallery Images</FL>
-                    <div style={{
-                      padding: "28px 16px", textAlign: "center",
-                      border: "1px dashed rgba(182,136,94,0.2)", borderRadius: 10,
-                    }}>
-                      <ImageIcon size={22} style={{ color: "var(--gold)", opacity: 0.25, margin: "0 auto 8px" }} />
-                      <p style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.35 }}>No gallery images yet</p>
-                      <button type="button" disabled title={MEDIA_NOTICE} style={{
-                        marginTop: 10, padding: "5px 14px", borderRadius: 8,
-                        fontSize: 12, background: "rgba(182,136,94,0.05)",
-                        color: "rgba(245,232,209,0.30)", border: "1px solid rgba(182,136,94,0.12)",
-                        cursor: "not-allowed",
-                      }}>
-                        Upload Images
-                      </button>
-                    </div>
+
+                  {managedImageCount === 0 && (
+                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
+                      No custom images uploaded yet. The public site is showing the default
+                      placeholder below. Upload the product&apos;s real photos to replace it.
+                    </p>
+                  )}
+
+                  {/* Image grid: primary badge + set-primary / delete per managed image */}
+                  <div style={{
+                    display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12,
+                  }}>
+                    {images.map((image) => {
+                      const busy = imageBusy === image.url;
+                      return (
+                        <div
+                          key={image.url}
+                          style={{
+                            borderRadius: 12, overflow: "hidden",
+                            border: image.isPrimary
+                              ? "1px solid rgba(214,163,115,0.55)"
+                              : "1px solid rgba(182,136,94,0.14)",
+                            background: "rgba(182,136,94,0.05)",
+                            display: "flex", flexDirection: "column",
+                          }}
+                        >
+                          <div style={{
+                            position: "relative", width: "100%", aspectRatio: "1 / 1",
+                            background: "rgba(18,13,9,0.6)",
+                          }}>
+                            <Image src={image.url} alt={product.name.en} fill sizes="220px" className="object-contain p-4" />
+                            {image.isPrimary && (
+                              <span style={{
+                                position: "absolute", top: 6, left: 6,
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                fontSize: 9, fontWeight: 700, letterSpacing: "0.04em",
+                                padding: "3px 7px", borderRadius: 99, textTransform: "uppercase",
+                                background: "rgba(214,163,115,0.92)", color: "#2A1500",
+                              }}>
+                                <Star size={9} style={{ fill: "#2A1500" }} /> Primary
+                              </span>
+                            )}
+                            {!image.isManaged && (
+                              <span style={{
+                                position: "absolute", top: 6, right: 6,
+                                fontSize: 9, fontWeight: 600, padding: "3px 7px", borderRadius: 99,
+                                background: "rgba(255,255,255,0.08)", color: "var(--cream-dim)",
+                              }}>
+                                Default
+                              </span>
+                            )}
+                            {busy && (
+                              <div style={{
+                                position: "absolute", inset: 0, display: "flex",
+                                alignItems: "center", justifyContent: "center",
+                                background: "rgba(11,8,6,0.55)",
+                              }}>
+                                <Loader2 size={18} className="animate-spin" style={{ color: "var(--gold)" }} />
+                              </div>
+                            )}
+                          </div>
+
+                          {image.isManaged && (
+                            <div style={{ display: "flex", gap: 6, padding: 8 }}>
+                              <button
+                                type="button"
+                                onClick={() => handleSetPrimary(image.url)}
+                                disabled={image.isPrimary || imageBusy !== null}
+                                title={image.isPrimary ? "This is the primary image" : "Set as primary"}
+                                style={{
+                                  flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
+                                  padding: "6px 8px", borderRadius: 7, fontSize: 11, fontWeight: 600,
+                                  background: image.isPrimary ? "rgba(214,163,115,0.10)" : "rgba(182,136,94,0.12)",
+                                  color: image.isPrimary ? "rgba(214,163,115,0.55)" : "var(--gold)",
+                                  border: "1px solid rgba(182,136,94,0.22)",
+                                  cursor: image.isPrimary || imageBusy ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                <Star size={11} /> {image.isPrimary ? "Primary" : "Set primary"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteImage(image.url)}
+                                disabled={imageBusy !== null}
+                                title="Delete image"
+                                aria-label="Delete image"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                  padding: "6px 9px", borderRadius: 7, fontSize: 11,
+                                  background: "rgba(239,68,68,0.10)", color: "#f87171",
+                                  border: "1px solid rgba(239,68,68,0.24)",
+                                  cursor: imageBusy ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, lineHeight: 1.5 }}>
+                    JPG, PNG, WEBP, AVIF, or GIF · up to 5&nbsp;MB. The primary image is used on
+                    product cards, the category page, and as the main product photo.
+                  </p>
                 </div>
               )}
 
