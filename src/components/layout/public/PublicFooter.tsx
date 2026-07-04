@@ -2,7 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { useEffect, useState, type ComponentType } from "react";
+import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import {
+  DEFAULT_ADMIN_SETTINGS,
+  getPublicSettings,
+  toEmailHref,
+  toPhoneHref,
+  toPublicHttpUrl,
+  toWhatsAppHref,
+} from "@/lib/admin/admin-settings";
+import { useLanguage, type LocalizedValue } from "@/lib/context/language";
 
 function IconInstagram({ className }: { className?: string }) {
   return (
@@ -27,7 +37,14 @@ function IconTikTok({ className }: { className?: string }) {
     </svg>
   );
 }
-import { useLanguage, type LocalizedValue } from "@/lib/context/language";
+
+function IconYouTube({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 00.5 6.2 31 31 0 000 12a31 31 0 00.5 5.8 3 3 0 002.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 002.1-2.1A31 31 0 0024 12a31 31 0 00-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/>
+    </svg>
+  );
+}
 
 const footerLinks = {
   categories: [
@@ -53,14 +70,49 @@ const footerLinks = {
   ],
 };
 
-const socials = [
-  { href: "https://instagram.com/linecoffee.eg", label: "Instagram", Icon: IconInstagram },
-  { href: "https://facebook.com/linecoffee", label: "Facebook", Icon: IconFacebook },
-  { href: "https://www.tiktok.com/@linecoffee", label: "TikTok", Icon: IconTikTok },
-];
-
 export function PublicFooter() {
   const { dir, t } = useLanguage();
+  const [settings, setSettings] = useState(DEFAULT_ADMIN_SETTINGS);
+
+  useEffect(() => {
+    let active = true;
+    getPublicSettings()
+      .then((next) => {
+        if (active) setSettings(next);
+      })
+      .catch(() => {
+        // Honest defaults contain no contact or social links.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const phoneHref = toPhoneHref(settings.contact.supportPhone);
+  const emailHref = toEmailHref(settings.contact.supportEmail);
+  const whatsappHref = toWhatsAppHref(
+    settings.contact.whatsappNumber,
+    settings.social.whatsapp,
+  );
+  const socialCandidates: Array<{
+    href: string | null;
+    label: string;
+    Icon: ComponentType<{ className?: string }>;
+  }> = [
+    { href: toPublicHttpUrl(settings.social.instagram), label: "Instagram", Icon: IconInstagram },
+    { href: toPublicHttpUrl(settings.social.facebook), label: "Facebook", Icon: IconFacebook },
+    { href: toPublicHttpUrl(settings.social.tiktok), label: "TikTok", Icon: IconTikTok },
+    { href: toPublicHttpUrl(settings.social.youtube), label: "YouTube", Icon: IconYouTube },
+    { href: whatsappHref, label: "WhatsApp", Icon: MessageCircle },
+  ];
+  const socials = socialCandidates.filter(
+    (item): item is typeof item & { href: string } => item.href !== null,
+  );
+  const hasContact =
+    Boolean(settings.contact.businessAddress.trim()) ||
+    Boolean(phoneHref) ||
+    Boolean(emailHref) ||
+    Boolean(whatsappHref);
 
   return (
     <footer className="relative overflow-hidden bg-[#070504]" dir={dir}>
@@ -82,11 +134,11 @@ export function PublicFooter() {
           <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-6 lg:gap-12">
             <div className="lg:col-span-2">
               <Link href="/" className="mb-6 inline-block">
-                <span className="sr-only">Line Coffee</span>
+                <span className="sr-only">{settings.brand.storeName}</span>
                 <span className="relative block h-20 w-64 md:h-24 md:w-72">
                   <Image
                     src="/brand/logo-white.svg"
-                    alt="Line Coffee"
+                    alt={settings.brand.storeName}
                     fill
                     sizes="18rem"
                     className="object-contain object-left"
@@ -126,24 +178,51 @@ export function PublicFooter() {
                 {t({ en: "Contact", ar: "تواصل" })}
               </h4>
               <ul className="space-y-3.5">
+                {settings.contact.businessAddress.trim() && (
                 <li className="flex items-start gap-2.5">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]" />
                   <span className="text-sm text-[#B79B85]/65">
-                    {t({ en: "Cairo, Egypt", ar: "القاهرة، مصر" })}
+                    {settings.contact.businessAddress}
                   </span>
                 </li>
+                )}
+                {phoneHref && (
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 shrink-0 text-[#B6885E]" />
-                  <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href="tel:+201004761171">
-                    +20 100 476 1171
+                  <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={phoneHref}>
+                    {settings.contact.supportPhone}
                   </a>
                 </li>
+                )}
+                {emailHref && (
                 <li className="flex items-center gap-2.5">
                   <Mail className="h-4 w-4 shrink-0 text-[#B6885E]" />
-                  <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href="mailto:info@linecoffee.com">
-                    info@linecoffee.com
+                  <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={emailHref}>
+                    {settings.contact.supportEmail}
                   </a>
                 </li>
+                )}
+                {whatsappHref && (
+                  <li className="flex items-center gap-2.5">
+                    <MessageCircle className="h-4 w-4 shrink-0 text-[#B6885E]" />
+                    <a
+                      className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]"
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {settings.contact.whatsappNumber || "WhatsApp"}
+                    </a>
+                  </li>
+                )}
+                {!hasContact && (
+                  <li className="text-sm text-[#B79B85]/65">
+                    {t({
+                      en: "Contact details are not available yet.",
+                      ar: "بيانات التواصل غير متاحة حالياً.",
+                    })}
+                  </li>
+                )}
               </ul>
             </div>
           </div>
@@ -152,7 +231,7 @@ export function PublicFooter() {
         <div className="border-t border-[#B6885E]/10">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-[#B79B85]/45 md:flex-row">
             <p>
-              &copy; {new Date().getFullYear()} Line Coffee.{" "}
+              &copy; {new Date().getFullYear()} {settings.brand.storeName}.{" "}
               {t({ en: "All rights reserved.", ar: "جميع الحقوق محفوظة." })}
             </p>
             <div className="flex flex-wrap justify-center gap-5">

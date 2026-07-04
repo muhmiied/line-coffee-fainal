@@ -1,31 +1,19 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { submitContactMessage } from "@/lib/cms/public-cms";
+import {
+  DEFAULT_ADMIN_SETTINGS,
+  getPublicSettings,
+  toEmailHref,
+  toPhoneHref,
+  toWhatsAppHref,
+} from "@/lib/admin/admin-settings";
 import { cn } from "@/lib/utils/cn";
-
-// ─── Contact constants ────────────────────────────────────────────────────────
-// Move to Dashboard / Site Settings when backend is ready.
-
-const SITE_CONTACT = {
-  whatsapp: {
-    display: "+20 100 476 1171",
-    href:    "https://wa.me/201004761171",
-  },
-  phone: {
-    display: "+20 100 476 1171",
-    href:    "tel:+201004761171",
-  },
-  email: {
-    display: "info@linecoffee.com",
-    href:    "mailto:info@linecoffee.com",
-  },
-  location: { en: "Cairo, Egypt", ar: "القاهرة، مصر" },
-} as const;
 
 // ─── Static mock content ──────────────────────────────────────────────────────
 
@@ -141,6 +129,32 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [openFaq, setOpenFaq]     = useState<number | null>(null);
+  const [settings, setSettings] = useState(DEFAULT_ADMIN_SETTINGS);
+  const phoneHref = toPhoneHref(settings.contact.supportPhone);
+  const emailHref = toEmailHref(settings.contact.supportEmail);
+  const whatsappHref = toWhatsAppHref(
+    settings.contact.whatsappNumber,
+    settings.social.whatsapp,
+  );
+  const hasContact =
+    Boolean(whatsappHref) ||
+    Boolean(phoneHref) ||
+    Boolean(emailHref) ||
+    Boolean(settings.contact.businessAddress.trim());
+
+  useEffect(() => {
+    let active = true;
+    getPublicSettings()
+      .then((next) => {
+        if (active) setSettings(next);
+      })
+      .catch(() => {
+        // The contact form remains available without inventing contact details.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -390,31 +404,39 @@ export default function ContactPage() {
                 {t({ en: "Contact Info", ar: "معلومات التواصل" })}
               </h2>
 
-              <ContactCard
+              {whatsappHref && <ContactCard
                 icon={MessageCircle}
                 label={{ en: "WhatsApp", ar: "واتساب" }}
-                value={SITE_CONTACT.whatsapp.display}
-                href={SITE_CONTACT.whatsapp.href}
-              />
-              <ContactCard
+                value={settings.contact.whatsappNumber || "WhatsApp"}
+                href={whatsappHref}
+              />}
+              {phoneHref && <ContactCard
                 icon={Phone}
                 label={{ en: "Phone", ar: "هاتف" }}
-                value={SITE_CONTACT.phone.display}
-                href={SITE_CONTACT.phone.href}
-              />
-              <ContactCard
+                value={settings.contact.supportPhone}
+                href={phoneHref}
+              />}
+              {emailHref && <ContactCard
                 icon={Mail}
                 label={{ en: "Email", ar: "بريد إلكتروني" }}
-                value={SITE_CONTACT.email.display}
-                href={SITE_CONTACT.email.href}
-              />
-              <ContactCard
+                value={settings.contact.supportEmail}
+                href={emailHref}
+              />}
+              {settings.contact.businessAddress.trim() && <ContactCard
                 icon={MapPin}
                 label={{ en: "Location", ar: "الموقع" }}
-                value={SITE_CONTACT.location}
-              />
+                value={settings.contact.businessAddress}
+              />}
+              {!hasContact && (
+                <div className="luxury-panel rounded-2xl p-5 text-sm leading-6 text-[#D6B79A]/70">
+                  {t({
+                    en: "Contact details are not available yet. You can still send us a message using the form.",
+                    ar: "بيانات التواصل غير متاحة حالياً. لا يزال بإمكانك إرسال رسالة عبر النموذج.",
+                  })}
+                </div>
+              )}
 
-              <div className="luxury-panel mt-1 rounded-2xl p-5">
+              {(whatsappHref || emailHref) && <div className="luxury-panel mt-1 rounded-2xl p-5">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#D6A373]/68">
                   {t({ en: "Response time", ar: "وقت الرد" })}
                 </p>
@@ -424,14 +446,14 @@ export default function ContactPage() {
                     ar: "نرد عادةً في غضون ساعات قليلة على واتساب، أو خلال 24 ساعة عبر البريد الإلكتروني.",
                   })}
                 </p>
-              </div>
+              </div>}
             </div>
           </div>
         </div>
       </section>
 
       {/* ── 3. WhatsApp Feature Strip ─────────────────────────────── */}
-      <section className="cinematic-section relative overflow-hidden py-16 md:py-20">
+      {whatsappHref && <section className="cinematic-section relative overflow-hidden py-16 md:py-20">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a04] via-[#120d09] to-[#0b0806]" />
         <div
           aria-hidden="true"
@@ -455,11 +477,11 @@ export default function ContactPage() {
           </p>
 
           <p className="mb-7 text-2xl font-bold tracking-wide text-[#f5cdb2]" dir="ltr">
-            {SITE_CONTACT.whatsapp.display}
+            {settings.contact.whatsappNumber || "WhatsApp"}
           </p>
 
           <a
-            href={SITE_CONTACT.whatsapp.href}
+            href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
             className="studio-espresso-btn inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-semibold"
@@ -468,7 +490,7 @@ export default function ContactPage() {
             <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />
           </a>
         </div>
-      </section>
+      </section>}
 
       {/* ── 4. FAQ + CTA ──────────────────────────────────────────── */}
       <section className="cinematic-section section-bg-black relative overflow-hidden py-16 md:py-24">

@@ -34,6 +34,10 @@ import {
   getPublicProductsBySlugs,
   type PublicCatalogProduct,
 } from "@/lib/catalog/public-catalog";
+import {
+  getPublicSettings,
+  type StorefrontSettings,
+} from "@/lib/admin/admin-settings";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
 
@@ -733,8 +737,14 @@ export function PublicHeader() {
   const [scrollProgress,      setScrollProgress]      = useState(0);
   const [announcementIdx,     setAnnouncementIdx]     = useState(0);
   const [announcementVisible, setAnnouncementVisible] = useState(true);
+  const [storefront,           setStorefront]           = useState<StorefrontSettings | null>(null);
 
   const isMakeYourEspressoPage = pathname === "/make-your-espresso";
+  const closedNotice =
+    storefront && !storefront.storeOpen
+      ? storefront.closedNotice.trim() ||
+        t({ en: "The store is currently closed.", ar: "المتجر مغلق حالياً." })
+      : null;
 
   const closeAll = () => {
     setOpenCommercePanel(null);
@@ -764,6 +774,10 @@ export function PublicHeader() {
 
   // Announcement cycle
   useEffect(() => {
+    if (storefront && !storefront.storeOpen) {
+      return;
+    }
+
     let fadeTimer: ReturnType<typeof setTimeout>;
     const cycle = setInterval(() => {
       setAnnouncementVisible(false);
@@ -773,6 +787,23 @@ export function PublicHeader() {
       }, 350);
     }, 3800);
     return () => { clearInterval(cycle); clearTimeout(fadeTimer); };
+  }, [storefront]);
+
+  useEffect(() => {
+    let active = true;
+    getPublicSettings()
+      .then((settings) => {
+        if (active) {
+          setStorefront(settings.storefront);
+          if (!settings.storefront.storeOpen) setAnnouncementVisible(true);
+        }
+      })
+      .catch(() => {
+        if (active) setStorefront(null);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // ESC to close everything + prevent body scroll when mobile menu open
@@ -853,8 +884,8 @@ export function PublicHeader() {
               announcementVisible ? "opacity-100" : "opacity-0",
             )}
           >
-            <span>{t(announcements[announcementIdx].text)}</span>
-            {announcements[announcementIdx].cta && (
+            <span>{closedNotice ?? t(announcements[announcementIdx].text)}</span>
+            {!closedNotice && announcements[announcementIdx].cta && (
               <>
                 <span className="text-[#B6885E]" aria-hidden="true">&bull;</span>
                 <Link

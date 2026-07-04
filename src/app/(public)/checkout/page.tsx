@@ -22,6 +22,10 @@ import {
   type CustomerAddress,
 } from "@/lib/account/customer-account";
 import { resolveDeliveryFee } from "@/lib/delivery";
+import {
+  getPublicSettings,
+  type StorefrontSettings,
+} from "@/lib/admin/admin-settings";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
@@ -444,6 +448,12 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
   const [validatingPromo, setValidatingPromo] = useState(false);
+  const [storefront, setStorefront] = useState<StorefrontSettings | null>(null);
+  const closedNotice =
+    storefront && !storefront.storeOpen
+      ? storefront.closedNotice.trim() ||
+        t({ en: "The store is currently closed.", ar: "المتجر مغلق حالياً." })
+      : null;
 
   // Phase 2: saved addresses are cached with their authenticated owner. The
   // owner id is checked again at render time so an Account A -> Account B
@@ -465,6 +475,20 @@ export default function CheckoutPage() {
       return { ownerKey, value };
     });
   }
+
+  useEffect(() => {
+    let active = true;
+    getPublicSettings()
+      .then((settings) => {
+        if (active) setStorefront(settings.storefront);
+      })
+      .catch(() => {
+        if (active) setStorefront(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -767,6 +791,14 @@ export default function CheckoutPage() {
           <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
             {t({ en: "Complete Your Order", ar: "أكمل طلبك" })}
           </h1>
+          {closedNotice && (
+            <p
+              role="status"
+              className="mt-4 max-w-2xl rounded-xl border border-[#D6A373]/25 bg-[#D6A373]/10 px-4 py-3 text-sm leading-6 text-[#F5E6D8]"
+            >
+              {closedNotice}
+            </p>
+          )}
         </div>
       </section>
 

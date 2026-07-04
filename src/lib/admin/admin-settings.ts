@@ -20,8 +20,8 @@
 // truth going forward). This module does NOT change checkout / delivery / order
 // logic. The delivery fee is still computed by resolve_delivery_fee() in SQL, so
 // it is deliberately NOT surfaced as an editable field here (editing it would be
-// fake). The store-status flag is stored for reference only and is not yet
-// enforced at checkout.
+// fake). The public site displays the store-status notice; atomic order blocking
+// remains unenforced until the checkout RPC can own that rule safely.
 
 import { supabase } from "@/lib/supabase/client";
 
@@ -179,6 +179,64 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     social: mapSocial(byKey.get("social_links")),
     storefront: mapStorefront(byKey.get("storefront")),
   };
+}
+
+// Public callers receive only the four launch-safe rows, and the query repeats
+// the database visibility predicates as defense in depth. RLS remains the
+// authoritative boundary.
+export async function getPublicSettings(): Promise<AdminSettings> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("key, value")
+    .eq("scope", "public")
+    .eq("is_public", true)
+    .in("key", SETTING_KEYS as unknown as string[]);
+
+  if (error) throw readError("public-load", error.message);
+
+  const byKey = new Map<string, unknown>();
+  for (const row of (data ?? []) as Array<{ key: string; value: unknown }>) {
+    byKey.set(row.key, row.value);
+  }
+
+  return {
+    brand: mapBrand(byKey.get("brand")),
+    contact: mapContact(byKey.get("contact")),
+    social: mapSocial(byKey.get("social_links")),
+    storefront: mapStorefront(byKey.get("storefront")),
+  };
+}
+
+export function toPublicHttpUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function toPhoneHref(value: string): string | null {
+  const normalized = value.trim().replace(/[^\d+]/g, "");
+  return normalized ? `tel:${normalized}` : null;
+}
+
+export function toEmailHref(value: string): string | null {
+  const normalized = value.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
+    ? `mailto:${normalized}`
+    : null;
+}
+
+export function toWhatsAppHref(number: string, explicitLink = ""): string | null {
+  const configuredLink = toPublicHttpUrl(explicitLink);
+  if (configuredLink) return configuredLink;
+
+  const digits = number.replace(/\D/g, "");
+  return digits ? `https://wa.me/${digits}` : null;
 }
 
 // ---------------------------------------------------------------------------

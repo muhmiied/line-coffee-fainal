@@ -26,6 +26,7 @@ export type SiteSettingKey =
   | "brand"
   | "contact"
   | "social_links"
+  | "storefront"
   | "shipping"
   | "checkout"
   | "seo"
