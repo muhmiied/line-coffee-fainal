@@ -12,6 +12,12 @@ type PriceChip = {
   price: number;
 };
 
+const PRODUCT_IMAGE_STORAGE_MARKER = "/storage/v1/object/public/product-images/";
+
+function isUploadedProductImage(url: string) {
+  return url.includes(PRODUCT_IMAGE_STORAGE_MARKER);
+}
+
 function getPriceChips(product: PublicCatalogProduct): PriceChip[] {
   return product.sizes.map((size) => ({ label: size.label, price: size.salePrice }));
 }
@@ -45,7 +51,12 @@ export function CatalogProductCard({
             alt={primaryName}
             fill
             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 340px"
-            className="object-cover object-center brightness-[0.82] contrast-[1.08] saturate-[1.05] transition-all duration-700 ease-out group-hover:scale-[1.06] group-hover:brightness-[0.92]"
+            className={cn(
+              "object-center brightness-[0.82] contrast-[1.08] saturate-[1.05] transition-all duration-700 ease-out group-hover:brightness-[0.92]",
+              isUploadedProductImage(product.image)
+                ? "object-contain p-3 group-hover:scale-[1.05]"
+                : "object-cover group-hover:scale-[1.06]",
+            )}
           />
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#080302] via-[#080302]/38 to-transparent" />

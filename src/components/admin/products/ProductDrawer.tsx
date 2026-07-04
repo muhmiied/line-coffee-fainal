@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Upload, ImageIcon, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw, Star, Trash2 } from "lucide-react";
+import { X, Upload, ImageIcon, ImageOff, Loader2, AlertTriangle, Boxes, ExternalLink, Archive, RotateCcw, Star, Trash2 } from "lucide-react";
 import {
   archiveAdminProduct,
   restoreAdminProduct,
@@ -18,6 +18,7 @@ import {
   uploadProductImage,
   setPrimaryProductImage,
   deleteProductImage,
+  restoreDefaultProductImage,
   type ProductImage,
 } from "@/lib/admin/admin-product-images";
 
@@ -336,7 +337,26 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     }
   };
 
+  // Restore the site default: clear the primary (products.image_url = null) but
+  // keep uploaded images in the gallery so they can be re-selected later. No
+  // Storage object is deleted — this only detaches the primary.
+  const handleRestoreDefault = async () => {
+    if (!product || imageBusy) return;
+    setImageBusy("restore-default");
+    setImageError(null);
+    try {
+      const next = await restoreDefaultProductImage(product.id);
+      setImages(next);
+      await onSaved();
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : "Could not restore the default image.");
+    } finally {
+      setImageBusy(null);
+    }
+  };
+
   const managedImageCount = images.filter((image) => image.isManaged).length;
+  const hasManagedPrimary = images.some((image) => image.isPrimary && image.isManaged);
 
   const margin = product ? marginPct(product.salePricePerKg, product.purchaseCostPerKg) : 0;
 
@@ -501,31 +521,61 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     style={{ display: "none" }}
                   />
 
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                     <FL>Product Images</FL>
-                    <button
-                      type="button"
-                      onClick={handleUploadClick}
-                      disabled={imageBusy !== null}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                        background: imageBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
-                        color: imageBusy ? "rgba(245,232,209,0.35)" : "var(--gold)",
-                        border: "1px solid rgba(182,136,94,0.30)",
-                        cursor: imageBusy ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {imageBusy === "upload"
-                        ? <><Loader2 size={12} className="animate-spin" /> Uploading…</>
-                        : <><Upload size={12} /> Upload Image</>}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {hasManagedPrimary && (
+                        <button
+                          type="button"
+                          onClick={handleRestoreDefault}
+                          disabled={imageBusy !== null}
+                          title="Clear the primary image and show the site default. Uploaded images stay in the gallery."
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                            background: imageBusy ? "rgba(182,136,94,0.05)" : "rgba(255,255,255,0.05)",
+                            color: imageBusy ? "rgba(245,232,209,0.3)" : "var(--cream-dim)",
+                            border: "1px solid rgba(182,136,94,0.22)",
+                            cursor: imageBusy ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {imageBusy === "restore-default"
+                            ? <><Loader2 size={12} className="animate-spin" /> Restoring…</>
+                            : <><ImageOff size={12} /> Use Default Image</>}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleUploadClick}
+                        disabled={imageBusy !== null}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                          background: imageBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
+                          color: imageBusy ? "rgba(245,232,209,0.35)" : "var(--gold)",
+                          border: "1px solid rgba(182,136,94,0.30)",
+                          cursor: imageBusy ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {imageBusy === "upload"
+                          ? <><Loader2 size={12} className="animate-spin" /> Uploading…</>
+                          : <><Upload size={12} /> Upload Image</>}
+                      </button>
+                    </div>
                   </div>
 
                   {managedImageCount === 0 && (
                     <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
                       No custom images uploaded yet. The public site is showing the default
                       placeholder below. Upload the product&apos;s real photos to replace it.
+                    </p>
+                  )}
+
+                  {managedImageCount > 0 && !hasManagedPrimary && (
+                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
+                      No primary image is set, so public cards show the default image. Use
+                      <strong style={{ color: "var(--gold)", fontWeight: 600 }}> Set primary </strong>
+                      on any image below to show it instead.
                     </p>
                   )}
 
@@ -627,6 +677,10 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, lineHeight: 1.5 }}>
                     JPG, PNG, WEBP, AVIF, or GIF · up to 5&nbsp;MB. The primary image is used on
                     product cards, the category page, and as the main product photo.
+                  </p>
+                  <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, lineHeight: 1.5, marginTop: -8 }}>
+                    Recommended product card image: 1200×900 or 4:3 horizontal. Portrait images may
+                    crop on product cards but can still work in the detail/gallery view.
                   </p>
                 </div>
               )}

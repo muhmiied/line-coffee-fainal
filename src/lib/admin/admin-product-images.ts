@@ -258,6 +258,23 @@ export async function deleteProductImage(
   return toProductImages(nextPrimary, nextGallery);
 }
 
+/**
+ * Return the product to the site's default/fallback image by clearing the
+ * primary (products.image_url = null) while KEEPING every uploaded image in the
+ * gallery, so an admin can re-select one later with Set Primary. No Storage
+ * object is deleted. With image_url null, the public catalog falls back to the
+ * category image (or the global default), i.e. the same placeholder shown before
+ * any upload. Returns the refreshed image set (managed uploads, none primary).
+ */
+export async function restoreDefaultProductImage(
+  productId: string,
+): Promise<ProductImage[]> {
+  if (!productId) throw new ProductImageError("Missing product id.");
+  const { gallery } = await readImageRow(productId);
+  await writeImages(productId, null, gallery);
+  return toProductImages(null, gallery);
+}
+
 /** Persist a new gallery display order (primary unchanged). */
 export async function reorderProductImages(
   productId: string,

@@ -15,6 +15,17 @@ import { cn } from "@/lib/utils/cn";
 
 type NormalizedSize = { label: string; price: string | number };
 
+// Listing cards for these categories intentionally omit the blend/ratio list —
+// it makes the small card too crowded. The full composition still shows on the
+// product detail page. Other categories have no blend data, so this is a no-op
+// for them and leaves them visually unchanged.
+const BLEND_HIDDEN_CATEGORIES = new Set(["turkish-blends", "espresso-blends"]);
+const PRODUCT_IMAGE_STORAGE_MARKER = "/storage/v1/object/public/product-images/";
+
+function isUploadedProductImage(url: string) {
+  return url.includes(PRODUCT_IMAGE_STORAGE_MARKER);
+}
+
 function isCatalogProduct(p: VisualProduct | PublicCatalogProduct): p is PublicCatalogProduct {
   return "pricingModel" in p;
 }
@@ -68,7 +79,10 @@ export function ProductCard({
 
   const priceChips = getPriceChips(product);
   const description = t(product.note);
-  const blend = isCatalogProduct(product) ? product.blend : undefined;
+  const blend =
+    isCatalogProduct(product) && !BLEND_HIDDEN_CATEGORIES.has(product.category)
+      ? product.blend
+      : undefined;
 
   const handleWishlist = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -123,7 +137,12 @@ export function ProductCard({
             fill
             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 320px"
             loading="lazy"
-            className="object-cover object-center brightness-[0.82] contrast-[1.08] saturate-[1.05] transition-all duration-700 ease-out group-hover:scale-[1.08] group-hover:brightness-[0.9]"
+            className={cn(
+              "object-center brightness-[0.82] contrast-[1.08] saturate-[1.05] transition-all duration-700 ease-out group-hover:brightness-[0.92]",
+              isUploadedProductImage(product.image)
+                ? "object-contain p-2 group-hover:scale-[1.05] sm:p-3"
+                : "object-cover group-hover:scale-[1.08]",
+            )}
           />
         ) : (
           <CinematicPlaceholder />

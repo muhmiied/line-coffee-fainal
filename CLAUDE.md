@@ -184,6 +184,16 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-04] — Phase 19A-Fix: Product Card Image UX + Blend Card Simplification
+
+**Goal:** Improve product-card image behavior and simplify Turkish/Espresso listing cards without redesigning the site or changing product, pricing, inventory, order, or accounting data.
+
+**Public cards:** `src/components/product/ProductCard.tsx` no longer renders blend composition/ratios for `turkish-blends` or `espresso-blends`; product detail composition remains unchanged. Uploaded Supabase Storage product images now use a padded `object-contain` treatment so portrait photos crop less, while existing category/default assets retain their established `object-cover` presentation. `src/components/product/CatalogProductCard.tsx` uses the same uploaded-image treatment.
+
+**Admin media UX:** `src/components/admin/products/ProductDrawer.tsx` adds **Use Default Image**, default-state guidance, and 1200×900 / 4:3 upload guidance. `src/lib/admin/admin-product-images.ts` adds `restoreDefaultProductImage`, which clears only `products.image_url` and keeps all uploaded URLs in `products.gallery`, so admins can restore any upload later with **Set primary**. No Storage object is deleted by restoring the default.
+
+**Validation:** `npx tsc --noEmit`, ESLint on the four changed TS/TSX files, and `git diff --check` passed. Browser smoke checks passed for `/products`, both Turkish/Espresso category routes, and `/products/high-mood`; the protected `/admin/products` route redirected cleanly to sign-in with no console errors. No migration, service-role code, remote push, redesign, data cleanup, or commerce/accounting logic changes.
+
 ### [2026-07-04] — Phase 19A: Product Images + Supabase Storage (applied)
 
 **Goal:** Make product image management real end-to-end — admins upload/manage real product photos, and public product cards/detail/category render the real primary image — without redesigning the public site, starting Media Studio/SEO/UI-polish, cleaning QA data, resetting/seeding, or changing prices/inventory/FIFO/COGS/checkout/orders/payments/refunds/returns/accounting/analytics. No service-role code, no remote git push.
