@@ -14,6 +14,7 @@ import {
   createCheckoutAttemptId,
   getOrCreateGuestId,
   isCheckoutOrderResult,
+  type CheckoutOrderHandoff,
   validatePromoCode,
 } from "@/lib/checkout";
 import type { PromoValidationResult } from "@/lib/types/marketing";
@@ -24,6 +25,8 @@ import {
 import { resolveDeliveryFee } from "@/lib/delivery";
 import {
   getPublicSettings,
+  resolvePublicPhone,
+  toWhatsAppHref,
   type StorefrontSettings,
 } from "@/lib/admin/admin-settings";
 import { supabase } from "@/lib/supabase/client";
@@ -435,6 +438,7 @@ export default function CheckoutPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const checkoutAttemptId = useRef<string | null>(null);
+  const submitInFlight = useRef(false);
   const ownerKey = isAuthLoading ? "loading" : (user?.id ?? "guest");
 
   const [ownedForm, setOwnedForm] = useState<{
@@ -449,6 +453,9 @@ export default function CheckoutPage() {
   const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [storefront, setStorefront] = useState<StorefrontSettings | null>(null);
+  const [whatsappHref, setWhatsappHref] = useState<string | null>(() =>
+    toWhatsAppHref(process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? ""),
+  );
   const closedNotice =
     storefront && !storefront.storeOpen
       ? storefront.closedNotice.trim() ||
@@ -480,7 +487,16 @@ export default function CheckoutPage() {
     let active = true;
     getPublicSettings()
       .then((settings) => {
-        if (active) setStorefront(settings.storefront);
+        if (active) {
+          const whatsappNumber = resolvePublicPhone(
+            settings.contact.whatsappNumber,
+            process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
+          );
+          setStorefront(settings.storefront);
+          setWhatsappHref(
+            toWhatsAppHref(whatsappNumber ?? "", settings.social.whatsapp),
+          );
+        }
       })
       .catch(() => {
         if (active) setStorefront(null);
@@ -678,6 +694,7 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitInFlight.current) return;
     setSubmitError(null);
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
@@ -694,6 +711,7 @@ export default function CheckoutPage() {
       (item): item is CheckoutRpcItem => item !== null,
     );
 
+    submitInFlight.current = true;
     setSubmitting(true);
     let orderPlaced = false;
     try {
@@ -735,10 +753,55 @@ export default function CheckoutPage() {
         return;
       }
 
+      const handoff: CheckoutOrderHandoff = {
+        customer: {
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          whatsapp: form.whatsapp.trim(),
+        },
+        address: {
+          governorate: form.governorate,
+          area: form.area,
+          street: form.street.trim(),
+          building: form.building.trim(),
+          floorApt: form.floorApt.trim(),
+        },
+        items: items.map((item) => ({
+          name: t(item.name),
+          detail: t(item.detail),
+          quantity: item.qty,
+        })),
+        whatsappHref,
+        telegramStatus: "failed",
+      };
+
+      try {
+        const notificationResponse = await fetch("/api/order-notifications/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: data.order_id,
+            orderCode: data.code,
+            customer: handoff.customer,
+            address: handoff.address,
+            items: handoff.items,
+            total: data.total,
+            paymentMethod: data.payment_method,
+            notes: null,
+          }),
+        });
+        handoff.telegramStatus = notificationResponse.ok ? "sent" : "failed";
+        if (!notificationResponse.ok) {
+          console.warn("[checkout] Order saved, but Telegram notification failed.");
+        }
+      } catch {
+        console.warn("[checkout] Order saved, but Telegram notification failed.");
+      }
+
       try {
         window.sessionStorage.setItem(
           checkoutResultStorageKey(data.order_id),
-          JSON.stringify(data),
+          JSON.stringify({ ...data, handoff }),
         );
       } catch {
         // The real order code is also carried in the URL as a display fallback.
@@ -753,7 +816,10 @@ export default function CheckoutPage() {
     } catch {
       setSubmitError(getCheckoutError());
     } finally {
-      if (!orderPlaced) setSubmitting(false);
+      if (!orderPlaced) {
+        submitInFlight.current = false;
+        setSubmitting(false);
+      }
     }
   }
 

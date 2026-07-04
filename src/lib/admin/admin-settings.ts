@@ -219,9 +219,43 @@ export function toPublicHttpUrl(value: string): string | null {
   }
 }
 
+const PLACEHOLDER_PHONE_DIGITS = new Set([
+  "01000000000",
+  "1000000000",
+  "201000000000",
+]);
+
+function toInternationalPhoneDigits(value: string): string | null {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (PLACEHOLDER_PHONE_DIGITS.has(digits)) return null;
+
+  if (/^01\d{9}$/.test(digits)) {
+    return `20${digits.slice(1)}`;
+  }
+  if (/^201\d{9}$/.test(digits)) {
+    return digits;
+  }
+
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+}
+
+export function resolvePublicPhone(...values: string[]): string | null {
+  for (const value of values) {
+    if (toInternationalPhoneDigits(value)) return value.trim();
+  }
+  return null;
+}
+
+export function formatPublicPhone(value: string): string | null {
+  const digits = toInternationalPhoneDigits(value);
+  if (!digits) return null;
+  return /^201\d{9}$/.test(digits) ? `0${digits.slice(2)}` : value.trim();
+}
+
 export function toPhoneHref(value: string): string | null {
-  const normalized = value.trim().replace(/[^\d+]/g, "");
-  return normalized ? `tel:${normalized}` : null;
+  const digits = toInternationalPhoneDigits(value);
+  return digits ? `tel:+${digits}` : null;
 }
 
 export function toEmailHref(value: string): string | null {
@@ -233,9 +267,19 @@ export function toEmailHref(value: string): string | null {
 
 export function toWhatsAppHref(number: string, explicitLink = ""): string | null {
   const configuredLink = toPublicHttpUrl(explicitLink);
-  if (configuredLink) return configuredLink;
+  if (configuredLink) {
+    const url = new URL(configuredLink);
+    const isWhatsAppHost = ["wa.me", "api.whatsapp.com", "web.whatsapp.com"].includes(
+      url.hostname.toLowerCase(),
+    );
+    const linkedValue = url.searchParams.get("phone") || url.pathname;
+    const linkedDigits = linkedValue.replace(/\D/g, "");
+    if (isWhatsAppHost && (!linkedDigits || toInternationalPhoneDigits(linkedDigits))) {
+      return configuredLink;
+    }
+  }
 
-  const digits = number.replace(/\D/g, "");
+  const digits = toInternationalPhoneDigits(number);
   return digits ? `https://wa.me/${digits}` : null;
 }
 

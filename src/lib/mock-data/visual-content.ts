@@ -363,8 +363,7 @@ export const contactItems: VisualContactItem[] = [
   {
     kind: "phone",
     label: { en: "Phone / WhatsApp", ar: "الهاتف / واتساب" },
-    value: { en: "+20 100 000 0000", ar: "+20 100 000 0000" },
-    href: "tel:+201000000000",
+    value: { en: "", ar: "" },
   },
   {
     kind: "mail",

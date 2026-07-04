@@ -6,7 +6,9 @@ import { useEffect, useState, type ComponentType } from "react";
 import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import {
   DEFAULT_ADMIN_SETTINGS,
+  formatPublicPhone,
   getPublicSettings,
+  resolvePublicPhone,
   toEmailHref,
   toPhoneHref,
   toPublicHttpUrl,
@@ -88,10 +90,20 @@ export function PublicFooter() {
     };
   }, []);
 
-  const phoneHref = toPhoneHref(settings.contact.supportPhone);
+  const whatsappNumber = resolvePublicPhone(
+    settings.contact.whatsappNumber,
+    process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
+  );
+  const supportPhone = resolvePublicPhone(
+    settings.contact.supportPhone,
+    whatsappNumber ?? "",
+  );
+  const phoneDisplay = supportPhone ? formatPublicPhone(supportPhone) : null;
+  const whatsappDisplay = whatsappNumber ? formatPublicPhone(whatsappNumber) : null;
+  const phoneHref = supportPhone ? toPhoneHref(supportPhone) : null;
   const emailHref = toEmailHref(settings.contact.supportEmail);
   const whatsappHref = toWhatsAppHref(
-    settings.contact.whatsappNumber,
+    whatsappNumber ?? "",
     settings.social.whatsapp,
   );
   const socialCandidates: Array<{
@@ -186,11 +198,11 @@ export function PublicFooter() {
                   </span>
                 </li>
                 )}
-                {phoneHref && (
+                {phoneHref && phoneDisplay && (
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 shrink-0 text-[#B6885E]" />
                   <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={phoneHref}>
-                    {settings.contact.supportPhone}
+                    {phoneDisplay}
                   </a>
                 </li>
                 )}
@@ -211,7 +223,7 @@ export function PublicFooter() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {settings.contact.whatsappNumber || "WhatsApp"}
+                      {whatsappDisplay || "WhatsApp"}
                     </a>
                   </li>
                 )}

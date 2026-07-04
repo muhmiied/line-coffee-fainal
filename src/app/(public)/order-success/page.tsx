@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useCallback, useMemo, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle } from "lucide-react";
+import { ArrowRight, CheckCircle, MessageCircle } from "lucide-react";
 import {
+  buildWhatsAppOrderHref,
   checkoutResultStorageKey,
   isCheckoutOrderResult,
+  whatsappOpenedStorageKey,
   type CheckoutOrderResult,
 } from "@/lib/checkout";
 import { useLanguage } from "@/lib/context/language";
@@ -43,6 +45,22 @@ function OrderSuccessContent() {
       return null;
     }
   }, [orderId, rawResult]);
+  const whatsappUrl = useMemo(
+    () => (result ? buildWhatsAppOrderHref(result) : null),
+    [result],
+  );
+
+  useEffect(() => {
+    if (!orderId || !whatsappUrl) return;
+    const openedKey = whatsappOpenedStorageKey(orderId);
+    try {
+      if (window.sessionStorage.getItem(openedKey)) return;
+      window.sessionStorage.setItem(openedKey, "1");
+    } catch {
+      // Continue with the handoff even when session storage is unavailable.
+    }
+    window.location.assign(whatsappUrl);
+  }, [orderId, whatsappUrl]);
 
   if (rawResult === RECEIPT_LOADING) {
     return <div className="min-h-screen bg-[#0B0806]" />;
@@ -144,6 +162,31 @@ function OrderSuccessContent() {
                   </p>
                 )}
               </div>
+            )}
+
+            {result?.handoff?.telegramStatus === "failed" && (
+              <div
+                role="status"
+                className="mb-6 rounded-xl border border-amber-300/25 bg-amber-300/8 px-4 py-3 text-sm leading-6 text-amber-100"
+              >
+                {t({
+                  en: "Your order is safely saved, but the admin notification could not be confirmed. Please send the prepared WhatsApp message.",
+                  ar: "تم حفظ طلبك بأمان، لكن تعذر تأكيد إشعار الإدارة. يرجى إرسال رسالة واتساب المجهزة.",
+                })}
+              </div>
+            )}
+
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                className="premium-button mb-3 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t({
+                  en: "Send Order on WhatsApp",
+                  ar: "إرسال الطلب عبر واتساب",
+                })}
+              </a>
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">

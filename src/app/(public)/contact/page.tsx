@@ -8,7 +8,9 @@ import { useLanguage } from "@/lib/context/language";
 import { submitContactMessage } from "@/lib/cms/public-cms";
 import {
   DEFAULT_ADMIN_SETTINGS,
+  formatPublicPhone,
   getPublicSettings,
+  resolvePublicPhone,
   toEmailHref,
   toPhoneHref,
   toWhatsAppHref,
@@ -130,10 +132,20 @@ export default function ContactPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [openFaq, setOpenFaq]     = useState<number | null>(null);
   const [settings, setSettings] = useState(DEFAULT_ADMIN_SETTINGS);
-  const phoneHref = toPhoneHref(settings.contact.supportPhone);
+  const whatsappNumber = resolvePublicPhone(
+    settings.contact.whatsappNumber,
+    process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
+  );
+  const supportPhone = resolvePublicPhone(
+    settings.contact.supportPhone,
+    whatsappNumber ?? "",
+  );
+  const phoneDisplay = supportPhone ? formatPublicPhone(supportPhone) : null;
+  const whatsappDisplay = whatsappNumber ? formatPublicPhone(whatsappNumber) : null;
+  const phoneHref = supportPhone ? toPhoneHref(supportPhone) : null;
   const emailHref = toEmailHref(settings.contact.supportEmail);
   const whatsappHref = toWhatsAppHref(
-    settings.contact.whatsappNumber,
+    whatsappNumber ?? "",
     settings.social.whatsapp,
   );
   const hasContact =
@@ -407,13 +419,13 @@ export default function ContactPage() {
               {whatsappHref && <ContactCard
                 icon={MessageCircle}
                 label={{ en: "WhatsApp", ar: "واتساب" }}
-                value={settings.contact.whatsappNumber || "WhatsApp"}
+                value={whatsappDisplay || "WhatsApp"}
                 href={whatsappHref}
               />}
-              {phoneHref && <ContactCard
+              {phoneHref && phoneDisplay && <ContactCard
                 icon={Phone}
                 label={{ en: "Phone", ar: "هاتف" }}
-                value={settings.contact.supportPhone}
+                value={phoneDisplay}
                 href={phoneHref}
               />}
               {emailHref && <ContactCard
@@ -477,7 +489,7 @@ export default function ContactPage() {
           </p>
 
           <p className="mb-7 text-2xl font-bold tracking-wide text-[#f5cdb2]" dir="ltr">
-            {settings.contact.whatsappNumber || "WhatsApp"}
+            {whatsappDisplay || "WhatsApp"}
           </p>
 
           <a

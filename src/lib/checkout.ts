@@ -17,10 +17,34 @@ export type CheckoutOrderResult = {
   payment_method: "cash_on_delivery" | "instapay" | "wallet";
   payment_status: "pending";
   item_count: number;
+  handoff?: CheckoutOrderHandoff;
+};
+
+export type CheckoutOrderHandoff = {
+  customer: {
+    name: string;
+    phone: string;
+    whatsapp: string;
+  };
+  address: {
+    governorate: string;
+    area: string;
+    street: string;
+    building: string;
+    floorApt: string;
+  };
+  items: Array<{
+    name: string;
+    detail: string;
+    quantity: number;
+  }>;
+  whatsappHref: string | null;
+  telegramStatus: "sent" | "failed";
 };
 
 const GUEST_ID_KEY = "line-guest-id-v1";
 const CHECKOUT_RESULT_PREFIX = "line-checkout-result:";
+const WHATSAPP_OPENED_PREFIX = "line-whatsapp-opened:";
 
 function createGuestId() {
   if (typeof crypto.randomUUID === "function") {
@@ -54,6 +78,22 @@ export function checkoutResultStorageKey(orderId: string) {
   return `${CHECKOUT_RESULT_PREFIX}${orderId}`;
 }
 
+export function whatsappOpenedStorageKey(orderId: string) {
+  return `${WHATSAPP_OPENED_PREFIX}${orderId}`;
+}
+
+function isCheckoutOrderHandoff(value: unknown): value is CheckoutOrderHandoff {
+  if (!value || typeof value !== "object") return false;
+  const handoff = value as Partial<CheckoutOrderHandoff>;
+  return (
+    Boolean(handoff.customer) &&
+    Boolean(handoff.address) &&
+    Array.isArray(handoff.items) &&
+    (handoff.whatsappHref === null || typeof handoff.whatsappHref === "string") &&
+    ["sent", "failed"].includes(handoff.telegramStatus ?? "")
+  );
+}
+
 export function isCheckoutOrderResult(value: unknown): value is CheckoutOrderResult {
   if (!value || typeof value !== "object") return false;
 
@@ -70,8 +110,66 @@ export function isCheckoutOrderResult(value: unknown): value is CheckoutOrderRes
       typeof result.promo_code === "string") &&
     typeof result.item_count === "number" &&
     ["cash_on_delivery", "instapay", "wallet"].includes(result.payment_method ?? "") &&
-    result.payment_status === "pending"
+    result.payment_status === "pending" &&
+    (result.handoff === undefined || isCheckoutOrderHandoff(result.handoff))
   );
+}
+
+export function buildWhatsAppOrderHref(result: CheckoutOrderResult): string | null {
+  const handoff = result.handoff;
+  if (!handoff?.whatsappHref) return null;
+
+  const paymentMethod = {
+    cash_on_delivery: "Cash on Delivery",
+    instapay: "InstaPay",
+    wallet: "Wallet",
+  }[result.payment_method];
+  const address = [
+    handoff.address.street,
+    handoff.address.building && `Building ${handoff.address.building}`,
+    handoff.address.floorApt,
+    handoff.address.area,
+    handoff.address.governorate,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const itemLines = handoff.items.map(
+    (item) =>
+      `- ${item.name}${item.detail ? ` (${item.detail})` : ""} x${item.quantity}`,
+  );
+  const message = [
+    "Hello Line Coffee, I have placed an order:",
+    "",
+    `Order: ${result.code}`,
+    `Name: ${handoff.customer.name}`,
+    `Phone: ${handoff.customer.phone}`,
+    `WhatsApp: ${handoff.customer.whatsapp}`,
+    `Address: ${address}`,
+    "",
+    "Items:",
+    ...itemLines,
+    "",
+    `Total: ${result.total.toFixed(2)} EGP`,
+    `Payment: ${paymentMethod}`,
+    "",
+    "Please confirm my order. Thank you.",
+  ].join("\n");
+
+  try {
+    const url = new URL(handoff.whatsappHref);
+    if (
+      url.protocol !== "https:" ||
+      !["wa.me", "api.whatsapp.com", "web.whatsapp.com"].includes(
+        url.hostname.toLowerCase(),
+      )
+    ) {
+      return null;
+    }
+    url.searchParams.set("text", message);
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 const PROMO_VALIDATION_STATUSES = new Set<PromoValidationStatus>([

@@ -1,10 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { submitContactMessage } from "@/lib/cms/public-cms";
+import {
+  formatPublicPhone,
+  getPublicSettings,
+  resolvePublicPhone,
+  toPhoneHref,
+} from "@/lib/admin/admin-settings";
 import { assets, contactItems } from "@/lib/mock-data/visual-content";
 import type { ContactItemKind, VisualContactItem } from "@/types/homepage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -24,6 +30,42 @@ export function ContactSection({ items = contactItems }: ContactSectionProps) {
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const fallbackPhone = resolvePublicPhone(
+    process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
+  );
+  const [publicPhone, setPublicPhone] = useState<string | null>(fallbackPhone);
+  const phoneDisplay = publicPhone ? formatPublicPhone(publicPhone) : null;
+  const phoneHref = publicPhone ? toPhoneHref(publicPhone) : null;
+  const resolvedItems = items.flatMap((item) =>
+    item.kind !== "phone"
+      ? [item]
+      : phoneDisplay && phoneHref
+        ? [{
+            ...item,
+            value: { en: phoneDisplay, ar: phoneDisplay },
+            href: phoneHref,
+          }]
+        : [],
+  );
+
+  useEffect(() => {
+    let active = true;
+    getPublicSettings()
+      .then((settings) => {
+        if (!active) return;
+        setPublicPhone(resolvePublicPhone(
+          settings.contact.supportPhone,
+          settings.contact.whatsappNumber,
+          process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
+        ));
+      })
+      .catch(() => {
+        // The env fallback remains visible; otherwise the phone row stays hidden.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,7 +126,7 @@ export function ContactSection({ items = contactItems }: ContactSectionProps) {
             </p>
 
             <div className="space-y-4">
-              {items.map((item) => {
+              {resolvedItems.map((item) => {
                 const Icon = contactIconMap[item.kind];
                 const content = (
                   <div className="flex items-start gap-4">
