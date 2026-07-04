@@ -461,6 +461,10 @@ export default function CheckoutPage() {
       ? storefront.closedNotice.trim() ||
         t({ en: "The store is currently closed.", ar: "المتجر مغلق حالياً." })
       : null;
+  // Server-side enforcement lives in create_checkout_order (Phase 18B); this
+  // flag only gives instant feedback and blocks a pointless round-trip when we
+  // already know the store is closed. It is NOT the authoritative gate.
+  const storeClosed = Boolean(storefront && !storefront.storeOpen);
 
   // Phase 2: saved addresses are cached with their authenticated owner. The
   // owner id is checked again at render time so an Account A -> Account B
@@ -615,6 +619,12 @@ export default function CheckoutPage() {
   }
 
   function getCheckoutError(message?: string) {
+    if (message?.includes("Store is closed")) {
+      return t({
+        en: "The store is currently closed and is not accepting new orders. Please try again later.",
+        ar: "المتجر مغلق حالياً ولا يستقبل طلبات جديدة. يرجى المحاولة لاحقاً.",
+      });
+    }
     if (message?.includes("Promo code rejected")) {
       return t({
         en: "This promo code cannot be applied to the current order.",
@@ -696,6 +706,10 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (submitInFlight.current) return;
     setSubmitError(null);
+    if (storeClosed) {
+      setSubmitError(getCheckoutError("Store is closed"));
+      return;
+    }
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
@@ -1282,16 +1296,18 @@ export default function CheckoutPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || storeClosed}
                   className={cn(
                     "premium-button mt-6 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold",
-                    submitting && "opacity-60",
+                    (submitting || storeClosed) && "opacity-60",
                   )}
                 >
-                  {submitting
+                  {storeClosed
+                    ? t({ en: "Store closed", ar: "المتجر مغلق" })
+                    : submitting
                     ? t({ en: "Placing order…", ar: "جاري تقديم الطلب…" })
                     : t({ en: "Place Order", ar: "تأكيد الطلب" })}
-                  {!submitting && (
+                  {!submitting && !storeClosed && (
                     <ArrowRight className={cn("h-4 w-4", dir === "rtl" && "rotate-180")} />
                   )}
                 </button>

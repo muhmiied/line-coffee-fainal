@@ -1,3 +1,5 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
 type TelegramOrderPayload = {
   orderId: string;
   orderCode: string;
@@ -31,6 +33,55 @@ const globalTelegramState = globalThis as typeof globalThis & {
 const sentOrders =
   globalTelegramState.lineCoffeeTelegramSent ??
   (globalTelegramState.lineCoffeeTelegramSent = new Map<string, number>());
+
+// Durable, DB-backed "already sent" guard. The in-memory Map above is per
+// serverless instance, so a retry that lands on a cold/other instance would
+// re-send. The log table (order_notifications) survives across instances. This
+// uses only the public anon/publishable key + validated SECURITY DEFINER RPCs —
+// no service role. All DB calls are best-effort: a DB failure here must never
+// corrupt the already-saved order or block the notification response.
+const NOTIFICATION_CHANNEL = "telegram";
+let cachedSupabase: SupabaseClient | null = null;
+
+function getSupabaseClient(): SupabaseClient | null {
+  if (cachedSupabase) return cachedSupabase;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  cachedSupabase = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return cachedSupabase;
+}
+
+async function durableNotificationWasSent(orderId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { data, error } = await client.rpc("order_notification_was_sent", {
+      p_order_id: orderId,
+      p_channel: NOTIFICATION_CHANNEL,
+    });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
+
+async function markDurableNotificationSent(orderId: string): Promise<void> {
+  const client = getSupabaseClient();
+  if (!client) return;
+  try {
+    await client.rpc("log_order_notification", {
+      p_order_id: orderId,
+      p_channel: NOTIFICATION_CHANNEL,
+    });
+  } catch {
+    // Best-effort: the order is already saved and the message already sent.
+  }
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -199,6 +250,12 @@ export async function POST(request: Request) {
   if (sentOrders.has(payload.orderId)) {
     return Response.json({ ok: true, duplicate: true });
   }
+  // Durable cross-instance guard. If a prior instance already recorded this
+  // order as notified, treat it as a duplicate (and refresh the local cache).
+  if (await durableNotificationWasSent(payload.orderId)) {
+    sentOrders.set(payload.orderId, now);
+    return Response.json({ ok: true, duplicate: true });
+  }
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
@@ -242,6 +299,7 @@ export async function POST(request: Request) {
     }
 
     sentOrders.set(payload.orderId, now);
+    await markDurableNotificationSent(payload.orderId);
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[telegram-order] Telegram request failed.", {
