@@ -38,25 +38,13 @@ import {
   getPublicSettings,
   type StorefrontSettings,
 } from "@/lib/admin/admin-settings";
+import {
+  DEFAULT_ANNOUNCEMENTS,
+  getPublicAnnouncements,
+  type PublicAnnouncement,
+} from "@/lib/content/announcements";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
-
-// Launch announcement bar (Phase 20B). Exactly two active messages; each shows
-// its own "Shop now" button automatically next to the sentence. `href` links to
-// the shop (a more specific safe link can be swapped in per message later).
-const announcements: {
-  text: { en: string; ar: string };
-  cta: { label: { en: string; ar: string }; href: string };
-}[] = [
-  {
-    text: { en: "Launch offers are live — shop your favorite coffee now", ar: "عروض الافتتاح وصلت — اطلب قهوتك المفضلة الآن" },
-    cta: { label: { en: "Shop now", ar: "تسوق الآن" }, href: "/products" },
-  },
-  {
-    text: { en: "Limited-time special discount on Line Coffee products", ar: "خصم خاص لفترة محدودة على منتجات لاين كوفي" },
-    cta: { label: { en: "Shop now", ar: "تسوق الآن" }, href: "/products" },
-  },
-];
 
 const navLinks = [
   { href: "/",        label: { en: "Home",     ar: "الرئيسية"   } },
@@ -749,6 +737,7 @@ export function PublicHeader() {
   const [announcementIdx,     setAnnouncementIdx]     = useState(0);
   const [announcementVisible, setAnnouncementVisible] = useState(true);
   const [storefront,           setStorefront]           = useState<StorefrontSettings | null>(null);
+  const [announcements,        setAnnouncements]        = useState<PublicAnnouncement[]>(DEFAULT_ANNOUNCEMENTS);
 
   const isMakeYourEspressoPage = pathname === "/make-your-espresso";
   const closedNotice =
@@ -756,6 +745,7 @@ export function PublicHeader() {
       ? storefront.closedNotice.trim() ||
         t({ en: "The store is currently closed.", ar: "المتجر مغلق حالياً." })
       : null;
+  const currentAnnouncement = announcements[announcementIdx] ?? announcements[0];
 
   const closeAll = () => {
     setOpenCommercePanel(null);
@@ -798,7 +788,7 @@ export function PublicHeader() {
       }, 350);
     }, 3800);
     return () => { clearInterval(cycle); clearTimeout(fadeTimer); };
-  }, [storefront]);
+  }, [storefront, announcements.length]);
 
   useEffect(() => {
     let active = true;
@@ -812,6 +802,23 @@ export function PublicHeader() {
       .catch(() => {
         if (active) setStorefront(null);
       });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Load the real active announcements (falls back to the built-in launch
+  // messages when the table is empty or unreachable).
+  useEffect(() => {
+    let active = true;
+    getPublicAnnouncements()
+      .then((list) => {
+        if (active && list.length > 0) {
+          setAnnouncements(list);
+          setAnnouncementIdx(0);
+        }
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -895,15 +902,15 @@ export function PublicHeader() {
               announcementVisible ? "opacity-100" : "opacity-0",
             )}
           >
-            <span>{closedNotice ?? t(announcements[announcementIdx].text)}</span>
-            {!closedNotice && (
+            <span>{closedNotice ?? (currentAnnouncement ? t(currentAnnouncement.text) : "")}</span>
+            {!closedNotice && currentAnnouncement && (
               <>
                 <span className="text-[#B6885E]" aria-hidden="true">&bull;</span>
                 <Link
-                  href={announcements[announcementIdx].cta.href}
+                  href={currentAnnouncement.cta.href}
                   className="rounded-full border border-[#B6885E]/35 px-2.5 py-0.5 text-xs text-[#FFDCC2] transition-colors hover:border-[#FFDCC2]/50 hover:text-white"
                 >
-                  {t(announcements[announcementIdx].cta.label)}
+                  {t(currentAnnouncement.cta.label)}
                 </Link>
               </>
             )}
