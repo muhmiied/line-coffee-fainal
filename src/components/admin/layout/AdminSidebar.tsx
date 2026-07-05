@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
+import { useAdminLanguage } from "./AdminLanguageProvider";
 
 interface NavItem {
   href: string;
@@ -49,6 +50,7 @@ interface SidebarContentProps {
 
 function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps) {
   const pathname = usePathname();
+  const { dir, t } = useAdminLanguage();
 
   return (
     <div className="flex flex-col h-full">
@@ -77,18 +79,18 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
                 alt="Line Coffee"
                 fill
                 sizes="176px"
-                className="object-contain object-left"
+                className={`object-contain ${dir === "rtl" ? "object-right" : "object-left"}`}
               />
             </span>
             {onClose && (
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-md hover:bg-white/5 transition-colors flex-shrink-0 ml-2"
-                style={{ color: "var(--cream-dim)" }}
-                aria-label="Close sidebar"
+                className="p-1.5 rounded-md hover:bg-white/5 transition-colors flex-shrink-0"
+                style={{ color: "var(--cream-dim)", marginInlineStart: 8 }}
+                aria-label={t("Close sidebar")}
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={14} className={dir === "rtl" ? "rotate-180" : undefined} />
               </button>
             )}
           </>
@@ -106,7 +108,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
             <Link
               key={item.href}
               href={item.href}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? t(item.label) : undefined}
               onClick={onClose}
               className={`admin-nav-item${isActive ? " admin-nav-active" : ""}`}
               style={collapsed ? { justifyContent: "center", padding: "0.6rem 0" } : undefined}
@@ -115,7 +117,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
 
               {!collapsed && (
                 <>
-                  <span className="flex-1 truncate">{item.label}</span>
+                  <span className="flex-1 truncate">{t(item.label)}</span>
 
                   {item.href === "/admin/orders" && orderCount != null && orderCount > 0 && (
                     <span
@@ -167,13 +169,13 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
                 className="text-[12px] font-semibold mb-0.5 leading-tight"
                 style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
               >
-                Your Daily Ritual
+                {t("Your Daily Ritual")}
               </p>
               <p
                 className="text-[10.5px] mb-2 leading-relaxed"
                 style={{ color: "var(--cream-dim)", opacity: 0.55 }}
               >
-                Premium blends for real moments.
+                {t("Premium blends for real moments.")}
               </p>
               <Link
                 href="/"
@@ -182,7 +184,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
                 className="text-[10.5px] font-semibold transition-opacity hover:opacity-75"
                 style={{ color: "var(--gold)" }}
               >
-                View Store →
+                {t("View Store →")}
               </Link>
             </div>
           </div>
@@ -199,7 +201,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
             className="text-[10px] leading-relaxed"
             style={{ color: "var(--cream-dim)", opacity: 0.5 }}
           >
-            Line Coffee Admin · v1.0
+            {t("Line Coffee Admin · v1.0")}
           </p>
         </div>
       )}
@@ -220,9 +222,10 @@ export default function AdminSidebar({
   onMobileClose,
   orderCount,
 }: AdminSidebarProps) {
+  const { dir } = useAdminLanguage();
   const SIDEBAR_STYLE = {
     background: "#0D0907",
-    borderRight: "1px solid rgba(182,136,94,0.08)",
+    borderInlineEnd: "1px solid rgba(182,136,94,0.08)",
   };
 
   return (
@@ -237,11 +240,15 @@ export default function AdminSidebar({
 
       {/* Mobile sidebar — slide-in overlay */}
       <aside
-        className="lg:hidden fixed top-0 left-0 h-full z-20 flex flex-col transition-transform duration-300 ease-in-out"
+        className={`lg:hidden fixed top-0 h-full z-20 flex flex-col transition-transform duration-300 ease-in-out ${
+          dir === "rtl" ? "right-0" : "left-0"
+        }`}
         style={{
           ...SIDEBAR_STYLE,
           width: 240,
-          transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
+          transform: mobileOpen
+            ? "translateX(0)"
+            : `translateX(${dir === "rtl" ? "100%" : "-100%"})`,
         }}
       >
         <SidebarContent

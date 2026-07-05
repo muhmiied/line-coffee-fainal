@@ -1141,6 +1141,15 @@ html[lang="ar"] .uppercase {
 
 /* ── Admin Dashboard ──────────────────────────────────────────────── */
 
+.admin-language-root[dir="rtl"],
+.admin-language-root[dir="rtl"] * {
+  font-family: var(--font-arabic-body-active), var(--font-tajawal), "Cairo", sans-serif;
+}
+
+.admin-language-root[dir="rtl"] .text-left {
+  text-align: right;
+}
+
 .admin-nav-item {
   display: flex;
   align-items: center;
@@ -1151,7 +1160,7 @@ html[lang="ar"] .uppercase {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--cream-dim);
-  border-left: 2px solid transparent;
+  border-inline-start: 2px solid transparent;
   transition: background 130ms ease, color 130ms ease;
   cursor: pointer;
   overflow: hidden;
@@ -1167,7 +1176,7 @@ html[lang="ar"] .uppercase {
 .admin-nav-item.admin-nav-active {
   background: rgba(182, 136, 94, 0.10);
   color: var(--cream);
-  border-left-color: var(--gold);
+  border-inline-start-color: var(--gold);
 }
 
 .admin-kpi-card {

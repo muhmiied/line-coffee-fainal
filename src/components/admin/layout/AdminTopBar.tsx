@@ -15,6 +15,7 @@ import {
   Clock3,
   Truck,
   CircleDollarSign,
+  Languages,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
@@ -24,6 +25,7 @@ import {
   type CurrentAdmin,
 } from "@/lib/auth/admin";
 import type { AdminOrderOverview } from "@/lib/admin/admin-orders";
+import { useAdminLanguage } from "./AdminLanguageProvider";
 
 const PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard":        "Main Dashboard",
@@ -52,12 +54,13 @@ export default function AdminTopBar({
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useAuth();
+  const { language, dir, t, toggleLanguage } = useAdminLanguage();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  const pageTitle = PAGE_TITLES[pathname] ?? "Admin Dashboard";
+  const pageTitle = t(PAGE_TITLES[pathname] ?? "Admin Dashboard");
 
   const adminName = getAdminDisplayName(admin);
   const adminFirstName = adminName.split(" ")[0] || admin.email;
@@ -73,21 +76,30 @@ export default function AdminTopBar({
           count: orderOverview.pending,
           Icon: Clock3,
           color: "#fbbf24",
-          label: `${orderOverview.pending} pending ${orderOverview.pending === 1 ? "order needs" : "orders need"} review`,
+          label:
+            language === "ar"
+              ? `${orderOverview.pending} ${orderOverview.pending === 1 ? "طلب قيد الانتظار يحتاج" : "طلبات قيد الانتظار تحتاج"} إلى المراجعة`
+              : `${orderOverview.pending} pending ${orderOverview.pending === 1 ? "order needs" : "orders need"} review`,
         },
         {
           key: "delivered-unpaid",
           count: orderOverview.deliveredUnpaid,
           Icon: CircleDollarSign,
           color: "#f87171",
-          label: `${orderOverview.deliveredUnpaid} delivered ${orderOverview.deliveredUnpaid === 1 ? "order is" : "orders are"} still unpaid`,
+          label:
+            language === "ar"
+              ? `${orderOverview.deliveredUnpaid} ${orderOverview.deliveredUnpaid === 1 ? "طلب تم توصيله وما زال غير مدفوع" : "طلبات تم توصيلها وما زالت غير مدفوعة"}`
+              : `${orderOverview.deliveredUnpaid} delivered ${orderOverview.deliveredUnpaid === 1 ? "order is" : "orders are"} still unpaid`,
         },
         {
           key: "shipped",
           count: orderOverview.shipped,
           Icon: Truck,
           color: "#a78bfa",
-          label: `${orderOverview.shipped} shipped ${orderOverview.shipped === 1 ? "order is" : "orders are"} awaiting delivery confirmation`,
+          label:
+            language === "ar"
+              ? `${orderOverview.shipped} ${orderOverview.shipped === 1 ? "طلب مشحون ينتظر" : "طلبات مشحونة تنتظر"} تأكيد التوصيل`
+              : `${orderOverview.shipped} shipped ${orderOverview.shipped === 1 ? "order is" : "orders are"} awaiting delivery confirmation`,
         },
       ].filter((alert) => alert.count > 0)
     : [];
@@ -142,6 +154,17 @@ export default function AdminTopBar({
       <div className="flex items-center gap-2">
         <div className="admin-topbar-divider hidden sm:block" />
 
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="flex min-h-9 items-center gap-1.5 rounded-lg border border-[#B6885E]/15 px-2.5 text-[11px] font-semibold text-[#D6B79A] transition-colors hover:border-[#B6885E]/30 hover:bg-white/5 hover:text-[#F5E6D8]"
+          aria-label={t(language === "en" ? "Switch to Arabic" : "Switch to English")}
+          title={t(language === "en" ? "Switch to Arabic" : "Switch to English")}
+        >
+          <Languages size={15} aria-hidden="true" />
+          <span>{language === "en" ? "العربية" : "English"}</span>
+        </button>
+
         <div className="relative" ref={notificationsRef}>
           <button
             type="button"
@@ -150,7 +173,7 @@ export default function AdminTopBar({
               setProfileOpen(false);
             }}
             className="relative rounded-lg p-2 text-[#B79B85] transition-colors hover:bg-white/5 hover:text-[#F5E6D8]"
-            aria-label="Operational notifications"
+            aria-label={t("Operational notifications")}
             aria-expanded={notificationsOpen ? "true" : "false"}
           >
             <Bell size={17} />
@@ -162,23 +185,25 @@ export default function AdminTopBar({
           </button>
 
           {notificationsOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#B6885E]/15 bg-[#1A1209] shadow-[0_20px_56px_rgba(0,0,0,0.55)]">
+            <div className={`absolute top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#B6885E]/15 bg-[#1A1209] shadow-[0_20px_56px_rgba(0,0,0,0.55)] ${
+              dir === "rtl" ? "left-0" : "right-0"
+            }`}>
               <div className="border-b border-[#B6885E]/10 px-4 py-3">
                 <p className="font-serif text-sm font-semibold text-[#F5E6D8]">
-                  Operational notifications
+                  {t("Operational notifications")}
                 </p>
                 <p className="mt-0.5 text-[10px] text-[#B79B85]/50">
-                  Live order alerts from Supabase
+                  {t("Live order alerts from Supabase")}
                 </p>
               </div>
 
               {orderOverview == null ? (
                 <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
-                  Notifications are temporarily unavailable.
+                  {t("Notifications are temporarily unavailable.")}
                 </p>
               ) : alerts.length === 0 ? (
                 <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
-                  No active notifications
+                  {t("No active notifications")}
                 </p>
               ) : (
                 <div className="divide-y divide-[#B6885E]/[0.07]">
@@ -214,7 +239,7 @@ export default function AdminTopBar({
             type="button"
             onClick={() => setProfileOpen((prev) => !prev)}
             className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
-            aria-label="Open profile menu"
+            aria-label={t("Open profile menu")}
             aria-expanded={profileOpen ? "true" : "false"}
           >
             {/* Avatar */}
@@ -231,6 +256,7 @@ export default function AdminTopBar({
             <span
               className="hidden sm:block text-[13px] truncate max-w-[96px]"
               style={{ color: "var(--cream)" }}
+              data-admin-no-translate
             >
               {adminFirstName}
             </span>
@@ -245,7 +271,9 @@ export default function AdminTopBar({
           {/* Dropdown */}
           {profileOpen && (
             <div
-              className="absolute right-0 top-full mt-2 w-56 rounded-xl py-1.5 z-50 overflow-hidden"
+              className={`absolute top-full mt-2 w-56 rounded-xl py-1.5 z-50 overflow-hidden ${
+                dir === "rtl" ? "left-0" : "right-0"
+              }`}
               style={{
                 background: "#1a1209",
                 border: "1px solid rgba(182,136,94,0.15)",
@@ -260,12 +288,14 @@ export default function AdminTopBar({
                 <p
                   className="text-sm font-medium leading-tight truncate"
                   style={{ color: "var(--cream)" }}
+                  data-admin-no-translate
                 >
                   {adminName}
                 </p>
                 <p
                   className="text-[11px] truncate mt-0.5"
                   style={{ color: "var(--cream-dim)" }}
+                  data-admin-no-translate
                 >
                   {admin.email}
                 </p>
@@ -276,7 +306,7 @@ export default function AdminTopBar({
                     color: "var(--gold)",
                   }}
                 >
-                  {adminRoleLabel}
+                  {t(adminRoleLabel)}
                 </span>
               </div>
 
@@ -286,7 +316,7 @@ export default function AdminTopBar({
                   className="text-[10px] font-semibold uppercase tracking-widest px-1 mb-1.5"
                   style={{ color: "var(--cream-dim)", opacity: 0.5 }}
                 >
-                  Quick Links
+                  {t("Quick Links")}
                 </p>
 
                 {/* Dashboard */}
@@ -297,7 +327,7 @@ export default function AdminTopBar({
                   style={{ color: "var(--cream-dim)" }}
                 >
                   <LayoutDashboard size={13} />
-                  <span className="flex-1">Dashboard</span>
+                  <span className="flex-1">{t("Dashboard")}</span>
                 </Link>
 
                 {/* Settings */}
@@ -308,7 +338,7 @@ export default function AdminTopBar({
                   style={{ color: "var(--cream-dim)" }}
                 >
                   <Settings size={13} />
-                  <span className="flex-1">Settings</span>
+                  <span className="flex-1">{t("Settings")}</span>
                 </Link>
 
                 {/* Website Preview */}
@@ -321,7 +351,7 @@ export default function AdminTopBar({
                   style={{ color: "var(--cream-dim)" }}
                 >
                   <ExternalLink size={13} />
-                  <span className="flex-1">Website Preview</span>
+                  <span className="flex-1">{t("Website Preview")}</span>
                 </Link>
               </div>
 
@@ -342,7 +372,7 @@ export default function AdminTopBar({
                 style={{ color: "var(--cream-dim)" }}
               >
                 <User size={13} />
-                My Account
+                {t("My Account")}
               </button>
 
               {/* Sign out */}
@@ -353,7 +383,7 @@ export default function AdminTopBar({
                 style={{ color: "#ef4444" }}
               >
                 <LogOut size={13} />
-                Sign Out
+                {t("Sign Out")}
               </button>
             </div>
           )}

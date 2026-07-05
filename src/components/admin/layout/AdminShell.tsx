@@ -12,12 +12,16 @@ import {
   getAdminOrderOverview,
   type AdminOrderOverview,
 } from "@/lib/admin/admin-orders";
+import { useAdminLanguage } from "./AdminLanguageProvider";
 
 function GateScreen({ children }: { children: React.ReactNode }) {
+  const { dir } = useAdminLanguage();
+
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
       style={{ background: "var(--coffee-black)" }}
+      dir={dir}
     >
       <div className="w-full max-w-sm rounded-xl border border-[#B6885E]/15 bg-[#120D09]/85 px-6 py-7 text-center shadow-[0_20px_56px_rgba(0,0,0,0.45)]">
         {children}
@@ -35,6 +39,7 @@ export default function AdminShell({
   const pathname = usePathname();
   const { admin, status, error, isAdmin, refresh } = useCurrentAdmin();
   const { signOut } = useAuth();
+  const { dir } = useAdminLanguage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [orderOverview, setOrderOverview] = useState<AdminOrderOverview | null>(null);
@@ -180,6 +185,7 @@ export default function AdminShell({
     <div
       className="fixed inset-0 z-[9999] flex overflow-hidden"
       style={{ background: "var(--coffee-black)" }}
+      dir={dir}
     >
       {mobileSidebarOpen && (
         <div

@@ -42,6 +42,7 @@ import {
 } from "@/lib/admin/admin-catalog";
 import ProductDrawer from "@/components/admin/products/ProductDrawer";
 import ProductCreateDrawer from "@/components/admin/products/ProductCreateDrawer";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 function writeErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -187,13 +188,15 @@ function FieldLabel({ children }: { children: ReactNode }) {
 }
 
 function CategoryStatusBadge({ category }: { category: AdminProductCategory }) {
+  const { t } = useAdminLanguage();
   const s = CATEGORY_STATUS_STYLE[category.status];
-  return <Badge bg={s.bg} color={s.color}>{s.label}</Badge>;
+  return <Badge bg={s.bg} color={s.color}>{t(s.label)}</Badge>;
 }
 
 // ─── AdminProductCard (Products tab) ─────────────────────────────────────────
 
 function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick: () => void }) {
+  const { language, localize, t } = useAdminLanguage();
   const ss  = STATUS_STYLE[product.status];
   const s250 = product.sizes.find((sz) => sz.label === "250g");
   const s500 = product.sizes.find((sz) => sz.label === "500g");
@@ -209,7 +212,7 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
       <div style={{ position: "relative", width: "100%", aspectRatio: "1", background: "rgba(182,136,94,0.04)", flexShrink: 0, overflow: "hidden" }}>
         <Image src={product.image} alt={product.name.en} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw" className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.04]" />
         <span style={{ position: "absolute", top: 8, left: 8, fontSize: 8.5, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: ss.bg, color: ss.color, letterSpacing: "0.03em" }}>
-          {product.status}
+          {t(product.status)}
         </span>
         <div style={{ position: "absolute", top: 7, right: 7, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
           {product.bestSeller && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(182,136,94,0.88)", color: "#0b0806" }}>BEST</span>}
@@ -224,8 +227,14 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
         </div>
       </div>
       <div style={{ padding: "10px 11px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-        <p className="truncate" style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-playfair)", color: "var(--cream)", lineHeight: 1.25 }}>{product.name.en}</p>
-        <p className="truncate" style={{ fontSize: 10.5, direction: "rtl", textAlign: "right", color: "var(--cream-dim)", opacity: 0.38 }}>{product.name.ar}</p>
+        <p
+          className="truncate"
+          dir={language === "ar" ? "rtl" : "ltr"}
+          data-admin-no-translate
+          style={{ fontSize: 12, fontWeight: 600, fontFamily: language === "ar" ? "var(--font-tajawal)" : "var(--font-playfair)", color: "var(--cream)", lineHeight: 1.25 }}
+        >
+          {localize(product.name)}
+        </p>
         <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 5 }}>
           {s250 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>250g {s250.salePrice}</span>}
           {s500 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>500g {s500.salePrice}</span>}
@@ -262,6 +271,7 @@ function CategoryCard({
   onToggleShowOnWebsite: (c: AdminProductCategory) => void;
   onViewProducts: (slug: string) => void;
 }) {
+  const { language, t } = useAdminLanguage();
   const idx          = sortedCategories.findIndex((c) => c.id === category.id);
   const canMoveUp    = idx > 0 && !busy;
   const canMoveDown  = idx >= 0 && idx < sortedCategories.length - 1 && !busy;
@@ -293,13 +303,9 @@ function CategoryCard({
               className="truncate"
               style={{ fontSize: 13.5, fontWeight: 700, color: "var(--cream)", fontFamily: "var(--font-playfair)", lineHeight: 1.3 }}
             >
-              {category.nameEn}
-            </p>
-            <p
-              className="truncate"
-              style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.48, direction: "rtl", textAlign: "right", marginTop: 2 }}
-            >
-              {category.nameAr}
+              <span data-admin-no-translate>
+                {language === "ar" ? category.nameAr || category.nameEn : category.nameEn || category.nameAr}
+              </span>
             </p>
           </div>
           <CategoryStatusBadge category={category} />
@@ -312,7 +318,7 @@ function CategoryCard({
           </span>
           <span style={{ fontSize: 10, color: "var(--cream-dim)", opacity: 0.28 }}>·</span>
           <span style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.5 }}>
-            {category.productCount} products
+            {category.productCount} {t("Products")}
           </span>
           <span style={{ fontSize: 10, color: "var(--cream-dim)", opacity: 0.28 }}>·</span>
           <span style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.42 }}>
@@ -869,6 +875,7 @@ function CategoryDrawer({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProductsPage() {
+  const { language } = useAdminLanguage();
   const [activeTab,        setActiveTab]        = useState<ProductAdminTab>("products");
   const [search,           setSearch]           = useState("");
   const [category,         setCategory]         = useState<string>("all");
@@ -1272,7 +1279,9 @@ export default function ProductsPage() {
                     className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium transition-all flex items-center gap-1.5"
                     style={{ background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
                   >
-                    {cat.nameEn}
+                    <span data-admin-no-translate>
+                      {language === "ar" ? cat.nameAr || cat.nameEn : cat.nameEn || cat.nameAr}
+                    </span>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 99, background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.06)", color: active ? "var(--gold)" : "var(--cream-dim)" }}>
                       {counts[cat.slug] ?? 0}
                     </span>

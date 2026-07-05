@@ -6,6 +6,7 @@ import type {
   AdminProductCategory,
   AdminProductCreateInput,
 } from "@/lib/admin/admin-catalog";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -127,6 +128,7 @@ export default function ProductCreateDrawer({
   onClose,
   onCreate,
 }: ProductCreateDrawerProps) {
+  const { language } = useAdminLanguage();
   const [state, setState] = useState<CreateState>(() => initialState(categories[0]?.id ?? ""));
 
   // Reset to a clean form each time the drawer opens.
@@ -239,7 +241,7 @@ export default function ProductCreateDrawer({
               {categories.length === 0 && <option value="">No categories available</option>}
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id} style={{ background: "#0f0a07" }}>
-                  {cat.nameEn}
+                  {language === "ar" ? cat.nameAr || cat.nameEn : cat.nameEn || cat.nameAr}
                 </option>
               ))}
             </select>

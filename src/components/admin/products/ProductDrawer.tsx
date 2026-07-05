@@ -21,6 +21,7 @@ import {
   restoreDefaultProductImage,
   type ProductImage,
 } from "@/lib/admin/admin-product-images";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ const NUM_INPUT: React.CSSProperties = {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function ProductDrawer({ product, isOpen, onClose, onSaved }: ProductDrawerProps) {
+  const { language, localize } = useAdminLanguage();
   const [form, setForm] = useState<DrawerForm>(EMPTY_FORM);
 
   // Archive / restore is a separate one-shot write (not part of the form Save /
@@ -451,20 +453,14 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                 borderRadius: 8, overflow: "hidden", flexShrink: 0,
                 background: "rgba(182,136,94,0.07)",
               }}>
-                <Image src={product.image} alt={product.name.en} fill sizes="44px" className="object-contain p-1" />
+                <Image src={product.image} alt={localize(product.name)} fill sizes="44px" className="object-contain p-1" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p className="truncate" style={{
                   color: "var(--cream)", fontSize: 13.5, fontWeight: 700,
-                  fontFamily: "var(--font-playfair)", lineHeight: 1.2,
+                  fontFamily: language === "ar" ? "var(--font-tajawal)" : "var(--font-playfair)", lineHeight: 1.2,
                 }}>
-                  {product.name.en}
-                </p>
-                <p className="truncate" style={{
-                  color: "var(--cream-dim)", fontSize: 11, opacity: 0.4,
-                  direction: "rtl", textAlign: "left",
-                }}>
-                  {product.name.ar}
+                  <span data-admin-no-translate>{localize(product.name)}</span>
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

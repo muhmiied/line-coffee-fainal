@@ -1,5 +1,6 @@
 import type { AdminOrderStatus } from "@/lib/admin/admin-orders";
 import { ADMIN_ORDER_STATUS_LABELS } from "@/lib/admin/admin-orders";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 const STATUS_STYLE: Record<
   AdminOrderStatus,
@@ -44,6 +45,7 @@ export default function OrderStatusBadge({
   status: AdminOrderStatus;
   size?: "sm" | "md";
 }) {
+  const { t } = useAdminLanguage();
   const style = STATUS_STYLE[status];
   return (
     <span
@@ -60,7 +62,7 @@ export default function OrderStatusBadge({
         padding: size === "md" ? "4px 10px" : "3px 8px",
       }}
     >
-      {ADMIN_ORDER_STATUS_LABELS[status]}
+      {t(ADMIN_ORDER_STATUS_LABELS[status])}
     </span>
   );
 }

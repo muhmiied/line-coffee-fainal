@@ -12,6 +12,7 @@ import {
   type AdminProduct,
   type AdminVariantPriceInput,
 } from "@/lib/admin/admin-catalog";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 function margin(salePricePerKg: number, costPerKg: number) {
   if (salePricePerKg <= 0) return 0;
@@ -30,6 +31,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function ProductDetailPage() {
+  const { language, localize, currency } = useAdminLanguage();
   const params = useParams();
   const router = useRouter();
   const rawSlug = params.slug;
@@ -169,24 +171,21 @@ export default function ProductDetailPage() {
             Products
           </Link>
           <span style={{ opacity: 0.35 }}>/</span>
-          <span style={{ color: "var(--cream)" }}>{product.name.en}</span>
+          <span style={{ color: "var(--cream)" }} data-admin-no-translate>{localize(product.name)}</span>
         </nav>
       </div>
 
       {/* Product header card */}
       <div className="admin-surface flex flex-col sm:flex-row gap-5 p-5">
         <div className="relative w-full sm:w-32 h-32 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(182,136,94,0.06)" }}>
-          <Image src={product.image} alt={product.name.en} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover" />
+          <Image src={product.image} alt={localize(product.name)} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover" />
         </div>
         <div className="flex-1 min-w-0 space-y-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h1 className="text-xl font-bold leading-tight" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
-                {product.name.en}
+              <h1 className="text-xl font-bold leading-tight" style={{ color: "var(--cream)", fontFamily: language === "ar" ? "var(--font-tajawal)" : "var(--font-playfair)" }}>
+                <span data-admin-no-translate>{localize(product.name)}</span>
               </h1>
-              <p className="text-[15px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
-                {product.name.ar}
-              </p>
             </div>
             <div className="flex items-center gap-2">
               {saved && (
@@ -290,18 +289,18 @@ export default function ProductDetailPage() {
                           className="w-20 px-2 py-1 rounded-lg text-[13px] outline-none"
                           style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(182,136,94,0.2)", color: "var(--cream)" }}
                         />
-                        <span className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>EGP</span>
+                        <span className="text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>{currency}</span>
                       </div>
                     ) : (
                       <span className="text-[13px] font-medium" style={{ color: "var(--cream)" }}>
-                        {prices[size.label] ?? size.salePrice} EGP
+                        {prices[size.label] ?? size.salePrice} {currency}
                       </span>
                     )}
                   </div>
                   <div>
                     <p className="text-[10.5px] mb-1" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>Cost/kg</p>
                     <span className="text-[13px]" style={{ color: "var(--cream-dim)" }}>
-                      {product.purchaseCostPerKg} EGP
+                      {product.purchaseCostPerKg} {currency}
                     </span>
                   </div>
                   <div>
@@ -369,8 +368,8 @@ export default function ProductDetailPage() {
               Quick Stats
             </p>
             {[
-              { label: "Sale price/kg", value: `${product.salePricePerKg} EGP` },
-              { label: "Cost/kg",       value: `${product.purchaseCostPerKg} EGP` },
+              { label: "Sale price/kg", value: `${product.salePricePerKg} ${currency}` },
+              { label: "Cost/kg",       value: `${product.purchaseCostPerKg} ${currency}` },
               { label: "Gross margin",  value: `${mgn}%` },
               { label: "Pricing model", value: "Packaged by weight" },
             ].map(({ label, value }) => (

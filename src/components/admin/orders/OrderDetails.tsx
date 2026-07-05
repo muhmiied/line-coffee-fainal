@@ -4,6 +4,7 @@ import {
   ADMIN_PAYMENT_METHOD_LABELS,
   type AdminOrderDetail,
 } from "@/lib/admin/admin-orders";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 const DELIVERY_ZONE_LABELS: Record<string, string> = {
   shorouk_madinaty: "Shorouk / Madinaty",
@@ -50,6 +51,7 @@ function ValueRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
+  const { language } = useAdminLanguage();
   const whatsappDigits = order.customer.whatsapp.replace(/\D/g, "");
   const addressLine = [
     order.address.street,
@@ -135,7 +137,9 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
           {order.items.map((item) => (
             <div key={item.id} className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[1fr_auto]">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#F5E6D8]/88">{item.nameEn}</p>
+                <p className="text-sm font-semibold text-[#F5E6D8]/88" data-admin-no-translate>
+                  {language === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.nameAr}
+                </p>
                 <p className="mt-0.5 text-xs text-[#D6B79A]/48">
                   {[item.variantSize, item.detailEn, item.sku].filter(Boolean).join(" · ")}
                 </p>

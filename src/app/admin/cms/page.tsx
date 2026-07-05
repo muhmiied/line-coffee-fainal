@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { getAdminDisplayName } from "@/lib/auth/admin";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 import {
   getAdminCmsData,
   CMS_IMAGE_OPTIONS,
@@ -956,6 +957,7 @@ function BlogTab({
   onTogglePublish: (article: CmsArticle) => void;
   onToggleFeatured: (article: CmsArticle) => void;
 }) {
+  const { language, localize } = useAdminLanguage();
   const sorted = [...articles].sort((a, b) => Number(b.featured) - Number(a.featured) || a.title.en.localeCompare(b.title.en));
 
   return (
@@ -990,11 +992,12 @@ function BlogTab({
                 </td>
                 <td className="px-4 py-3">
                   <button type="button" onClick={() => onEdit(article)} className="max-w-[360px] text-left">
-                    <p className="truncate font-semibold text-[#f5e6d8]">{article.title.en}</p>
-                    <p className="mt-0.5 truncate text-[11px] text-[#b79b85]/45" dir="rtl">{article.title.ar}</p>
+                    <p className="truncate font-semibold text-[#f5e6d8]" data-admin-no-translate>{localize(article.title)}</p>
                   </button>
                 </td>
-                <td className="px-4 py-3 text-[#b79b85]">{article.category.en}</td>
+                <td className="px-4 py-3 text-[#b79b85]" data-admin-no-translate>
+                  {language === "ar" ? article.category.ar || article.category.en : article.category.en || article.category.ar}
+                </td>
                 <td className="px-4 py-3 text-[#b79b85]">{article.author}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">

@@ -23,6 +23,7 @@ import {
   type OrderReturnInput,
   type PaymentMovementMethod,
 } from "@/lib/admin/admin-orders";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 const MOVEMENT_METHODS: PaymentMovementMethod[] = [
   "cash",
@@ -70,6 +71,7 @@ export default function OrderFinancePanel({
   order: AdminOrderDetail;
   onOrderChanged: () => void | Promise<void>;
 }) {
+  const { language } = useAdminLanguage();
   const [financials, setFinancials] = useState<OrderFinancials | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -442,7 +444,9 @@ export default function OrderFinancePanel({
                       className="grid gap-2 rounded-lg border border-[#B6885E]/10 bg-[#0B0806]/40 p-3 sm:grid-cols-[1fr_80px_150px]"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-[#F5E6D8]/85">{item.nameEn}</p>
+                        <p className="truncate text-xs font-semibold text-[#F5E6D8]/85" data-admin-no-translate>
+                          {language === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.nameAr}
+                        </p>
                         <p className="text-[10.5px] text-[#D6B79A]/45">
                           {[item.variantSize, item.kind].filter(Boolean).join(" · ")} · {item.remaining} of {item.quantity} returnable
                         </p>
