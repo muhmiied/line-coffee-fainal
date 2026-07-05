@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Star, ArrowRight, MessageSquare } from "lucide-react";
 import type { DashboardLatestReview } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 export default function LatestReviewCard({ review }: { review: DashboardLatestReview }) {
+  const { language, dir, t } = useAdminLanguage();
+
   return (
     <div className="admin-surface flex flex-col h-full">
       {/* Header */}
@@ -15,12 +18,14 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
             className="text-sm font-semibold"
             style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
           >
-            Latest Review
+            {t("Latest Review")}
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
             {review
-              ? `${review.avgRating}/5 avg · ${review.totalReviews} approved`
-              : "Approved reviews only"}
+              ? language === "ar"
+                ? <><bdi dir="ltr">{review.avgRating}/5</bdi> متوسط · <bdi dir="ltr">{review.totalReviews}</bdi> مقبول</>
+                : `${review.avgRating}/5 avg · ${review.totalReviews} approved`
+              : t("Approved reviews only")}
           </p>
         </div>
         <Link
@@ -28,8 +33,8 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
           className="flex items-center gap-1 text-[12px] font-medium transition-colors hover:opacity-80"
           style={{ color: "var(--gold)" }}
         >
-          View all
-          <ArrowRight size={12} />
+          {t("View all")}
+          <ArrowRight size={12} className={dir === "rtl" ? "rotate-180" : undefined} />
         </Link>
       </div>
 
@@ -38,7 +43,7 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
         <div className="flex-1 flex flex-col items-center justify-center gap-2 px-5 py-10">
           <MessageSquare size={26} style={{ color: "var(--cream-dim)", opacity: 0.25 }} />
           <p className="text-[12.5px] text-center" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-            No approved reviews yet
+            {t("No approved reviews yet")}
           </p>
         </div>
       ) : (
@@ -58,6 +63,7 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
           <blockquote
             className="text-[13px] leading-relaxed italic flex-1"
             style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
+            data-admin-no-translate
           >
             &ldquo;{review.text}&rdquo;
           </blockquote>
@@ -78,12 +84,14 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
               <p
                 className="text-[12.5px] font-semibold leading-tight"
                 style={{ color: "var(--cream)" }}
+                data-admin-no-translate
               >
                 {review.author}
               </p>
               <p
                 className="text-[11px] leading-tight"
                 style={{ color: "var(--cream-dim)", opacity: 0.55 }}
+                data-admin-no-translate
               >
                 {review.product} · {review.date}
               </p>

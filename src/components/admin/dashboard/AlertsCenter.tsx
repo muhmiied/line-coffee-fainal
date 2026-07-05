@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import type { DashboardAlert } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
+  const { dir, t } = useAdminLanguage();
   const totalAlerts = alerts.reduce((sum, a) => sum + a.count, 0);
 
   return (
@@ -17,7 +19,7 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
             className="text-sm font-semibold"
             style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
           >
-            Alerts Center
+            {t("Alerts Center")}
           </p>
           {totalAlerts > 0 && (
             <span
@@ -33,8 +35,8 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
           className="flex items-center gap-1 text-[12px] font-medium transition-colors hover:opacity-80"
           style={{ color: "var(--gold)" }}
         >
-          Manage
-          <ArrowRight size={12} />
+          {t("Manage")}
+          <ArrowRight size={12} className={dir === "rtl" ? "rotate-180" : undefined} />
         </Link>
       </div>
 
@@ -59,7 +61,7 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
                   className="text-[12.5px] font-medium"
                   style={{ color: "var(--cream)" }}
                 >
-                  {alert.label}
+                  {t(alert.label)}
                 </span>
                 <span
                   className="text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 tabular-nums"
@@ -72,7 +74,7 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
                 className="text-[11.5px] leading-relaxed truncate"
                 style={{ color: "var(--cream-dim)", opacity: 0.6 }}
               >
-                {alert.detail}
+                {t(alert.detail)}
               </p>
             </div>
 
@@ -81,6 +83,7 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
               size={14}
               className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-60 transition-opacity"
               style={{ color: "var(--cream-dim)" }}
+              transform={dir === "rtl" ? "rotate(180)" : undefined}
             />
           </Link>
         ))}

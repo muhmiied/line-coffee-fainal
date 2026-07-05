@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "recharts";
 import type { DashboardSalesTrend } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 type Period = "week" | "month" | "year";
 
@@ -26,6 +27,7 @@ function CustomTooltip({
   payload?: TooltipPayload[];
   label?: string;
 }) {
+  const { t, currency } = useAdminLanguage();
   if (!active || !payload?.length) return null;
   return (
     <div
@@ -37,10 +39,10 @@ function CustomTooltip({
       }}
     >
       <p className="text-[11px] mb-0.5" style={{ color: "var(--cream-dim)" }}>
-        {label}
+        {label ? t(label) : label}
       </p>
-      <p className="text-[14px] font-semibold tabular-nums" style={{ color: "var(--gold)" }}>
-        {payload[0].value.toLocaleString("en-EG")} EGP
+      <p dir="ltr" className="text-[14px] font-semibold tabular-nums" style={{ color: "var(--gold)" }}>
+        {payload[0].value.toLocaleString("en-EG")} {currency}
       </p>
     </div>
   );
@@ -53,6 +55,7 @@ const PERIOD_LABELS: Record<Period, string> = {
 };
 
 export default function SalesChart({ data: trend }: { data: DashboardSalesTrend }) {
+  const { t } = useAdminLanguage();
   const [period, setPeriod] = useState<Period>("week");
   const [chartWidth, setChartWidth] = useState(0);
   const chartRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +89,7 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
           className="text-sm font-semibold"
           style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
         >
-          Sales Overview
+          {t("Sales Overview")}
         </p>
 
         {/* Period toggle */}
@@ -104,7 +107,7 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
                 background: p === period ? "rgba(182,136,94,0.12)" : "transparent",
               }}
             >
-              {PERIOD_LABELS[p]}
+              {t(PERIOD_LABELS[p])}
             </button>
           ))}
         </div>
@@ -138,6 +141,7 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
               axisLine={false}
               tickLine={false}
               dy={6}
+              tickFormatter={(value: string) => t(value)}
             />
 
             <YAxis

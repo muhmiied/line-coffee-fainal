@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Package, Receipt, ShoppingCart, Tag, ArrowUpRight } from "lucide-react";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 // Static navigation shortcuts (not metrics). Inlined so the dashboard no longer
 // imports the dashboard mock-data module.
@@ -22,13 +23,15 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 export default function QuickActions() {
+  const { dir, t } = useAdminLanguage();
+
   return (
     <div className="admin-surface p-5 flex flex-col h-full">
       <p
         className="text-sm font-semibold mb-4"
         style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
       >
-        Quick Actions
+        {t("Quick Actions")}
       </p>
 
       <div className="grid grid-cols-2 gap-2.5 flex-1">
@@ -62,7 +65,9 @@ export default function QuickActions() {
                 </div>
                 <ArrowUpRight
                   size={13}
-                  className="opacity-0 group-hover:opacity-60 transition-opacity"
+                  className={`opacity-0 group-hover:opacity-60 transition-opacity ${
+                    dir === "rtl" ? "-rotate-90" : ""
+                  }`}
                   style={{ color: "var(--gold)" }}
                 />
               </div>
@@ -70,10 +75,10 @@ export default function QuickActions() {
               {/* Bottom: label + sublabel */}
               <div>
                 <p className="text-[12.5px] font-semibold leading-tight mb-0.5" style={{ color: "var(--cream)" }}>
-                  {action.label}
+                  {t(action.label)}
                 </p>
                 <p className="text-[11px] leading-tight" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
-                  {action.sublabel}
+                  {t(action.sublabel)}
                 </p>
               </div>
             </Link>

@@ -1,11 +1,13 @@
 import { PackageCheck } from "lucide-react";
 import type { DashboardFulfillment } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 // Replaces the old mock "Visitors Today" card. There is no visitor/session
 // tracking in the system (analytics is a separate, out-of-scope phase), so this
 // card shows a real fulfillment breakdown derived from order statuses instead of
 // a fabricated visitor count.
 export default function FulfillmentCard({ data }: { data: DashboardFulfillment }) {
+  const { t } = useAdminLanguage();
   const { delivered, cancelled, returned } = data;
   const lost = cancelled + returned;
   const total = delivered + lost;
@@ -19,7 +21,7 @@ export default function FulfillmentCard({ data }: { data: DashboardFulfillment }
           className="text-[11px] font-medium uppercase tracking-wider"
           style={{ color: "var(--cream-dim)" }}
         >
-          Fulfillment
+          {t("Fulfillment")}
         </p>
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -31,14 +33,17 @@ export default function FulfillmentCard({ data }: { data: DashboardFulfillment }
 
       {/* Delivered total */}
       <div className="flex-1">
-        <span
-          className="text-[26px] font-bold leading-none tabular-nums"
-          style={{ color: "var(--cream)" }}
-        >
-          {delivered}
-        </span>
-        <span className="ml-1.5 text-[12px]" style={{ color: "var(--cream-dim)" }}>
-          delivered
+        <span dir="ltr" className="inline-flex items-baseline gap-1.5">
+          <bdi
+            dir="ltr"
+            className="text-[26px] font-bold leading-none tabular-nums"
+            style={{ color: "var(--cream)" }}
+          >
+            {delivered}
+          </bdi>
+          <span className="text-[12px]" style={{ color: "var(--cream-dim)" }}>
+            {t("delivered")}
+          </span>
         </span>
       </div>
 
@@ -50,10 +55,10 @@ export default function FulfillmentCard({ data }: { data: DashboardFulfillment }
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[11px]" style={{ color: "var(--cream-dim)" }}>
-            <span className="font-semibold" style={{ color: "#4ade80" }}>{delivered}</span> delivered
+            <bdi dir="ltr" className="font-semibold" style={{ color: "#4ade80" }}>{delivered}</bdi> {t("delivered")}
           </span>
           <span className="text-[11px]" style={{ color: "var(--cream-dim)" }}>
-            <span className="font-semibold" style={{ color: "#ef4444" }}>{lost}</span> cancelled/returned
+            <bdi dir="ltr" className="font-semibold" style={{ color: "#ef4444" }}>{lost}</bdi> {t("cancelled/returned")}
           </span>
         </div>
       </div>

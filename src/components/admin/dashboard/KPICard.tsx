@@ -6,6 +6,7 @@ import {
   type DashboardKpi,
   type DashboardPeriod,
 } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 const PERIODS: { key: DashboardPeriod; label: string }[] = [
   { key: "today", label: "1D" },
@@ -52,6 +53,8 @@ function OrdersStatusList({
 }: {
   items: Array<{ label: string; count: number; color: string }>;
 }) {
+  const { t } = useAdminLanguage();
+
   return (
     <div className="grid grid-cols-2 gap-x-2 gap-y-1">
       {items.map((item) => (
@@ -64,8 +67,8 @@ function OrdersStatusList({
             className="w-1.5 h-1.5 rounded-full flex-shrink-0"
             style={{ background: item.color }}
           />
-          <span className="font-bold tabular-nums" style={{ color: item.color }}>{item.count}</span>
-          <span style={{ opacity: 0.65 }}>{item.label}</span>
+          <bdi dir="ltr" className="font-bold tabular-nums" style={{ color: item.color }}>{item.count}</bdi>
+          <span style={{ opacity: 0.65 }}>{t(item.label)}</span>
         </span>
       ))}
     </div>
@@ -79,7 +82,8 @@ function CustomerSplitBar({
   newCount: number;
   totalCount: number;
 }) {
-  const newPct = Math.round((newCount / totalCount) * 100);
+  const { t } = useAdminLanguage();
+  const newPct = totalCount > 0 ? Math.round((newCount / totalCount) * 100) : 0;
   return (
     <div className="flex flex-col gap-1">
       <div className="flex rounded-full overflow-hidden h-[4px]">
@@ -92,10 +96,10 @@ function CustomerSplitBar({
       </div>
       <div className="flex justify-between text-[10px]" style={{ color: "var(--cream-dim)" }}>
         <span>
-          <span style={{ color: "#4ade80" }}>{newCount}</span> new
+          <bdi dir="ltr" style={{ color: "#4ade80" }}>{newCount}</bdi> {t("new")}
         </span>
         <span>
-          <span style={{ color: "var(--gold)" }}>{totalCount - newCount}</span> returning
+          <bdi dir="ltr" style={{ color: "var(--gold)" }}>{totalCount - newCount}</bdi> {t("returning")}
         </span>
       </div>
     </div>
@@ -105,6 +109,7 @@ function CustomerSplitBar({
 // ── Main card ─────────────────────────────────────────────────────────
 
 export default function KPICard({ stat }: { stat: DashboardKpi }) {
+  const { language, t } = useAdminLanguage();
   const [period, setPeriod] = useState<DashboardPeriod>("today");
   const current  = stat.values[period];
   const hasTrend = current.trend !== null;
@@ -122,7 +127,7 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
           className="text-[11px] font-medium uppercase tracking-wider"
           style={{ color: "var(--cream-dim)" }}
         >
-          {stat.label}
+          {t(stat.label)}
         </p>
         <div
           className="flex items-center gap-px p-[3px] rounded-md flex-shrink-0"
@@ -140,25 +145,29 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
                 opacity:    period === key ? 1 : 0.55,
               }}
             >
-              {label}
+              {language === "ar" ? t(label) : label}
             </button>
           ))}
         </div>
       </div>
 
       {/* Value */}
-      <div>
-        <span
+      <div
+        dir="ltr"
+        className="inline-flex items-baseline gap-1.5"
+      >
+        <bdi
+          dir="ltr"
           className="text-[26px] font-bold leading-none tabular-nums"
           style={{ color: "var(--cream)" }}
         >
           {current.formatted}
-        </span>
+        </bdi>
         <span
-          className="ml-1.5 text-[12px]"
+          className="text-[12px]"
           style={{ color: "var(--cream-dim)" }}
         >
-          {stat.unit}
+          {t(stat.unit)}
         </span>
       </div>
 
@@ -170,16 +179,16 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
               ? <TrendingUp  size={11} style={{ color: trendColor }} />
               : <TrendingDown size={11} style={{ color: trendColor }} />
             }
-            <span className="text-[11px] font-semibold" style={{ color: trendColor }}>
+            <bdi dir="ltr" className="text-[11px] font-semibold" style={{ color: trendColor }}>
               {isUp ? "+" : ""}{current.trend?.toFixed(1)}%
-            </span>
+            </bdi>
           </>
         )}
         <span
           className="text-[11px]"
           style={{ color: "var(--cream-dim)", opacity: 0.55 }}
         >
-          {current.trendLabel}
+          {t(current.trendLabel)}
         </span>
       </div>
 

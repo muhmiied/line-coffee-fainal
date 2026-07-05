@@ -62,6 +62,9 @@ function translateTextNode(node: Text, language: AdminLanguage) {
   } else if (language === "ar" && current !== state.arabic && current !== state.english) {
     state.english = current;
     state.arabic = preserveOuterWhitespace(current, translateAdminText(current, "ar"));
+  } else if (language === "en" && current !== state.english && current !== state.arabic) {
+    state.english = current;
+    state.arabic = preserveOuterWhitespace(current, translateAdminText(current, "ar"));
   }
 
   const next = language === "ar" ? state.arabic : state.english;
@@ -84,6 +87,9 @@ function translateElementAttributes(element: Element, language: AdminLanguage) {
       state = { english: current, arabic: translateAdminText(current, "ar") };
       states.set(attribute, state);
     } else if (language === "ar" && current !== state.arabic && current !== state.english) {
+      state = { english: current, arabic: translateAdminText(current, "ar") };
+      states.set(attribute, state);
+    } else if (language === "en" && current !== state.english && current !== state.arabic) {
       state = { english: current, arabic: translateAdminText(current, "ar") };
       states.set(attribute, state);
     }

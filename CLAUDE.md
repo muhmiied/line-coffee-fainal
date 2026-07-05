@@ -184,6 +184,14 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-05] — Phase 20C-Fix: Admin Arabic localization QA pass
+
+**Goal:** Complete the visible Arabic localization of the admin dashboard after the initial admin language toggle, and fix mixed-direction number/unit rows without changing admin data or business behavior.
+
+**Applied:** Added natural Arabic dashboard greetings, hero summary copy, KPI labels/units/trends, inventory and fulfillment summaries, order/review tables, chart controls, empty states, actions, and remaining common static admin labels across Products, Orders, Inventory, Marketing, Accounting, and Settings. Compound metrics now isolate numbers with `bdi`/LTR spans so values such as `0 ج.م`, percentages, and `124 منتج · 0.3 كجم محجوز · 0 مخزون منخفض` remain readable inside RTL cards. Dashboard arrows mirror where direction matters. The admin translation boundary now refreshes its English source when React changes a node, preventing stale Arabic text after toggling back to English. Dynamic database values remain untranslated unless a localized field is already available.
+
+**Files:** `src/lib/admin/admin-i18n.ts`, `src/components/admin/layout/AdminLanguageProvider.tsx`, `src/components/admin/dashboard/*`, and this change log. No migration, service-role code, public-site change, data mutation, or business-logic change.
+
 ### [2026-07-04] — Phase 20C: Real Announcement Bar + Marketing mock cleanup (code applied; announcements migration AUTHORED, NOT applied)
 
 **Goal (owner request):** Admin → Marketing was showing fabricated Offers, a disconnected mock "Announcement Bar", and fake Performance numbers. Make it real: delete the fake offers/performance, and make the Announcement Bar manage the **actual** messages shown in the public top bar (bilingual + Shop-now button), so the owner can change/remove them. No public redesign, no checkout/order/payment/FIFO/COGS/accounting change, no service-role, no remote push.

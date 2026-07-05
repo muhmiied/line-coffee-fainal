@@ -2,10 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import type { DashboardBestSeller } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 const RANK_COLORS = ["#d6a373", "#9ca3af", "#b87333", "#6b7280", "#6b7280"];
 
 export default function BestSellersMonth({ products }: { products: DashboardBestSeller[] }) {
+  const { dir, t, currency } = useAdminLanguage();
+
   return (
     <div className="admin-surface">
       {/* Header */}
@@ -18,10 +21,10 @@ export default function BestSellersMonth({ products }: { products: DashboardBest
             className="text-sm font-semibold"
             style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
           >
-            Best Sellers
+            {t("Best Sellers")}
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
-            Ranked by units sold (excludes cancelled orders)
+            {t("Ranked by units sold (excludes cancelled orders)")}
           </p>
         </div>
         <Link
@@ -29,8 +32,8 @@ export default function BestSellersMonth({ products }: { products: DashboardBest
           className="flex items-center gap-1 text-[12px] font-medium transition-colors hover:opacity-80"
           style={{ color: "var(--gold)" }}
         >
-          View all
-          <ArrowRight size={12} />
+          {t("View all")}
+          <ArrowRight size={12} className={dir === "rtl" ? "rotate-180" : undefined} />
         </Link>
       </div>
 
@@ -39,7 +42,7 @@ export default function BestSellersMonth({ products }: { products: DashboardBest
         <div className="flex flex-col items-center justify-center gap-2 py-12">
           <TrendingUp size={26} style={{ color: "var(--cream-dim)", opacity: 0.25 }} />
           <p className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
-            No sales recorded yet
+            {t("No sales recorded yet")}
           </p>
         </div>
       ) : (
@@ -53,7 +56,7 @@ export default function BestSellersMonth({ products }: { products: DashboardBest
                     className="px-5 py-2.5 text-left font-medium uppercase tracking-wider text-[10px]"
                     style={{ color: "var(--cream-dim)", opacity: 0.5 }}
                   >
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -95,13 +98,13 @@ export default function BestSellersMonth({ products }: { products: DashboardBest
 
                     {/* Name */}
                     <td className="px-4 py-3">
-                      <p className="font-semibold" style={{ color: "var(--cream)" }}>
+                      <p className="font-semibold" style={{ color: "var(--cream)" }} data-admin-no-translate>
                         {product.name}
                       </p>
                     </td>
 
                     {/* Category */}
-                    <td className="px-5 py-3" style={{ color: "var(--cream-dim)" }}>
+                    <td className="px-5 py-3" style={{ color: "var(--cream-dim)" }} data-admin-no-translate>
                       {product.category}
                     </td>
 
@@ -116,8 +119,8 @@ export default function BestSellersMonth({ products }: { products: DashboardBest
                     </td>
 
                     {/* Revenue */}
-                    <td className="px-5 py-3 tabular-nums font-semibold" style={{ color: "var(--cream)" }}>
-                      {product.revenue.toLocaleString("en-EG")} EGP
+                    <td dir="ltr" className="px-5 py-3 tabular-nums font-semibold" style={{ color: "var(--cream)" }}>
+                      {product.revenue.toLocaleString("en-EG")} {currency}
                     </td>
                   </tr>
                 );

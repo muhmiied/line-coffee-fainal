@@ -4,6 +4,7 @@ import Image from "next/image";
 import { getAdminDisplayName } from "@/lib/auth/admin";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 import type { DashboardHeroStats } from "@/lib/admin/admin-dashboard";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -14,8 +15,16 @@ function getGreeting(): string {
 
 export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | null }) {
   const { admin } = useCurrentAdmin();
+  const { language, t, formatDate } = useAdminLanguage();
   const adminName = admin ? getAdminDisplayName(admin) : "there";
   const firstName = adminName.split(" ")[0] || adminName;
+  const greeting = t(getGreeting());
+  const greetingLine =
+    language === "ar"
+      ? admin
+        ? `${greeting}، ${firstName}`
+        : `${greeting}، أهلًا بك`
+      : `${greeting}, ${firstName}`;
 
   const newOrders      = stats?.newOrders ?? 0;
   const lowStockCount  = stats?.lowStock ?? 0;
@@ -59,16 +68,16 @@ export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | nul
             className="text-xl sm:text-[22px] font-semibold mb-1.5"
             style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
           >
-            {getGreeting()}, {firstName}
+            <span data-admin-no-translate>{greetingLine}</span>
           </h1>
           <p className="text-[13px] mb-4" style={{ color: "var(--cream-dim)" }}>
-            Here&apos;s what&apos;s happening with Line Coffee today.
+            {t("Here's what's happening with Line Coffee today.")}
           </p>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <StatPill value={newOrders}      label="new orders"       dotColor="var(--gold)" />
-            <StatPill value={lowStockCount}  label="low stock alerts" dotColor="#ef4444" />
-            <StatPill value={pendingReviews} label="pending reviews"  dotColor="#a78bfa" />
+            <StatPill value={newOrders}      label={t("new orders")}       dotColor="var(--gold)" />
+            <StatPill value={lowStockCount}  label={t("low stock alerts")} dotColor="#ef4444" />
+            <StatPill value={pendingReviews} label={t("pending reviews")}  dotColor="#a78bfa" />
           </div>
         </div>
 
@@ -78,10 +87,10 @@ export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | nul
             className="text-[10px] font-semibold uppercase tracking-widest"
             style={{ color: "var(--gold)", opacity: 0.75 }}
           >
-            Today
+            {t("Today")}
           </span>
           <span className="text-sm font-medium" style={{ color: "var(--cream)" }}>
-            {new Date().toLocaleDateString("en-EG", {
+            {formatDate(new Date(), {
               weekday: "long",
               day: "numeric",
               month: "long",
@@ -104,15 +113,15 @@ function StatPill({
   dotColor: string;
 }) {
   return (
-    <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--cream-dim)" }}>
+    <span dir="ltr" className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--cream-dim)" }}>
       <span
         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
         style={{ background: dotColor }}
       />
-      <span className="font-semibold tabular-nums" style={{ color: "var(--cream)" }}>
+      <bdi dir="ltr" className="font-semibold tabular-nums" style={{ color: "var(--cream)" }}>
         {value}
-      </span>
-      {label}
+      </bdi>
+      <span>{label}</span>
     </span>
   );
 }
