@@ -41,10 +41,21 @@ import {
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils/cn";
 
-const announcements = [
-  { text: { en: "Free delivery on selected coffee rituals", ar: "توصيل مجاني على طقوس قهوة مختارة" }, cta: true },
-  { text: { en: "Freshly roasted every 72 hours — taste the difference", ar: "تحميص طازج كل ٧٢ ساعة — ذوق الفرق" }, cta: false },
-  { text: { en: "100% Arabica from 15+ curated origins", ar: "أرابيكا ١٠٠٪ من أكثر من ١٥ مصدراً مختاراً" }, cta: false },
+// Launch announcement bar (Phase 20B). Exactly two active messages; each shows
+// its own "Shop now" button automatically next to the sentence. `href` links to
+// the shop (a more specific safe link can be swapped in per message later).
+const announcements: {
+  text: { en: string; ar: string };
+  cta: { label: { en: string; ar: string }; href: string };
+}[] = [
+  {
+    text: { en: "Launch offers are live — shop your favorite coffee now", ar: "عروض الافتتاح وصلت — اطلب قهوتك المفضلة الآن" },
+    cta: { label: { en: "Shop now", ar: "تسوق الآن" }, href: "/products" },
+  },
+  {
+    text: { en: "Limited-time special discount on Line Coffee products", ar: "خصم خاص لفترة محدودة على منتجات لاين كوفي" },
+    cta: { label: { en: "Shop now", ar: "تسوق الآن" }, href: "/products" },
+  },
 ];
 
 const navLinks = [
@@ -885,14 +896,14 @@ export function PublicHeader() {
             )}
           >
             <span>{closedNotice ?? t(announcements[announcementIdx].text)}</span>
-            {!closedNotice && announcements[announcementIdx].cta && (
+            {!closedNotice && (
               <>
                 <span className="text-[#B6885E]" aria-hidden="true">&bull;</span>
                 <Link
-                  href="/products"
+                  href={announcements[announcementIdx].cta.href}
                   className="rounded-full border border-[#B6885E]/35 px-2.5 py-0.5 text-xs text-[#FFDCC2] transition-colors hover:border-[#FFDCC2]/50 hover:text-white"
                 >
-                  {t({ en: "Shop now", ar: "تسوق الآن" })}
+                  {t(announcements[announcementIdx].cta.label)}
                 </Link>
               </>
             )}
