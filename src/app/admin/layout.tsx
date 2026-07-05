@@ -6,9 +6,11 @@ import {
   ADMIN_LANGUAGE_COOKIE_NAME,
   isAdminLanguage,
 } from "@/lib/admin/admin-i18n";
+import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo/private-metadata";
 
 export const metadata: Metadata = {
   title: "Admin — Line Coffee",
+  robots: PRIVATE_PAGE_ROBOTS,
 };
 
 export default async function AdminLayout({

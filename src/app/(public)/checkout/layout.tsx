@@ -1,19 +1,15 @@
-"use client";
+import type { Metadata } from "next";
+import CheckoutOwnerBoundary from "./CheckoutOwnerBoundary";
+import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo/private-metadata";
 
-import { useAuth } from "@/lib/hooks/useAuth";
+export const metadata: Metadata = {
+  robots: PRIVATE_PAGE_ROBOTS,
+};
 
-/**
- * Checkout holds customer PII and saved-address results in local state. Remount
- * the page whenever the authenticated owner changes so none of that state can
- * survive an Account A -> Account B session switch.
- */
-export default function CheckoutOwnerBoundary({
+export default function CheckoutLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading } = useAuth();
-  const ownerKey = isLoading ? "loading" : (user?.id ?? "guest");
-
-  return <div key={ownerKey}>{children}</div>;
+  return <CheckoutOwnerBoundary>{children}</CheckoutOwnerBoundary>;
 }

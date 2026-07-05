@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import AccountOwnerBoundary from "./AccountOwnerBoundary";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo/private-metadata";
 
 export const metadata: Metadata = {
   robots: PRIVATE_PAGE_ROBOTS,
 };
 
-export default function AccountLayout({
+export default function OrderSuccessLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AccountOwnerBoundary>{children}</AccountOwnerBoundary>;
+  return children;
 }
