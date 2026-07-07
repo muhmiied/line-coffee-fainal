@@ -1,6 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type TelegramOrderPayload = {
+type NotificationRequest = {
+  orderId: string;
+  checkoutAttemptId: string;
+};
+
+type TrustedOrder = {
   orderId: string;
   orderCode: string;
   customer: {
@@ -14,19 +19,27 @@ type TelegramOrderPayload = {
     street: string;
     building: string;
     floorApt: string;
+    landmark: string;
   };
   items: Array<{
     name: string;
     detail: string;
     quantity: number;
   }>;
+  subtotal: number;
+  discount: number;
+  delivery: number;
   total: number;
   paymentMethod: "cash_on_delivery" | "instapay" | "wallet";
   notes: string | null;
 };
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ATTEMPT_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const DEDUPE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_DEDUPE_ENTRIES = 500;
+const NOTIFICATION_CHANNEL = "telegram";
 const globalTelegramState = globalThis as typeof globalThis & {
   lineCoffeeTelegramSent?: Map<string, number>;
 };
@@ -34,13 +47,6 @@ const sentOrders =
   globalTelegramState.lineCoffeeTelegramSent ??
   (globalTelegramState.lineCoffeeTelegramSent = new Map<string, number>());
 
-// Durable, DB-backed "already sent" guard. The in-memory Map above is per
-// serverless instance, so a retry that lands on a cold/other instance would
-// re-send. The log table (order_notifications) survives across instances. This
-// uses only the public anon/publishable key + validated SECURITY DEFINER RPCs —
-// no service role. All DB calls are best-effort: a DB failure here must never
-// corrupt the already-saved order or block the notification response.
-const NOTIFICATION_CHANNEL = "telegram";
 let cachedSupabase: SupabaseClient | null = null;
 
 function getSupabaseClient(): SupabaseClient | null {
@@ -56,13 +62,123 @@ function getSupabaseClient(): SupabaseClient | null {
   return cachedSupabase;
 }
 
-async function durableNotificationWasSent(orderId: string): Promise<boolean> {
-  const client = getSupabaseClient();
-  if (!client) return false;
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function text(value: unknown, maxLength: number): string {
+  return typeof value === "string"
+    ? value.trim().replace(/\s+/g, " ").slice(0, maxLength)
+    : "";
+}
+
+function amount(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseRequest(value: unknown): NotificationRequest | null {
+  const body = asRecord(value);
+  const orderId = text(body.orderId, 80);
+  const checkoutAttemptId = text(body.checkoutAttemptId, 64);
+  return UUID_PATTERN.test(orderId) && ATTEMPT_PATTERN.test(checkoutAttemptId)
+    ? { orderId, checkoutAttemptId }
+    : null;
+}
+
+function parseTrustedOrder(value: unknown): TrustedOrder | null {
+  const row = asRecord(value);
+  const customer = asRecord(row.customer);
+  const address = asRecord(row.address);
+  const paymentMethod = text(row.payment_method, 30);
+  const rawItems = Array.isArray(row.items) ? row.items.slice(0, 50) : [];
+  const items = rawItems.map((rawItem) => {
+    const item = asRecord(rawItem);
+    return {
+      name: text(item.name, 160),
+      detail: text(item.detail, 160),
+      quantity: Number(item.quantity),
+    };
+  });
+  const subtotal = amount(row.subtotal);
+  const discount = amount(row.discount);
+  const delivery = amount(row.delivery);
+  const total = amount(row.total);
+
+  if (
+    !UUID_PATTERN.test(text(row.order_id, 80)) ||
+    !text(row.order_code, 40) ||
+    !text(customer.name, 120) ||
+    !text(customer.phone, 40) ||
+    !text(address.governorate, 80) ||
+    !text(address.street, 180) ||
+    items.length === 0 ||
+    items.some(
+      (item) =>
+        !item.name ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity <= 0 ||
+        item.quantity > 1000,
+    ) ||
+    subtotal === null ||
+    discount === null ||
+    delivery === null ||
+    total === null ||
+    !["cash_on_delivery", "instapay", "wallet"].includes(paymentMethod)
+  ) {
+    return null;
+  }
+
+  return {
+    orderId: text(row.order_id, 80),
+    orderCode: text(row.order_code, 40),
+    customer: {
+      name: text(customer.name, 120),
+      phone: text(customer.phone, 40),
+      whatsapp: text(customer.whatsapp, 40),
+    },
+    address: {
+      governorate: text(address.governorate, 80),
+      area: text(address.area, 80),
+      street: text(address.street, 180),
+      building: text(address.building, 80),
+      floorApt: text(address.floor_apt, 80),
+      landmark: text(address.landmark, 120),
+    },
+    items,
+    subtotal,
+    discount,
+    delivery,
+    total,
+    paymentMethod: paymentMethod as TrustedOrder["paymentMethod"],
+    notes: text(row.notes, 500) || null,
+  };
+}
+
+async function getTrustedOrder(
+  client: SupabaseClient,
+  request: NotificationRequest,
+): Promise<TrustedOrder | null> {
+  const { data, error } = await client.rpc("get_order_notification_payload", {
+    p_order_id: request.orderId,
+    p_checkout_attempt_id: request.checkoutAttemptId,
+  });
+  if (error || !data) return null;
+  const trusted = parseTrustedOrder(data);
+  return trusted?.orderId === request.orderId ? trusted : null;
+}
+
+async function durableNotificationWasSent(
+  client: SupabaseClient,
+  request: NotificationRequest,
+): Promise<boolean> {
   try {
     const { data, error } = await client.rpc("order_notification_was_sent", {
-      p_order_id: orderId,
+      p_order_id: request.orderId,
       p_channel: NOTIFICATION_CHANNEL,
+      p_checkout_attempt_id: request.checkoutAttemptId,
     });
     return !error && data === true;
   } catch {
@@ -70,94 +186,19 @@ async function durableNotificationWasSent(orderId: string): Promise<boolean> {
   }
 }
 
-async function markDurableNotificationSent(orderId: string): Promise<void> {
-  const client = getSupabaseClient();
-  if (!client) return;
+async function markDurableNotificationSent(
+  client: SupabaseClient,
+  request: NotificationRequest,
+): Promise<void> {
   try {
     await client.rpc("log_order_notification", {
-      p_order_id: orderId,
+      p_order_id: request.orderId,
       p_channel: NOTIFICATION_CHANNEL,
+      p_checkout_attempt_id: request.checkoutAttemptId,
     });
   } catch {
-    // Best-effort: the order is already saved and the message already sent.
+    // The order is already saved and Telegram already accepted the message.
   }
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function cleanText(value: unknown, maxLength: number): string {
-  return typeof value === "string"
-    ? value.trim().replace(/\s+/g, " ").slice(0, maxLength)
-    : "";
-}
-
-function parsePayload(value: unknown): TelegramOrderPayload | null {
-  const body = asRecord(value);
-  const customer = asRecord(body.customer);
-  const address = asRecord(body.address);
-  const paymentMethod = cleanText(body.paymentMethod, 30);
-  const total = Number(body.total);
-  const rawItems = Array.isArray(body.items) ? body.items.slice(0, 30) : [];
-  const items = rawItems.map((rawItem) => {
-    const item = asRecord(rawItem);
-    return {
-      name: cleanText(item.name, 120),
-      detail: cleanText(item.detail, 120),
-      quantity: Number(item.quantity),
-    };
-  });
-
-  const parsed: TelegramOrderPayload = {
-    orderId: cleanText(body.orderId, 80),
-    orderCode: cleanText(body.orderCode, 40),
-    customer: {
-      name: cleanText(customer.name, 120),
-      phone: cleanText(customer.phone, 40),
-      whatsapp: cleanText(customer.whatsapp, 40),
-    },
-    address: {
-      governorate: cleanText(address.governorate, 80),
-      area: cleanText(address.area, 80),
-      street: cleanText(address.street, 180),
-      building: cleanText(address.building, 80),
-      floorApt: cleanText(address.floorApt, 80),
-    },
-    items,
-    total,
-    paymentMethod: paymentMethod as TelegramOrderPayload["paymentMethod"],
-    notes: cleanText(body.notes, 500) || null,
-  };
-
-  const validItems =
-    parsed.items.length > 0 &&
-    parsed.items.every(
-      (item) =>
-        item.name &&
-        Number.isInteger(item.quantity) &&
-        item.quantity > 0 &&
-        item.quantity <= 1000,
-    );
-  const validPaymentMethod = ["cash_on_delivery", "instapay", "wallet"].includes(
-    parsed.paymentMethod,
-  );
-
-  return parsed.orderId &&
-    parsed.orderCode &&
-    parsed.customer.name &&
-    parsed.customer.phone &&
-    parsed.address.governorate &&
-    parsed.address.area &&
-    parsed.address.street &&
-    Number.isFinite(parsed.total) &&
-    parsed.total >= 0 &&
-    validItems &&
-    validPaymentMethod
-    ? parsed
-    : null;
 }
 
 function cleanupDedupeCache(now: number) {
@@ -178,31 +219,31 @@ function buildAdminOrderUrl(request: Request, orderId: string) {
     try {
       baseUrl = new URL(configuredBase).origin;
     } catch {
-      // The request origin is a safe fallback for local and deployed environments.
+      // The request origin is the safe local/deployed fallback.
     }
   }
-
   const adminUrl = new URL("/admin/orders", baseUrl);
   adminUrl.searchParams.set("order", orderId);
   return adminUrl.toString();
 }
 
-function buildTelegramMessage(payload: TelegramOrderPayload, adminUrl: string) {
+function buildTelegramMessage(order: TrustedOrder, adminUrl: string) {
   const paymentMethod = {
     cash_on_delivery: "Cash on Delivery",
     instapay: "InstaPay",
     wallet: "Wallet",
-  }[payload.paymentMethod];
+  }[order.paymentMethod];
   const address = [
-    payload.address.street,
-    payload.address.building && `Building ${payload.address.building}`,
-    payload.address.floorApt,
-    payload.address.area,
-    payload.address.governorate,
+    order.address.street,
+    order.address.building && `Building ${order.address.building}`,
+    order.address.floorApt,
+    order.address.landmark,
+    order.address.area,
+    order.address.governorate,
   ]
     .filter(Boolean)
     .join(", ");
-  const itemLines = payload.items.map(
+  const itemLines = order.items.map(
     (item) =>
       `• ${item.name}${item.detail ? ` (${item.detail})` : ""} × ${item.quantity}`,
   );
@@ -210,18 +251,21 @@ function buildTelegramMessage(payload: TelegramOrderPayload, adminUrl: string) {
   return [
     "☕ New Line Coffee order",
     "",
-    `Order: ${payload.orderCode}`,
-    `Customer: ${payload.customer.name}`,
-    `Phone: ${payload.customer.phone}`,
-    `WhatsApp: ${payload.customer.whatsapp || "Same as phone / not provided"}`,
+    `Order: ${order.orderCode}`,
+    `Customer: ${order.customer.name}`,
+    `Phone: ${order.customer.phone}`,
+    `WhatsApp: ${order.customer.whatsapp || "Same as phone / not provided"}`,
     `Address: ${address}`,
     "",
     "Items:",
     ...itemLines,
     "",
-    `Total: ${payload.total.toFixed(2)} EGP`,
+    `Subtotal: ${order.subtotal.toFixed(2)} EGP`,
+    `Discount: ${order.discount.toFixed(2)} EGP`,
+    `Delivery: ${order.delivery.toFixed(2)} EGP`,
+    `Total: ${order.total.toFixed(2)} EGP`,
     `Payment: ${paymentMethod}`,
-    `Notes: ${payload.notes || "None provided"}`,
+    `Notes: ${order.notes || "None provided"}`,
     "",
     `Admin: ${adminUrl}`,
   ]
@@ -235,25 +279,39 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, warning: "Request origin rejected." }, { status: 403 });
   }
 
-  let payload: TelegramOrderPayload | null = null;
+  let notificationRequest: NotificationRequest | null = null;
   try {
-    payload = parsePayload(await request.json());
+    notificationRequest = parseRequest(await request.json());
   } catch {
     // Invalid JSON receives the same safe validation response as an invalid shape.
   }
-  if (!payload) {
+  if (!notificationRequest) {
     return Response.json({ ok: false, warning: "Invalid notification request." }, { status: 400 });
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return Response.json(
+      { ok: false, warning: "Admin notification is temporarily unavailable." },
+      { status: 503 },
+    );
+  }
+
+  // This is the trust boundary: all message fields are fetched from the database
+  // using order id + the checkout attempt capability. Browser-supplied order
+  // names, totals, items, addresses, or payment details are never accepted.
+  const trustedOrder = await getTrustedOrder(client, notificationRequest);
+  if (!trustedOrder) {
+    return Response.json({ ok: false, warning: "Order not found." }, { status: 404 });
   }
 
   const now = Date.now();
   cleanupDedupeCache(now);
-  if (sentOrders.has(payload.orderId)) {
+  if (sentOrders.has(trustedOrder.orderId)) {
     return Response.json({ ok: true, duplicate: true });
   }
-  // Durable cross-instance guard. If a prior instance already recorded this
-  // order as notified, treat it as a duplicate (and refresh the local cache).
-  if (await durableNotificationWasSent(payload.orderId)) {
-    sentOrders.set(payload.orderId, now);
+  if (await durableNotificationWasSent(client, notificationRequest)) {
+    sentOrders.set(trustedOrder.orderId, now);
     return Response.json({ ok: true, duplicate: true });
   }
 
@@ -261,7 +319,7 @@ export async function POST(request: Request) {
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
   if (!botToken || !chatId) {
     console.error("[telegram-order] Telegram is not configured.", {
-      orderId: payload.orderId,
+      orderId: trustedOrder.orderId,
     });
     return Response.json(
       { ok: false, warning: "Admin notification is temporarily unavailable." },
@@ -278,8 +336,8 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         chat_id: chatId,
         text: buildTelegramMessage(
-          payload,
-          buildAdminOrderUrl(request, payload.orderId),
+          trustedOrder,
+          buildAdminOrderUrl(request, trustedOrder.orderId),
         ),
         disable_web_page_preview: true,
       }),
@@ -289,7 +347,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error("[telegram-order] Telegram rejected the notification.", {
-        orderId: payload.orderId,
+        orderId: trustedOrder.orderId,
         status: response.status,
       });
       return Response.json(
@@ -298,12 +356,12 @@ export async function POST(request: Request) {
       );
     }
 
-    sentOrders.set(payload.orderId, now);
-    await markDurableNotificationSent(payload.orderId);
+    sentOrders.set(trustedOrder.orderId, now);
+    await markDurableNotificationSent(client, notificationRequest);
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[telegram-order] Telegram request failed.", {
-      orderId: payload.orderId,
+      orderId: trustedOrder.orderId,
       reason: error instanceof Error ? error.name : "unknown",
     });
     return Response.json(

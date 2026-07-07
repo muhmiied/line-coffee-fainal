@@ -821,6 +821,7 @@ export default function CheckoutPage() {
     let orderPlaced = false;
     try {
       checkoutAttemptId.current ??= createCheckoutAttemptId();
+      const notificationAttemptId = checkoutAttemptId.current;
       const { data, error } = await supabase.rpc("create_checkout_order", {
         p_payload: {
           guest_id: getOrCreateGuestId(),
@@ -886,13 +887,7 @@ export default function CheckoutPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderId: data.order_id,
-            orderCode: data.code,
-            customer: handoff.customer,
-            address: handoff.address,
-            items: handoff.items,
-            total: data.total,
-            paymentMethod: data.payment_method,
-            notes: null,
+            checkoutAttemptId: notificationAttemptId,
           }),
         });
         handoff.telegramStatus = notificationResponse.ok ? "sent" : "failed";

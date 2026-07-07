@@ -2,12 +2,9 @@
 
 // Line Coffee V3 — Admin Espresso Bean data layer (Phase 8)
 //
-// Backend/data-layer foundation for the raw-bean catalog + kg-based FIFO
-// inventory introduced by migration 20260701120000_phase8_9_espresso_flavor_
-// builders. NOT wired into the existing (mock) Admin Espresso Manager page —
-// that UI rebuild is deliberately deferred (see the Phase 8-9 change-log
-// entry); this module exists so a future pass can wire real data without
-// re-deriving the RPC contracts.
+// Live data layer for the raw-bean catalog + kg-based FIFO inventory introduced
+// by migration 20260701120000_phase8_9_espresso_flavor_builders. The Admin
+// Espresso Manager and Admin Inventory bean view both consume this module.
 //
 // Access model (admin-only): espresso_beans / espresso_bean_stock /
 // espresso_bean_lots / espresso_bean_movements are admin-read-only via RLS.

@@ -2,10 +2,9 @@
 
 // Line Coffee V3 — Admin Flavor Base/Item data layer (Phase 9)
 //
-// Backend/data-layer foundation for the cost-only flavor catalog introduced
-// by migration 20260701120000_phase8_9_espresso_flavor_builders. NOT wired
-// into the existing (mock) Admin Flavor Manager page — deliberately deferred,
-// same as admin-espresso.ts.
+// Live data layer for the cost-only flavor catalog introduced by migration
+// 20260701120000_phase8_9_espresso_flavor_builders. Admin Flavor Manager reads
+// and persists its base/item edits through this module.
 //
 // Access model (admin-only): flavor_bases / flavor_items are admin-read-only
 // via RLS. Writes go through SECURITY DEFINER RPCs (upsert_flavor_base /

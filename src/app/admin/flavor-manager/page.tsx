@@ -1,615 +1,375 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  X, Plus, Search, Eye, EyeOff, Settings2,
-  Layers,
+  CheckCircle2,
+  CupSoda,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  Search,
+  Sparkles,
+  X,
 } from "lucide-react";
+import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
+import {
+  listFlavorBases,
+  listFlavorItems,
+  upsertFlavorBase,
+  upsertFlavorItem,
+  type AdminFlavorBase,
+  type AdminFlavorItem,
+  type FlavorCategory,
+} from "@/lib/admin/admin-flavor";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+type EditTarget =
+  | { kind: "base"; item: AdminFlavorBase }
+  | { kind: "flavor"; item: AdminFlavorItem };
 
-type FlavorCategory = "Chocolate" | "Nuts" | "Fruits" | "Desserts" | "Coffee & Special";
-
-type Base = {
-  slug:    string;
-  nameEn:  string;
-  nameAr:  string;
-  descEn:  string;
-  descAr:  string;
-  visible: boolean;
+type FormState = {
+  nameEn: string;
+  nameAr: string;
+  hintEn: string;
+  hintAr: string;
+  price: string;
+  cost: string;
+  category: FlavorCategory;
+  active: boolean;
+  sortOrder: string;
 };
 
-type Flavor = {
-  slug:           string;
-  nameEn:         string;
-  nameAr:         string;
-  category:       FlavorCategory;
-  costPerKg:      number;
-  addOnPriceKg:   number;
-  visible:        boolean;
-  descEn:         string;
-  descAr:         string;
-};
-
-type FlavorDrawerForm = Omit<Flavor, "slug">;
-
-// ── Mock Bases ────────────────────────────────────────────────────────────────
-
-const INITIAL_BASES: Base[] = [
-  {
-    slug: "turkish", nameEn: "Turkish Coffee", nameAr: "قهوة تركي",
-    descEn: "Traditional fine-ground Turkish coffee base. Rich and strong.", descAr: "قاعدة القهوة التركية المطحونة الناعمة. غنية وقوية.", visible: true,
-  },
-  {
-    slug: "coffee-mix", nameEn: "Coffee Mix", nameAr: "كوفي ميكس",
-    descEn: "Pre-blended medium roast coffee mix. Balanced everyday base.", descAr: "خلطة قهوة متوسطة التحميص. قاعدة متوازنة للاستخدام اليومي.", visible: true,
-  },
-  {
-    slug: "cappuccino", nameEn: "Cappuccino", nameAr: "كابتشينو",
-    descEn: "Creamy cappuccino base with whole milk powder. Light and smooth.", descAr: "قاعدة كابتشينو كريمية مع حليب مجفف كامل الدسم. خفيفة وناعمة.", visible: true,
-  },
-  {
-    slug: "hot-chocolate", nameEn: "Hot Chocolate", nameAr: "هوت شوكولت",
-    descEn: "Rich dark chocolate flavored base. Indulgent and velvety.", descAr: "قاعدة غنية بنكهة الشوكولاتة الداكنة. فاخرة ومخملية.", visible: true,
-  },
+const CATEGORIES: FlavorCategory[] = [
+  "chocolate",
+  "fruits",
+  "nuts",
+  "desserts",
+  "coffee-shisha",
 ];
 
-// ── Mock Flavors (30) ─────────────────────────────────────────────────────────
-
-const INITIAL_FLAVORS: Flavor[] = [
-  // Chocolate (5)
-  { slug: "dark-chocolate",  nameEn: "Dark Chocolate",  nameAr: "شوكولاتة داكنة",  category: "Chocolate",       costPerKg: 25, addOnPriceKg: 45, visible: true,  descEn: "Intense bittersweet dark chocolate.",      descAr: "شوكولاتة داكنة مُرّة وغنية." },
-  { slug: "milk-chocolate",  nameEn: "Milk Chocolate",  nameAr: "شوكولاتة حليب",  category: "Chocolate",       costPerKg: 22, addOnPriceKg: 40, visible: true,  descEn: "Creamy and sweet milk chocolate.",         descAr: "شوكولاتة حليب كريمية وحلوة." },
-  { slug: "white-chocolate", nameEn: "White Chocolate", nameAr: "شوكولاتة بيضاء", category: "Chocolate",       costPerKg: 23, addOnPriceKg: 42, visible: true,  descEn: "Smooth buttery white chocolate.",          descAr: "شوكولاتة بيضاء ناعمة وزبدية." },
-  { slug: "cocoa",           nameEn: "Cocoa",           nameAr: "كاكاو",           category: "Chocolate",       costPerKg: 19, addOnPriceKg: 35, visible: true,  descEn: "Pure natural cocoa powder notes.",         descAr: "نكهة مسحوق الكاكاو الطبيعي." },
-  { slug: "mocha",           nameEn: "Mocha",           nameAr: "موكا",            category: "Chocolate",       costPerKg: 27, addOnPriceKg: 48, visible: true,  descEn: "Coffee and chocolate fusion.",             descAr: "مزيج القهوة والشوكولاتة." },
-  // Nuts (4)
-  { slug: "hazelnut",        nameEn: "Hazelnut",        nameAr: "هيزلنت",          category: "Nuts",            costPerKg: 36, addOnPriceKg: 65, visible: true,  descEn: "Rich roasted hazelnut warmth.",            descAr: "دفء البندق المحمص الغني." },
-  { slug: "pistachio",       nameEn: "Pistachio",       nameAr: "فستق",            category: "Nuts",            costPerKg: 42, addOnPriceKg: 75, visible: true,  descEn: "Earthy and sweet pistachio.",              descAr: "فستق حلو وترابي الطعم." },
-  { slug: "almond",          nameEn: "Almond",          nameAr: "لوز",             category: "Nuts",            costPerKg: 33, addOnPriceKg: 60, visible: true,  descEn: "Light and nutty almond essence.",          descAr: "جوهر اللوز الخفيف والمكسرات." },
-  { slug: "walnut",          nameEn: "Walnut",          nameAr: "جوز",             category: "Nuts",            costPerKg: 30, addOnPriceKg: 55, visible: true,  descEn: "Deep and slightly bitter walnut.",         descAr: "جوز عميق الطعم وخفيف المرارة." },
-  // Fruits (8)
-  { slug: "mango",           nameEn: "Mango",           nameAr: "مانجو",           category: "Fruits",          costPerKg: 21, addOnPriceKg: 38, visible: true,  descEn: "Tropical ripe mango sweetness.",           descAr: "حلاوة المانجو الاستوائية الناضجة." },
-  { slug: "strawberry",      nameEn: "Strawberry",      nameAr: "فراولة",          category: "Fruits",          costPerKg: 19, addOnPriceKg: 35, visible: true,  descEn: "Fresh and tangy strawberry.",              descAr: "فراولة طازجة وحامضة قليلاً." },
-  { slug: "peach",           nameEn: "Peach",           nameAr: "خوخ",             category: "Fruits",          costPerKg: 22, addOnPriceKg: 40, visible: true,  descEn: "Soft and juicy summer peach.",             descAr: "خوخ صيفي طري وعصير." },
-  { slug: "raspberry",       nameEn: "Raspberry",       nameAr: "توت أحمر",        category: "Fruits",          costPerKg: 25, addOnPriceKg: 45, visible: true,  descEn: "Bright and tart red berry.",               descAr: "توت أحمر لامع وحامض." },
-  { slug: "blueberry",       nameEn: "Blueberry",       nameAr: "توت أزرق",        category: "Fruits",          costPerKg: 25, addOnPriceKg: 45, visible: false, descEn: "Sweet and deep blueberry.",               descAr: "توت أزرق حلو وعميق الطعم." },
-  { slug: "passion-fruit",   nameEn: "Passion Fruit",   nameAr: "باشن فروت",       category: "Fruits",          costPerKg: 28, addOnPriceKg: 50, visible: true,  descEn: "Exotic and aromatic passion fruit.",       descAr: "باشن فروت غريب وعطري." },
-  { slug: "lemon",           nameEn: "Lemon",           nameAr: "ليمون",           category: "Fruits",          costPerKg: 16, addOnPriceKg: 30, visible: true,  descEn: "Sharp and refreshing lemon zest.",         descAr: "حدة الليمون المنعشة." },
-  { slug: "orange",          nameEn: "Orange",          nameAr: "برتقال",          category: "Fruits",          costPerKg: 18, addOnPriceKg: 32, visible: true,  descEn: "Sweet and citrusy orange blossom.",        descAr: "زهر البرتقال الحلو والحمضي." },
-  // Desserts (7)
-  { slug: "vanilla",         nameEn: "Vanilla",         nameAr: "فانيليا",         category: "Desserts",        costPerKg: 16, addOnPriceKg: 30, visible: true,  descEn: "Classic and smooth vanilla bean.",         descAr: "حبة فانيليا كلاسيكية وناعمة." },
-  { slug: "caramel",         nameEn: "Caramel",         nameAr: "كراميل",          category: "Desserts",        costPerKg: 19, addOnPriceKg: 35, visible: true,  descEn: "Warm buttery caramel sweetness.",          descAr: "حلاوة الكراميل الزبدية الدافئة." },
-  { slug: "lotus",           nameEn: "Lotus",           nameAr: "لوتس",            category: "Desserts",        costPerKg: 30, addOnPriceKg: 55, visible: true,  descEn: "Iconic caramelised biscuit flavor.",       descAr: "نكهة البسكويت الكراميلي الشهيرة." },
-  { slug: "oreo",            nameEn: "Oreo",            nameAr: "أوريو",           category: "Desserts",        costPerKg: 28, addOnPriceKg: 50, visible: true,  descEn: "Cookies and cream Oreo blend.",            descAr: "مزيج الكوكيز والكريم أوريو." },
-  { slug: "cinnamon",        nameEn: "Cinnamon",        nameAr: "قرفة",            category: "Desserts",        costPerKg: 15, addOnPriceKg: 28, visible: true,  descEn: "Warm and spicy cinnamon.",                 descAr: "قرفة دافئة وحارة." },
-  { slug: "coconut",         nameEn: "Coconut",         nameAr: "جوز هند",         category: "Desserts",        costPerKg: 21, addOnPriceKg: 38, visible: true,  descEn: "Tropical creamy coconut.",                 descAr: "جوز هند استوائي كريمي." },
-  { slug: "butterscotch",    nameEn: "Butterscotch",    nameAr: "بترسكوتش",        category: "Desserts",        costPerKg: 23, addOnPriceKg: 42, visible: false, descEn: "Rich buttery toffee notes.",              descAr: "نكهات التوفي الزبدية الغنية." },
-  // Coffee & Special (6)
-  { slug: "irish-cream",     nameEn: "Irish Cream",     nameAr: "آيريش كريم",      category: "Coffee & Special", costPerKg: 33, addOnPriceKg: 60, visible: true,  descEn: "Smooth cream liqueur character.",          descAr: "طابع الكريمة السلسة." },
-  { slug: "turkish-delight", nameEn: "Turkish Delight", nameAr: "راحة الحلقوم",    category: "Coffee & Special", costPerKg: 30, addOnPriceKg: 55, visible: true,  descEn: "Rose-scented sweet confection.",           descAr: "حلوى عطرية برائحة الورد." },
-  { slug: "saffron",         nameEn: "Saffron",         nameAr: "زعفران",          category: "Coffee & Special", costPerKg: 44, addOnPriceKg: 80, visible: true,  descEn: "Rare and luxurious saffron.",              descAr: "زعفران نادر وفاخر." },
-  { slug: "rose",            nameEn: "Rose",            nameAr: "ورد",             category: "Coffee & Special", costPerKg: 25, addOnPriceKg: 45, visible: true,  descEn: "Delicate floral rose water.",              descAr: "ماء ورد زهري رقيق." },
-  { slug: "cardamom",        nameEn: "Cardamom",        nameAr: "هيل",             category: "Coffee & Special", costPerKg: 19, addOnPriceKg: 35, visible: true,  descEn: "Aromatic green cardamom spice.",           descAr: "توابل الهيل الأخضر العطري." },
-  { slug: "tiramisu",        nameEn: "Tiramisu",        nameAr: "تيراميسو",        category: "Coffee & Special", costPerKg: 32, addOnPriceKg: 58, visible: true,  descEn: "Italian mascarpone and coffee dessert.",   descAr: "حلوى المسكاربوني والقهوة الإيطالية." },
-];
-
-const ALL_CATEGORIES: FlavorCategory[] = ["Chocolate", "Nuts", "Fruits", "Desserts", "Coffee & Special"];
-const FLAVOR_DRAWER_TABS = ["General", "Category", "Pricing", "Visibility"];
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8,
-  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.16)",
-  color: "var(--cream)", outline: "none",
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 10.5, fontWeight: 600, textTransform: "uppercase" as const,
-  letterSpacing: "0.1em", color: "var(--cream-dim)", opacity: 0.55, marginBottom: 6, display: "block",
-};
-
-// ── Category color map ────────────────────────────────────────────────────────
-
-const CAT_COLOR: Record<FlavorCategory, string> = {
-  "Chocolate":       "#92400e",
-  "Nuts":            "#78350f",
-  "Fruits":          "#166534",
-  "Desserts":        "#6d28d9",
-  "Coffee & Special":"#92400e",
-};
-
-const CAT_TEXT: Record<FlavorCategory, string> = {
-  "Chocolate":       "#fde68a",
-  "Nuts":            "#fcd34d",
-  "Fruits":          "#86efac",
-  "Desserts":        "#c4b5fd",
-  "Coffee & Special":"#d6a373",
-};
-
-// ── FlavorDrawer ──────────────────────────────────────────────────────────────
-
-function FlavorDrawer({
-  flavor, isOpen, onClose, onSave,
+function CatalogEditor({
+  target,
+  onClose,
+  onSaved,
 }: {
-  flavor:  Flavor | null;
-  isOpen:  boolean;
+  target: EditTarget;
   onClose: () => void;
-  onSave:  (slug: string, partial: Partial<Flavor>) => void;
+  onSaved: () => Promise<void>;
 }) {
-  const [tab,   setTab]   = useState("General");
-  const [form,  setForm]  = useState<FlavorDrawerForm | null>(null);
-  const [saved, setSaved] = useState(false);
+  const { t } = useAdminLanguage();
+  const item = target.item;
+  const [form, setForm] = useState<FormState>({
+    nameEn: item.nameEn,
+    nameAr: item.nameAr,
+    hintEn: item.hintEn ?? "",
+    hintAr: item.hintAr ?? "",
+    price: String(
+      target.kind === "base" ? target.item.pricePerKg : target.item.addOnPerKg,
+    ),
+    cost: item.costPerKg == null ? "" : String(item.costPerKg),
+    category: target.kind === "flavor" ? target.item.category : "chocolate",
+    active: item.active,
+    sortOrder: String(item.sortOrder),
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (flavor) { setForm({ nameEn: flavor.nameEn, nameAr: flavor.nameAr, category: flavor.category, costPerKg: flavor.costPerKg, addOnPriceKg: flavor.addOnPriceKg, visible: flavor.visible, descEn: flavor.descEn, descAr: flavor.descAr }); setTab("General"); setSaved(false); } }, [flavor?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!flavor || !form) return null;
-
-  function setF(key: keyof FlavorDrawerForm, value: unknown) {
-    setForm(prev => prev ? { ...prev, [key]: value } as FlavorDrawerForm : null);
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function handleSave() {
-    if (!form) return;
-    onSave(flavor!.slug, { ...form });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+  async function save() {
+    const price = Number(form.price);
+    const cost = form.cost.trim() ? Number(form.cost) : null;
+    const sortOrder = Number(form.sortOrder);
+    if (
+      !form.nameEn.trim() ||
+      !form.nameAr.trim() ||
+      !Number.isFinite(price) ||
+      price < 0 ||
+      (cost !== null && (!Number.isFinite(cost) || cost < 0)) ||
+      !Number.isInteger(sortOrder)
+    ) {
+      setError(t("Enter valid names, prices, and display order."));
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      if (target.kind === "base") {
+        await upsertFlavorBase({
+          id: target.item.id,
+          baseKey: target.item.baseKey,
+          nameEn: form.nameEn.trim(),
+          nameAr: form.nameAr.trim(),
+          hintEn: form.hintEn.trim() || null,
+          hintAr: form.hintAr.trim() || null,
+          pricePerKg: price,
+          costPerKg: cost,
+          active: form.active,
+          sortOrder,
+        });
+      } else {
+        await upsertFlavorItem({
+          id: target.item.id,
+          flavorKey: target.item.flavorKey,
+          nameEn: form.nameEn.trim(),
+          nameAr: form.nameAr.trim(),
+          hintEn: form.hintEn.trim() || null,
+          hintAr: form.hintAr.trim() || null,
+          category: form.category,
+          addOnPerKg: price,
+          costPerKg: cost,
+          metrics: target.item.metrics,
+          active: form.active,
+          sortOrder,
+        });
+      }
+      await onSaved();
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : t("Could not save flavor catalog item."));
+    } finally {
+      setSaving(false);
+    }
   }
+
+  const fieldClass = "w-full rounded-lg border px-3 py-2 text-sm outline-none";
+  const fieldStyle = {
+    borderColor: "rgba(182,136,94,0.18)",
+    background: "rgba(11,8,6,0.72)",
+    color: "var(--cream)",
+  };
 
   return (
     <>
-      <div onClick={onClose} style={{
-        position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)",
-        opacity: isOpen ? 1 : 0, pointerEvents: isOpen ? "auto" : "none", transition: "opacity 200ms",
-      }} />
-      <div style={{
-        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 101,
-        width: "clamp(300px, 40vw, 520px)",
-        background: "linear-gradient(135deg,#130E09 0%,#0F0A06 100%)",
-        borderLeft: "1px solid rgba(182,136,94,0.16)",
-        transform: isOpen ? "translateX(0)" : "translateX(100%)",
-        transition: "transform 300ms cubic-bezier(0.22,1,0.36,1)",
-        display: "flex", flexDirection: "column",
-      }}>
-        {/* Header */}
-        <div style={{ padding: "16px 20px 0", borderBottom: "1px solid rgba(182,136,94,0.10)" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
-            <div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: "var(--cream)" }}>{flavor.slug === "__new__" ? "New Flavor" : (form.nameEn || "Flavor")}</p>
-              <p style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.5, marginTop: 2 }}>{form.nameAr}</p>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{
-                fontSize: 9.5, fontWeight: 700, padding: "3px 8px", borderRadius: 99, textTransform: "uppercase", letterSpacing: "0.07em",
-                background: `${CAT_COLOR[form.category]}40`, color: CAT_TEXT[form.category],
-              }}>{form.category}</span>
-              <button type="button" onClick={onClose} style={{ padding: 6, color: "var(--cream-dim)", opacity: 0.45 }}>
-                <X size={16} />
-              </button>
-            </div>
+      <button type="button" aria-label={t("Close")} onClick={onClose} className="fixed inset-0 z-40 cursor-default bg-black/65" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={target.kind === "base" ? t("Edit flavor base") : t("Edit flavor")}
+        className="fixed inset-y-0 end-0 z-50 w-full max-w-xl overflow-y-auto border-s p-5 shadow-2xl md:p-7"
+        style={{ borderColor: "rgba(182,136,94,0.2)", background: "#130e09" }}
+      >
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: "var(--gold)" }}>
+              {target.kind === "base" ? target.item.baseKey : target.item.flavorKey}
+            </p>
+            <h2 className="mt-1 font-serif text-2xl font-bold" style={{ color: "var(--cream)" }}>
+              {target.kind === "base" ? t("Edit flavor base") : t("Edit flavor")}
+            </h2>
           </div>
-          <div style={{ display: "flex", gap: 0, overflowX: "auto" }}>
-            {FLAVOR_DRAWER_TABS.map(t => (
-              <button key={t} type="button" onClick={() => setTab(t)} style={{
-                padding: "6px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-                borderRadius: "6px 6px 0 0",
-                color: tab === t ? "var(--gold)" : "var(--cream-dim)",
-                background: tab === t ? "rgba(182,136,94,0.10)" : "transparent",
-                borderBottom: tab === t ? "2px solid var(--gold)" : "2px solid transparent",
-                opacity: tab === t ? 1 : 0.5,
-              }}>{t}</button>
-            ))}
-          </div>
+          <button type="button" onClick={onClose} aria-label={t("Close")} className="p-2"><X size={18} /></button>
         </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
-
-          {/* GENERAL */}
-          {tab === "General" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <span style={labelStyle}>English Name</span>
-                <input value={form.nameEn} onChange={e => setF("nameEn", e.target.value)} style={inputStyle} />
-              </div>
-              <div>
-                <span style={labelStyle}>Arabic Name</span>
-                <input value={form.nameAr} onChange={e => setF("nameAr", e.target.value)} dir="rtl" style={inputStyle} />
-              </div>
-              <div style={{ borderTop: "1px solid rgba(182,136,94,0.10)", paddingTop: 14 }}>
-                <span style={labelStyle}>English Description</span>
-                <textarea value={form.descEn} onChange={e => setF("descEn", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" as const }} />
-              </div>
-              <div>
-                <span style={labelStyle}>Arabic Description</span>
-                <textarea value={form.descAr} onChange={e => setF("descAr", e.target.value)} rows={3} dir="rtl" style={{ ...inputStyle, resize: "vertical" as const }} />
-              </div>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Name (English)")}</span>
+            <input value={form.nameEn} onChange={(event) => set("nameEn", event.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Name (Arabic)")}</span>
+            <input dir="rtl" value={form.nameAr} onChange={(event) => set("nameAr", event.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Description / hint (English)")}</span>
+            <textarea rows={2} value={form.hintEn} onChange={(event) => set("hintEn", event.target.value)} className={`${fieldClass} resize-none`} style={fieldStyle} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Description / hint (Arabic)")}</span>
+            <textarea dir="rtl" rows={2} value={form.hintAr} onChange={(event) => set("hintAr", event.target.value)} className={`${fieldClass} resize-none`} style={fieldStyle} />
+          </label>
+          {target.kind === "flavor" && (
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Category")}</span>
+              <select value={form.category} onChange={(event) => set("category", event.target.value as FlavorCategory)} className={fieldClass} style={fieldStyle}>
+                {CATEGORIES.map((category) => <option key={category} value={category}>{t(category.replace("-", " & "))}</option>)}
+              </select>
+            </label>
           )}
-
-          {/* CATEGORY */}
-          {tab === "Category" && (
-            <div>
-              <span style={labelStyle}>Flavor Category</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {ALL_CATEGORIES.map(cat => (
-                  <button key={cat} type="button" onClick={() => setF("category", cat)}
-                    aria-pressed={form.category === cat ? "true" : "false"}
-                    style={{
-                      padding: "11px 14px", borderRadius: 10, textAlign: "left", fontSize: 13, fontWeight: 600,
-                      background: form.category === cat ? `${CAT_COLOR[cat]}30` : "rgba(255,255,255,0.04)",
-                      color: form.category === cat ? CAT_TEXT[cat] : "var(--cream-dim)",
-                      border: form.category === cat ? `1px solid ${CAT_COLOR[cat]}60` : "1px solid rgba(255,255,255,0.08)",
-                    }}>
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* PRICING */}
-          {tab === "Pricing" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <span style={labelStyle}>Purchase Price / KG (EGP)</span>
-                <input type="number" value={form.costPerKg} onChange={e => setF("costPerKg", Number(e.target.value))} style={inputStyle} />
-                <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.35, marginTop: 5 }}>سعر الشراء — internal, not shown to customers.</p>
-              </div>
-              <div>
-                <span style={labelStyle}>Sale Add-on / KG (EGP)</span>
-                <input type="number" value={form.addOnPriceKg} onChange={e => setF("addOnPriceKg", Number(e.target.value))} style={inputStyle} />
-                <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.35, marginTop: 5 }}>سعر البيع — added on top of base price, shown in the builder.</p>
-              </div>
-              {form.addOnPriceKg > 0 && form.costPerKg > 0 && (
-                <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.14)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55 }}>Margin</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>
-                      {Math.round(((form.addOnPriceKg - form.costPerKg) / form.addOnPriceKg) * 100)}%
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                    <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55 }}>Profit / KG</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#4ade80" }}>
-                      +{form.addOnPriceKg - form.costPerKg} EGP
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* VISIBILITY */}
-          {tab === "Visibility" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <p style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.48 }}>
-                Controls whether this flavor appears in the Make Your Flavor builder.
-              </p>
-              <div style={{ display: "flex", gap: 8 }}>
-                {([true, false] as const).map(v => {
-                  const active = form.visible === v;
-                  return (
-                    <button key={String(v)} type="button" onClick={() => setF("visible", v)}
-                      aria-pressed={active ? "true" : "false"}
-                      style={{
-                        flex: 1, padding: "12px 0", borderRadius: 10, fontSize: 12, fontWeight: 600,
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                        background: active ? (v ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.10)") : "rgba(255,255,255,0.04)",
-                        color: active ? (v ? "#4ade80" : "#f87171") : "var(--cream-dim)",
-                        border: active ? (v ? "1px solid rgba(74,222,128,0.25)" : "1px solid rgba(239,68,68,0.2)") : "1px solid rgba(255,255,255,0.08)",
-                      }}>
-                      {v ? <><Eye size={13} /> Show In Builder</> : <><EyeOff size={13} /> Hide From Builder</>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">
+              {target.kind === "base" ? t("Base price / kg") : t("Add-on price / kg")}
+            </span>
+            <input type="number" min="0" step="0.01" value={form.price} onChange={(event) => set("price", event.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Cost / kg")}</span>
+            <input type="number" min="0" step="0.01" value={form.cost} onChange={(event) => set("cost", event.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-[#B79B85]">{t("Display order")}</span>
+            <input type="number" step="1" value={form.sortOrder} onChange={(event) => set("sortOrder", event.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="flex items-center justify-between rounded-lg border px-3 py-3" style={{ borderColor: "rgba(182,136,94,0.12)" }}>
+            <span className="text-sm">{t("Active")}</span>
+            <input type="checkbox" checked={form.active} onChange={(event) => set("active", event.target.checked)} className="h-4 w-4 accent-[#b6885e]" />
+          </label>
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: "14px 20px", borderTop: "1px solid rgba(182,136,94,0.10)", display: "flex", gap: 10 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 600, background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            Cancel
+        <p className="mt-5 rounded-lg border border-blue-300/10 bg-blue-300/5 px-3 py-2 text-xs leading-5 text-blue-100/80">
+          {t("This editor updates the existing flavor catalog only. It does not alter checkout formulas or add French Coffee to the builder.")}
+        </p>
+        {error && <p role="alert" className="mt-4 rounded-lg bg-red-400/10 px-3 py-2 text-xs text-red-300">{error}</p>}
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm">{t("Cancel")}</button>
+          <button type="button" onClick={() => void save()} disabled={saving} className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50" style={{ background: "rgba(182,136,94,0.18)", color: "var(--gold)" }}>
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving ? t("Saving…") : t("Save Changes")}
           </button>
-          <button type="button" onClick={handleSave} style={{
-            flex: 2, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 700,
-            background: saved ? "rgba(74,222,128,0.14)" : "rgba(182,136,94,0.18)",
-            color: saved ? "#4ade80" : "var(--gold)",
-            border: saved ? "1px solid rgba(74,222,128,0.28)" : "1px solid rgba(182,136,94,0.3)",
-          }}>{saved ? "✓ Saved" : "Save Changes"}</button>
         </div>
       </div>
     </>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
-type FlavorFilter = "All" | FlavorCategory;
-
 export default function FlavorManagerPage() {
-  const [catFilter,       setCatFilter]       = useState<FlavorFilter>("All");
-  const [search,          setSearch]          = useState("");
-  const [openSlug,        setOpenSlug]        = useState<string | null>(null);
-  const [flavorOverrides, setFlavorOverrides] = useState<Record<string, Partial<Flavor>>>({});
-  const [customFlavors,   setCustomFlavors]   = useState<Flavor[]>([]);
-  const [baseOverrides,   setBaseOverrides]   = useState<Record<string, Partial<Base>>>({});
-  const [rules,           setRules]           = useState({ maxFlavors: 5, showRecommended: true, requireBase: true });
+  const { currency, formatNumber, localize, t } = useAdminLanguage();
+  const [tab, setTab] = useState<"bases" | "flavors">("bases");
+  const [bases, setBases] = useState<AdminFlavorBase[]>([]);
+  const [flavors, setFlavors] = useState<AdminFlavorItem[]>([]);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<"all" | FlavorCategory>("all");
+  const [editing, setEditing] = useState<EditTarget | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const NEW_SLUG = "__new__";
-  const newFlavorTemplate: Flavor = {
-    slug: NEW_SLUG, nameEn: "", nameAr: "", category: "Chocolate",
-    costPerKg: 0, addOnPriceKg: 0, visible: true, descEn: "", descAr: "",
-  };
-
-  const allFlavors = [
-    ...INITIAL_FLAVORS.map(f => ({ ...f, ...(flavorOverrides[f.slug] ?? {}) })),
-    ...customFlavors.map(f => ({ ...f, ...(flavorOverrides[f.slug] ?? {}) })),
-  ];
-  const allBases   = INITIAL_BASES.map(b => ({ ...b, ...(baseOverrides[b.slug] ?? {}) }));
-
-  const totalFlavors  = allFlavors.length;
-  const hiddenFlavors = allFlavors.filter(f => !f.visible).length;
-  const totalBases    = allBases.filter(b => b.visible).length;
-  const totalCats     = ALL_CATEGORIES.length;
-
-  const filtered = allFlavors.filter(f => {
-    if (catFilter !== "All" && f.category !== catFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (!f.nameEn.toLowerCase().includes(q) && !f.nameAr.includes(q)) return false;
+  const load = useCallback(async (quiet = false) => {
+    if (quiet) setRefreshing(true);
+    else setLoading(true);
+    setError("");
+    try {
+      const [nextBases, nextFlavors] = await Promise.all([
+        listFlavorBases(),
+        listFlavorItems(),
+      ]);
+      setBases(nextBases);
+      setFlavors(nextFlavors);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : t("Could not load flavor catalog."));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    return true;
-  });
+  }, [t]);
 
-  const openFlavor = openSlug === NEW_SLUG
-    ? newFlavorTemplate
-    : (allFlavors.find(f => f.slug === openSlug) ?? null);
+  useEffect(() => {
+    // Initial client-side admin fetch; load owns its loading/error state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
-  function saveFlavor(slug: string, partial: Partial<Flavor>) {
-    if (slug === NEW_SLUG) {
-      const name = (partial.nameEn ?? "").trim() || "New Flavor";
-      const newSlug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now().toString().slice(-4);
-      const newFlavor: Flavor = { ...newFlavorTemplate, ...partial, slug: newSlug };
-      setCustomFlavors(prev => [...prev, newFlavor]);
-      setOpenSlug(newSlug);
-    } else {
-      setFlavorOverrides(prev => ({ ...prev, [slug]: { ...(prev[slug] ?? {}), ...partial } }));
-    }
+  const filteredFlavors = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return flavors.filter((flavor) => {
+      const matchesCategory = category === "all" || flavor.category === category;
+      const matchesSearch = `${flavor.nameEn} ${flavor.nameAr} ${flavor.flavorKey}`
+        .toLowerCase()
+        .includes(query);
+      return matchesCategory && matchesSearch;
+    });
+  }, [category, flavors, search]);
+
+  async function saved() {
+    await load(true);
+    setSuccess(t("Flavor catalog item saved to Supabase."));
+    window.setTimeout(() => setSuccess(""), 3000);
   }
-
-  function toggleBase(slug: string) {
-    const base = allBases.find(b => b.slug === slug);
-    if (!base) return;
-    setBaseOverrides(prev => ({ ...prev, [slug]: { ...(prev[slug] ?? {}), visible: !base.visible } }));
-  }
-
-  const FILTER_OPTIONS: FlavorFilter[] = ["All", ...ALL_CATEGORIES];
-
-  const catCounts = Object.fromEntries(
-    ALL_CATEGORIES.map(cat => [cat, allFlavors.filter(f => f.category === cat).length])
-  );
 
   return (
-    <div style={{ padding: 24, minHeight: "100vh" }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
-            Flavor Manager
-          </h1>
-          <p style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.42, marginTop: 4 }}>
-            Manage flavors and bases available in the Make Your Flavor builder
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--gold)" }}>{t("Make Your Flavor")}</p>
+          <h1 className="mt-1 font-serif text-2xl font-bold md:text-3xl" style={{ color: "var(--cream)" }}>{t("Flavor Manager")}</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--cream-dim)" }}>{t("Real flavor_bases and flavor_items catalog. All edits persist.")}</p>
         </div>
-        <button type="button" onClick={() => setOpenSlug(NEW_SLUG)} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "9px 16px", borderRadius: 10, fontSize: 12.5, fontWeight: 600,
-          background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.28)",
-        }}>
-          <Plus size={14} /> Add Flavor
+        <button type="button" onClick={() => void load(true)} disabled={refreshing} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: "rgba(182,136,94,0.16)", color: "var(--cream-dim)" }}>
+          <RefreshCw size={13} className={refreshing ? "animate-spin" : undefined} />
+          {t("Refresh")}
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 28 }}>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Total Flavors",    value: totalFlavors,  color: "var(--gold)" },
-          { label: "Total Categories", value: totalCats,     color: "var(--gold-light)" },
-          { label: "Active Bases",     value: totalBases,    color: "#4ade80" },
-          { label: "Hidden Flavors",   value: hiddenFlavors, color: hiddenFlavors > 0 ? "#f87171" : "var(--cream-dim)" },
-        ].map(card => (
-          <div key={card.label} className="admin-kpi-card" style={{ position: "relative" }}>
-            <p style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cream-dim)", opacity: 0.48, marginBottom: 8 }}>
-              {card.label}
-            </p>
-            <p style={{ fontSize: 30, fontWeight: 800, color: card.color, fontFamily: "var(--font-playfair)", lineHeight: 1 }}>
-              {card.value}
-            </p>
+          [t("Flavor bases"), bases.length],
+          [t("Active bases"), bases.filter((base) => base.active).length],
+          [t("Flavor add-ons"), flavors.length],
+          [t("Active flavors"), flavors.filter((flavor) => flavor.active).length],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="admin-kpi-card p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--cream-dim)" }}>{label}</p>
+            <p className="mt-2 text-xl font-bold" style={{ color: "var(--gold)" }}>{formatNumber(Number(value))}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Bases Section ── */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <Layers size={15} color="var(--gold)" />
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--cream)" }}>Bases</h2>
-          <span style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.38 }}>— customers select one base before choosing flavors</span>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setTab("bases")} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: tab === "bases" ? "rgba(182,136,94,0.32)" : "rgba(182,136,94,0.1)", background: tab === "bases" ? "rgba(182,136,94,0.12)" : "transparent", color: tab === "bases" ? "var(--gold)" : "var(--cream-dim)" }}><CupSoda size={14} />{t("Bases")}</button>
+        <button type="button" onClick={() => setTab("flavors")} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: tab === "flavors" ? "rgba(182,136,94,0.32)" : "rgba(182,136,94,0.1)", background: tab === "flavors" ? "rgba(182,136,94,0.12)" : "transparent", color: tab === "flavors" ? "var(--gold)" : "var(--cream-dim)" }}><Sparkles size={14} />{t("Flavor add-ons")}</button>
+      </div>
+
+      {tab === "flavors" && (
+        <div className="flex flex-wrap gap-3">
+          <div className="relative min-w-64 flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B79B85]" />
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("Search flavors")} className="w-full rounded-lg border py-2 pl-9 pr-3 text-sm" style={{ borderColor: "rgba(182,136,94,0.14)", background: "rgba(255,255,255,0.025)" }} />
+          </div>
+          <select value={category} onChange={(event) => setCategory(event.target.value as "all" | FlavorCategory)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "rgba(182,136,94,0.14)", background: "#130e09" }}>
+            <option value="all">{t("All categories")}</option>
+            {CATEGORIES.map((item) => <option key={item} value={item}>{t(item.replace("-", " & "))}</option>)}
+          </select>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-          {allBases.map(base => (
-            <div key={base.slug} style={{
-              borderRadius: 14, border: `1px solid ${base.visible ? "rgba(182,136,94,0.18)" : "rgba(255,255,255,0.07)"}`,
-              background: base.visible ? "rgba(182,136,94,0.05)" : "rgba(255,255,255,0.02)",
-              padding: 16, opacity: base.visible ? 1 : 0.55,
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+      )}
+
+      {success && <p role="status" className="flex items-center gap-2 rounded-lg bg-green-400/10 px-3 py-2 text-xs text-green-300"><CheckCircle2 size={14} />{success}</p>}
+      {error && <div role="alert" className="flex items-center justify-between rounded-lg bg-red-400/10 px-3 py-2 text-xs text-red-300"><span>{error}</span><button type="button" onClick={() => void load()}>{t("Try again")}</button></div>}
+
+      {loading ? (
+        <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin" style={{ color: "var(--gold)" }} /></div>
+      ) : tab === "bases" ? (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {bases.map((base) => (
+            <article key={base.id} className="rounded-xl border border-[#B6885E]/12 bg-white/[0.02] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#B6885E]/10 text-[#D6A373]"><CupSoda size={17} /></span>
+                <span className={base.active ? "rounded-full bg-green-400/10 px-2 py-1 text-[10px] text-green-300" : "rounded-full bg-white/5 px-2 py-1 text-[10px] text-[#B79B85]"}>{base.active ? t("Active") : t("Inactive")}</span>
+              </div>
+              <h2 className="mt-4 font-semibold">{localize({ en: base.nameEn, ar: base.nameAr })}</h2>
+              <p className="mt-1 text-xs text-[#B79B85]">{base.baseKey}</p>
+              <p className="mt-3 text-sm font-semibold text-[#D6A373]">{formatNumber(base.pricePerKg)} {currency} / kg</p>
+              <button type="button" onClick={() => setEditing({ kind: "base", item: base })} className="mt-4 flex items-center gap-2 rounded-lg bg-[#B6885E]/10 px-3 py-2 text-xs font-semibold text-[#D6A373]"><Pencil size={12} />{t("Edit")}</button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filteredFlavors.map((flavor) => (
+            <article key={flavor.id} className="rounded-xl border border-[#B6885E]/12 bg-white/[0.02] p-4">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>{base.nameEn}</p>
-                  <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.45 }}>{base.nameAr}</p>
+                  <h2 className="font-semibold">{localize({ en: flavor.nameEn, ar: flavor.nameAr })}</h2>
+                  <p className="mt-1 text-xs text-[#B79B85]">{t(flavor.category.replace("-", " & "))}</p>
                 </div>
-                <span style={{
-                  fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 99,
-                  background: base.visible ? "rgba(74,222,128,0.12)" : "rgba(156,163,175,0.12)",
-                  color: base.visible ? "#4ade80" : "#9ca3af",
-                }}>
-                  {base.visible ? "ACTIVE" : "HIDDEN"}
-                </span>
+                <span className={flavor.active ? "rounded-full bg-green-400/10 px-2 py-1 text-[10px] text-green-300" : "rounded-full bg-white/5 px-2 py-1 text-[10px] text-[#B79B85]"}>{flavor.active ? t("Active") : t("Inactive")}</span>
               </div>
-              <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.4, marginBottom: 12, lineHeight: 1.5 }}>
-                {base.descEn}
-              </p>
-              <button type="button" onClick={() => toggleBase(base.slug)} style={{
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "6px 12px", borderRadius: 7, fontSize: 11, fontWeight: 600,
-                background: base.visible ? "rgba(239,68,68,0.08)" : "rgba(74,222,128,0.10)",
-                color: base.visible ? "#f87171" : "#4ade80",
-                border: base.visible ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(74,222,128,0.2)",
-              }}>
-                {base.visible ? <><EyeOff size={11} /> Hide Base</> : <><Eye size={11} /> Show Base</>}
-              </button>
-            </div>
+              <p className="mt-4 text-sm font-semibold text-[#D6A373]">+{formatNumber(flavor.addOnPerKg)} {currency} / kg</p>
+              <p className="mt-1 text-[10px] text-[#B79B85]">{flavor.flavorKey} · {t("Order")} {formatNumber(flavor.sortOrder)}</p>
+              <button type="button" onClick={() => setEditing({ kind: "flavor", item: flavor })} className="mt-4 flex items-center gap-2 rounded-lg bg-[#B6885E]/10 px-3 py-2 text-xs font-semibold text-[#D6A373]"><Pencil size={12} />{t("Edit")}</button>
+            </article>
           ))}
+          {filteredFlavors.length === 0 && <p className="text-sm text-[#B79B85]">{t("No flavors found.")}</p>}
         </div>
-      </div>
+      )}
 
-      {/* ── Flavor Grid ── */}
-      <div>
-        {/* Toolbar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {FILTER_OPTIONS.map(f => (
-              <button key={f} type="button" onClick={() => setCatFilter(f)} style={{
-                padding: "5px 12px", borderRadius: 8, fontSize: 11.5, fontWeight: 600,
-                background: catFilter === f ? "rgba(182,136,94,0.18)" : "rgba(255,255,255,0.04)",
-                color: catFilter === f ? "var(--gold)" : "var(--cream-dim)",
-                border: catFilter === f ? "1px solid rgba(182,136,94,0.3)" : "1px solid transparent",
-              }}>
-                {f === "All" ? `All (${totalFlavors})` : `${f} (${catCounts[f]})`}
-              </button>
-            ))}
-          </div>
-          <div style={{ position: "relative" }}>
-            <Search size={12} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--cream-dim)", opacity: 0.38 }} />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search flavors…"
-              style={{ paddingLeft: 28, paddingRight: 12, height: 34, borderRadius: 9, fontSize: 12.5, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.16)", color: "var(--cream)", outline: "none", width: 190 }}
-            />
-          </div>
-        </div>
+      <p className="rounded-xl border border-blue-300/10 bg-blue-300/5 px-4 py-3 text-xs leading-5 text-blue-100/80">
+        {t("French Coffee remains a standalone catalog product and is not included in the flavor builder bases.")}
+      </p>
 
-        {/* Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 10 }}>
-          {filtered.map(flavor => (
-            <div
-              key={flavor.slug}
-              onClick={() => setOpenSlug(flavor.slug)}
-              style={{
-                borderRadius: 13, border: "1px solid rgba(182,136,94,0.12)",
-                background: "rgba(255,255,255,0.02)", cursor: "pointer",
-                overflow: "hidden", opacity: flavor.visible ? 1 : 0.6,
-                transition: "border-color 180ms",
-              }}
-            >
-              {/* Color band */}
-              <div style={{ height: 6, background: `${CAT_COLOR[flavor.category]}80` }} />
-              {/* Info */}
-              <div style={{ padding: "10px 12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>{flavor.nameEn}</p>
-                  {!flavor.visible && <EyeOff size={11} color="#f87171" />}
-                </div>
-                <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.44, marginBottom: 6 }}>{flavor.nameAr}</p>
-                <span style={{ fontSize: 9.5, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: `${CAT_COLOR[flavor.category]}35`, color: CAT_TEXT[flavor.category] }}>
-                  {flavor.category}
-                </span>
-                <p style={{ fontSize: 12.5, fontWeight: 700, color: "var(--gold)", marginTop: 8 }}>
-                  +{flavor.addOnPriceKg} EGP/kg
-                </p>
-              </div>
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "40px 0", color: "var(--cream-dim)", opacity: 0.3, fontSize: 13 }}>
-              No flavors match your filter.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Builder Rules ── */}
-      <div style={{ marginTop: 32, padding: 24, borderRadius: 16, background: "rgba(182,136,94,0.04)", border: "1px solid rgba(182,136,94,0.12)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-          <Settings2 size={16} color="var(--gold)" />
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--cream)" }}>Builder Rules</h2>
-          <span style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.38 }}>— configure the Make Your Flavor experience</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
-          {/* Max Flavors */}
-          <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.10)" }}>
-            <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cream-dim)", opacity: 0.48, marginBottom: 8 }}>
-              Max Flavors Allowed
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button type="button" onClick={() => setRules(r => ({ ...r, maxFlavors: Math.max(1, r.maxFlavors - 1) }))} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,0.06)", color: "var(--cream)", fontSize: 16, fontWeight: 700 }}>−</button>
-              <span style={{ fontSize: 24, fontWeight: 800, color: "var(--gold)", fontFamily: "var(--font-playfair)", minWidth: 28, textAlign: "center" }}>{rules.maxFlavors}</span>
-              <button type="button" onClick={() => setRules(r => ({ ...r, maxFlavors: Math.min(10, r.maxFlavors + 1) }))} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,0.06)", color: "var(--cream)", fontSize: 16, fontWeight: 700 }}>+</button>
-            </div>
-            <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 6 }}>flavors per order</p>
-          </div>
-
-          {/* Show Recommended */}
-          <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.10)" }}>
-            <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cream-dim)", opacity: 0.48, marginBottom: 8 }}>
-              Show Recommended
-            </p>
-            <button
-              type="button"
-              onClick={() => setRules(r => ({ ...r, showRecommended: !r.showRecommended }))}
-              aria-pressed={rules.showRecommended ? "true" : "false"}
-              style={{
-                padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                background: rules.showRecommended ? "rgba(74,222,128,0.12)" : "rgba(255,255,255,0.05)",
-                color: rules.showRecommended ? "#4ade80" : "var(--cream-dim)",
-                border: rules.showRecommended ? "1px solid rgba(74,222,128,0.25)" : "1px solid rgba(255,255,255,0.08)",
-              }}>
-              {rules.showRecommended ? "Enabled" : "Disabled"}
-            </button>
-            <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 6 }}>Show &ldquo;Recommended&rdquo; tags in builder</p>
-          </div>
-
-          {/* Require Base */}
-          <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.10)" }}>
-            <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cream-dim)", opacity: 0.48, marginBottom: 8 }}>
-              Require Base Selection
-            </p>
-            <button
-              type="button"
-              onClick={() => setRules(r => ({ ...r, requireBase: !r.requireBase }))}
-              aria-pressed={rules.requireBase ? "true" : "false"}
-              style={{
-                padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                background: rules.requireBase ? "rgba(74,222,128,0.12)" : "rgba(255,255,255,0.05)",
-                color: rules.requireBase ? "#4ade80" : "var(--cream-dim)",
-                border: rules.requireBase ? "1px solid rgba(74,222,128,0.25)" : "1px solid rgba(255,255,255,0.08)",
-              }}>
-              {rules.requireBase ? "Required" : "Optional"}
-            </button>
-            <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 6 }}>Customer must pick a base before flavors</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Drawer */}
-      <FlavorDrawer flavor={openFlavor} isOpen={openSlug !== null} onClose={() => setOpenSlug(null)} onSave={saveFlavor} />
+      {editing && <CatalogEditor target={editing} onClose={() => setEditing(null)} onSaved={saved} />}
     </div>
   );
 }
