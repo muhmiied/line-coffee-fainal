@@ -21,6 +21,11 @@ import {
   restoreDefaultProductImage,
   type ProductImage,
 } from "@/lib/admin/admin-product-images";
+import {
+  getProductInventory,
+  updateProductLowStockThreshold,
+  type ProductInventorySnapshot,
+} from "@/lib/admin/admin-inventory";
 import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -37,7 +42,7 @@ const TABS: { key: DrawerTab; label: string }[] = [
 ];
 
 const MEDIA_NOTICE = "Uploads are stored in the gallery. Preview the selected image on the public site, then use Save Changes to publish it as primary.";
-const INVENTORY_NOTICE = "Inventory is managed through the Inventory module using stock movements.";
+const INVENTORY_NOTICE = "Stock quantity is read-only here and is changed with stock movements in the Inventory module. Only the low-stock threshold is editable below.";
 
 interface ProductDrawerProps {
   product: AdminProduct | null;
@@ -62,8 +67,6 @@ interface DrawerForm {
   price250: number;
   price500: number;
   price1kg: number;
-  stockQty: number;
-  threshold: number;
   featured: boolean;
   hidden: boolean;
   bestSeller: boolean;
@@ -79,7 +82,6 @@ const EMPTY_FORM: DrawerForm = {
   activeTab: "general", saved: false, dirty: false, saving: false, errorMsg: null,
   nameEn: "", nameAr: "", descEn: "", descAr: "",
   price250: 0, price500: 0, price1kg: 0,
-  stockQty: 0, threshold: 5,
   featured: false, hidden: false, bestSeller: false, isNew: false,
   slugVal: "", metaTitleEn: "", metaTitleAr: "", metaDescEn: "", metaDescAr: "",
 };
@@ -98,8 +100,6 @@ function initForm(product: AdminProduct): DrawerForm {
     price250: s250,
     price500: s500,
     price1kg: product.salePricePerKg,
-    stockQty: product.stockQty,
-    threshold: product.lowStockThreshold,
     featured: product.featured,
     hidden: product.hidden,
     bestSeller: product.bestSeller,
@@ -163,6 +163,16 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
   const [pendingPrimaryUrl, setPendingPrimaryUrl] = useState<string | null | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Real inventory_stock snapshot (read-only stock + editable low-stock threshold).
+  // Loaded when the drawer opens; the threshold save is its own one-shot write,
+  // separate from the form Save/Cancel cycle (like archive/media).
+  const [inventory, setInventory] = useState<ProductInventorySnapshot | null>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
+  const [thresholdInput, setThresholdInput] = useState("");
+  const [thresholdBusy, setThresholdBusy] = useState(false);
+  const [thresholdSaved, setThresholdSaved] = useState(false);
+
   const isArchived = product?.catalogStatus === "archived";
 
   // Editing a content field marks the form dirty (enables Save). Tab/flag changes don't.
@@ -188,6 +198,22 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     setPendingPrimaryUrl(undefined);
     setImageBusy(null);
     setImageError(null);
+    // Fetch the real inventory_stock snapshot for the Inventory tab.
+    setInventory(null);
+    setInventoryError(null);
+    setThresholdInput("");
+    setThresholdSaved(false);
+    setInventoryLoading(true);
+    const targetId = product.id;
+    void getProductInventory(targetId)
+      .then((snapshot) => {
+        setInventory(snapshot);
+        setThresholdInput(snapshot ? String(snapshot.lowStockThresholdKg) : "5");
+      })
+      .catch((error) => {
+        setInventoryError(error instanceof Error ? error.message : "Could not load stock.");
+      })
+      .finally(() => setInventoryLoading(false));
   }, [product?.slug, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mediaDirty =
@@ -385,6 +411,33 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
     if (!product || imageBusy) return;
     setImageError(null);
     setPendingPrimaryUrl(null);
+  };
+
+  // Persist the low-stock threshold to inventory_stock. One-shot write, separate
+  // from the form Save cycle. On success refetch so the status badge + dashboard
+  // low-stock logic (which read the same threshold) stay consistent.
+  const handleThresholdSave = async () => {
+    if (!product || thresholdBusy) return;
+    const value = Number(thresholdInput);
+    if (!Number.isFinite(value) || value < 0) {
+      setInventoryError("Enter a valid low-stock threshold in kg.");
+      return;
+    }
+    setThresholdBusy(true);
+    setInventoryError(null);
+    setThresholdSaved(false);
+    try {
+      await updateProductLowStockThreshold(product.id, value);
+      const snapshot = await getProductInventory(product.id);
+      setInventory(snapshot);
+      if (snapshot) setThresholdInput(String(snapshot.lowStockThresholdKg));
+      setThresholdSaved(true);
+      setTimeout(() => setThresholdSaved(false), 2200);
+    } catch (error) {
+      setInventoryError(error instanceof Error ? error.message : "Could not save the threshold.");
+    } finally {
+      setThresholdBusy(false);
+    }
   };
 
   const handlePreview = () => {
@@ -784,7 +837,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                 </div>
               )}
 
-              {/* INVENTORY (read-only summary — managed by the Inventory module) */}
+              {/* INVENTORY (real inventory_stock — stock read-only, threshold editable) */}
               {form.activeTab === "inventory" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{
@@ -796,30 +849,104 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{INVENTORY_NOTICE}</p>
                   </div>
 
-                  {/* Read-only stock snapshot — not editable here */}
-                  <div style={{
-                    borderRadius: 10, overflow: "hidden",
-                    border: "1px solid rgba(182,136,94,0.12)",
-                  }}>
-                    <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "12px 14px", borderBottom: "1px solid rgba(182,136,94,0.08)",
-                    }}>
-                      <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>Current stock (bags / units)</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--cream)" }}>{form.stockQty}</span>
+                  {inventoryLoading ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "18px 0", color: "var(--cream-dim)", fontSize: 12.5 }}>
+                      <Loader2 size={15} className="animate-spin" /> Loading stock…
                     </div>
+                  ) : inventory === null ? (
                     <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "12px 14px",
+                      padding: "12px 14px", borderRadius: 10,
+                      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.12)",
                     }}>
-                      <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>Low stock threshold</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--cream)" }}>{form.threshold}</span>
+                      <p style={{ fontSize: 12, color: "var(--cream)", fontWeight: 600 }}>No inventory record yet</p>
+                      <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.55, marginTop: 4, lineHeight: 1.5 }}>
+                        This product has no stock row yet. Set a low-stock threshold below (it starts tracking at 0&nbsp;kg),
+                        then add stock with a movement in the Inventory module.
+                      </p>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{
+                      borderRadius: 10, overflow: "hidden",
+                      border: "1px solid rgba(182,136,94,0.12)",
+                    }}>
+                      {[
+                        ["Available", `${inventory.availableKg} kg`, "var(--cream)"],
+                        ["Reserved", `${inventory.reservedKg} kg`, "#93c5fd"],
+                        ["On hand", `${inventory.onHandKg} kg`, "var(--cream)"],
+                      ].map(([label, value, color], index) => (
+                        <div key={label} style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "11px 14px",
+                          borderBottom: index < 3 ? "1px solid rgba(182,136,94,0.08)" : "none",
+                        }}>
+                          <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>{label}</span>
+                          <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 700, color }}>{value}</span>
+                        </div>
+                      ))}
+                      <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "11px 14px",
+                      }}>
+                        <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>Status</span>
+                        <span style={{
+                          fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 99,
+                          textTransform: "uppercase",
+                          color: inventory.status === "ok" ? "#4ade80" : inventory.status === "low" ? "#fbbf24" : "#f87171",
+                          background: inventory.status === "ok" ? "rgba(74,222,128,0.10)" : inventory.status === "low" ? "rgba(251,191,36,0.10)" : "rgba(248,113,113,0.10)",
+                        }}>
+                          {inventory.status === "ok" ? "OK" : inventory.status === "low" ? "Low" : "Out"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-                  <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.45, lineHeight: 1.5 }}>
-                    These values are read-only here. Stock changes are recorded as movements in the Inventory module.
-                  </p>
+                  {/* Editable low-stock threshold — the only writable field here */}
+                  {!inventoryLoading && (
+                    <div>
+                      <FL>Low stock threshold (kg)</FL>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          value={thresholdInput}
+                          onChange={(e) => { setThresholdInput(e.target.value); setThresholdSaved(false); }}
+                          style={{ ...NUM_INPUT, maxWidth: 140 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleThresholdSave}
+                          disabled={thresholdBusy}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "8px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                            background: thresholdBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
+                            color: thresholdBusy ? "rgba(245,232,209,0.3)" : "var(--gold)",
+                            border: "1px solid rgba(182,136,94,0.30)",
+                            cursor: thresholdBusy ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {thresholdBusy
+                            ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
+                            : thresholdSaved ? "✓ Saved" : "Save threshold"}
+                        </button>
+                      </div>
+                      <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.45, marginTop: 6, lineHeight: 1.5 }}>
+                        A product is flagged Low when available stock falls to this value or below. Drives the dashboard low-stock alerts.
+                      </p>
+                    </div>
+                  )}
+
+                  {inventoryError && (
+                    <div style={{
+                      display: "flex", alignItems: "flex-start", gap: 6,
+                      padding: "9px 11px", borderRadius: 9,
+                      background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)",
+                    }}>
+                      <AlertTriangle size={13} style={{ color: "#f87171", marginTop: 1, flexShrink: 0 }} />
+                      <p style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.45 }}>{inventoryError}</p>
+                    </div>
+                  )}
 
                   <Link
                     href="/admin/inventory"

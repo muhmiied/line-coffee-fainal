@@ -314,32 +314,55 @@ export default function EspressoManagerPage() {
         <div className="flex min-h-64 items-center justify-center"><Loader2 className="animate-spin" style={{ color: "var(--gold)" }} /></div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((bean) => (
-            <article key={bean.id} className="rounded-xl border border-[#B6885E]/12 bg-white/[0.02] p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#B6885E]/10 text-[#D6A373]"><Coffee size={17} /></span>
-                  <div>
-                    <h2 className="font-semibold">{localize({ en: bean.nameEn, ar: bean.nameAr })}</h2>
-                    <p className="mt-1 text-xs text-[#B79B85]">{localize({ en: bean.originEn, ar: bean.originAr }, bean.family)}</p>
+          {filtered.map((bean) => {
+            const tracked = bean.stock != null;
+            const available = bean.stock?.availableKg ?? 0;
+            const threshold = bean.stock?.lowStockThresholdKg ?? 0;
+            const status: "ok" | "low" | "out" = !tracked || available <= 0
+              ? "out"
+              : available <= threshold ? "low" : "ok";
+            const statusStyle = status === "ok"
+              ? { color: "#4ade80", background: "rgba(74,222,128,0.10)" }
+              : status === "low"
+                ? { color: "#fbbf24", background: "rgba(251,191,36,0.10)" }
+                : { color: "#f87171", background: "rgba(248,113,113,0.10)" };
+            return (
+              <article key={bean.id} className="rounded-xl border border-[#B6885E]/12 bg-white/[0.02] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#B6885E]/10 text-[#D6A373]"><Coffee size={17} /></span>
+                    <div>
+                      <h2 className="font-semibold">{localize({ en: bean.nameEn, ar: bean.nameAr })}</h2>
+                      <p className="mt-1 text-xs text-[#B79B85]">{localize({ en: bean.originEn, ar: bean.originAr }, bean.family)}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={bean.active ? "rounded-full bg-green-400/10 px-2 py-1 text-[10px] text-green-300" : "rounded-full bg-white/5 px-2 py-1 text-[10px] text-[#B79B85]"}>{bean.active ? t("Active") : t("Inactive")}</span>
+                    <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={statusStyle}>
+                      {status === "ok" ? "OK" : status === "low" ? t("Low") : t("Out")}
+                    </span>
                   </div>
                 </div>
-                <span className={bean.active ? "rounded-full bg-green-400/10 px-2 py-1 text-[10px] text-green-300" : "rounded-full bg-white/5 px-2 py-1 text-[10px] text-[#B79B85]"}>{bean.active ? t("Active") : t("Inactive")}</span>
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                <div><dt className="text-[#B79B85]">{t("Family")}</dt><dd className="mt-1 capitalize">{bean.family}</dd></div>
-                <div><dt className="text-[#B79B85]">{t("Display order")}</dt><dd className="mt-1">{formatNumber(bean.sortOrder)}</dd></div>
-                <div><dt className="text-[#B79B85]">{t("Sale price / kg")}</dt><dd className="mt-1 font-semibold text-[#D6A373]">{formatNumber(bean.salePricePerKg)} {currency}</dd></div>
-                <div><dt className="text-[#B79B85]">{t("Available stock")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.availableKg ?? 0)} kg</dd></div>
-              </dl>
-              <button type="button" onClick={() => setEditing(bean)} className="mt-4 flex items-center gap-2 rounded-lg bg-[#B6885E]/10 px-3 py-2 text-xs font-semibold text-[#D6A373]">
-                <Pencil size={12} />{t("Edit")}
-              </button>
-            </article>
-          ))}
+                <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                  <div><dt className="text-[#B79B85]">{t("Available")}</dt><dd className="mt-1 font-semibold">{formatNumber(available)} kg</dd></div>
+                  <div><dt className="text-[#B79B85]">{t("Reserved")}</dt><dd className="mt-1 font-semibold text-[#93c5fd]">{formatNumber(bean.stock?.reservedKg ?? 0)} kg</dd></div>
+                  <div><dt className="text-[#B79B85]">{t("Threshold")}</dt><dd className="mt-1 font-semibold">{formatNumber(threshold)} kg</dd></div>
+                  <div><dt className="text-[#B79B85]">{t("Family")}</dt><dd className="mt-1 capitalize">{bean.family}</dd></div>
+                  <div className="col-span-2"><dt className="text-[#B79B85]">{t("Sale price / kg")}</dt><dd className="mt-1 font-semibold text-[#D6A373]">{formatNumber(bean.salePricePerKg)} {currency}</dd></div>
+                </dl>
+                <button type="button" onClick={() => setEditing(bean)} className="mt-4 flex items-center gap-2 rounded-lg bg-[#B6885E]/10 px-3 py-2 text-xs font-semibold text-[#D6A373]">
+                  <Pencil size={12} />{t("Edit")}
+                </button>
+              </article>
+            );
+          })}
           {filtered.length === 0 && <p className="text-sm text-[#B79B85]">{t("No beans found.")}</p>}
         </div>
       )}
+
+      <p className="rounded-xl border border-blue-300/10 bg-blue-300/5 px-4 py-3 text-xs leading-5 text-blue-100/80">
+        {t("Available, reserved, and threshold values are real espresso_bean_stock balances. Add or remove bean kg with a stock movement in Inventory → Espresso Beans; ratio and pricing formulas are unchanged.")}
+      </p>
 
       {editing && <BeanEditor bean={editing} onClose={() => setEditing(null)} onSaved={saved} />}
     </div>

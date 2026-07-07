@@ -69,12 +69,12 @@ Supabase data access runs in the browser on the **anon/publishable key** (`src/l
 
 These admin modules render from `src/lib/mock-data/admin/*` (or local component state) and **reset on refresh**:
 
-- Admin **Inventory** coffee/bean/supplier views — still use `inventory-mock.ts`. The Packaging tab is real as of Phase 19B and is intentionally isolated from those mock KG/unit views.
+- Admin **Inventory** — now REAL (Phase 20E/20F). Finished-product stock, espresso-bean stock, FIFO lots, movements, packaging, and suppliers all read live Supabase; `inventory-mock.ts` deleted. One unified **Stock movement** action (signed kg via the FIFO-safe `adjust_finished_product_stock` / `adjust_espresso_bean_stock` RPCs) replaces the old Restock/Adjust. Finished products render as cards; low-stock threshold is edited/persisted from the Product drawer (`inventory_stock`, RLS-gated upsert). Suppliers are created/edited from the Inventory → Suppliers tab (`createSupplier`/`updateSupplier`); purchases/payments stay in Accounting.
 - **Marketing** offers, announcements, and broad performance UI still use `marketing-mock.ts`. The Promo Codes tab is real as of Phase 19C and shows its own real usage counts.
 - **Accounting** — now REAL (Phase 15/15B–15D, see the REAL table). `accounting-mock.ts` deleted. Add Expense, Pay Supplier, Add Purchase (including active-supplier quick create), and draft Receive Purchase are real Supabase-backed workflows.
 - **Analytics** — now REAL (Phase 16A, see the REAL table). `analytics-mock.ts` deleted. Only unbuilt piece is behavioural web-traffic tracking (see MISSING).
-- **Espresso Manager** — beans are local component state
-- **Flavor Manager** — flavors/bases are local component state
+- **Espresso Manager** — now REAL (Phase 20E/20F): real `espresso_beans` catalog + `espresso_bean_stock` balances (available/reserved/threshold/status shown; kg adjusted via a stock movement in Inventory → Espresso Beans).
+- **Flavor Manager** — now REAL (Phase 20E): real `flavor_bases` / `flavor_items` catalog. Flavors are catalog + pricing only (Decision 4) — **not stock-tracked**, and the UI states this honestly rather than showing fake stock.
 - **Cart** — local-only but owner-scoped: `line-cart-v1:guest:<guestId>` or `line-cart-v1:auth:<userId>`. The old global `line-cart-v1` key is purged and never read.
 
 ---

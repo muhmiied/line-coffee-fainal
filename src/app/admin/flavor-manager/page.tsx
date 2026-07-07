@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   CupSoda,
+  Info,
   Loader2,
   Pencil,
   RefreshCw,
@@ -365,9 +366,15 @@ export default function FlavorManagerPage() {
         </div>
       )}
 
-      <p className="rounded-xl border border-blue-300/10 bg-blue-300/5 px-4 py-3 text-xs leading-5 text-blue-100/80">
-        {t("French Coffee remains a standalone catalog product and is not included in the flavor builder bases.")}
-      </p>
+      <div className="space-y-2">
+        <p className="flex items-start gap-2 rounded-xl border border-amber-300/12 bg-amber-300/5 px-4 py-3 text-xs leading-5 text-amber-100/85">
+          <Info size={14} className="mt-0.5 shrink-0" />
+          {t("Flavor bases and add-ons are catalog and pricing only — they are not stock-tracked. No inventory is deducted for Make Your Flavor, so no stock or low-stock figures are shown here.")}
+        </p>
+        <p className="rounded-xl border border-blue-300/10 bg-blue-300/5 px-4 py-3 text-xs leading-5 text-blue-100/80">
+          {t("French Coffee remains a standalone catalog product and is not included in the flavor builder bases.")}
+        </p>
+      </div>
 
       {editing && <CatalogEditor target={editing} onClose={() => setEditing(null)} onSaved={saved} />}
     </div>

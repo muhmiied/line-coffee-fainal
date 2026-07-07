@@ -26,8 +26,6 @@ export interface AdminProductMeta {
   newUntil: string | null;
   /** True while newUntil is in the future. Computed client-side from newUntil. */
   isNew: boolean;
-  stockQty: number;
-  lowStockThreshold: number;
   sku: string;
   metaTitle: LocalizedValue;
   metaDescription: LocalizedValue;
@@ -427,8 +425,6 @@ function mapProductRows(
       bestSeller: Boolean(row.best_seller),
       newUntil: row.new_until ?? null,
       isNew: row.new_until != null && new Date(row.new_until) > new Date(),
-      stockQty: 0,
-      lowStockThreshold: 0,
       sku,
       metaTitle: localized(row.seo_title_en, row.seo_title_ar),
       metaDescription: localized(row.seo_description_en, row.seo_description_ar),

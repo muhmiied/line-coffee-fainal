@@ -9,6 +9,7 @@ export type AdminInventoryProduct = {
   slug: string;
   nameEn: string;
   nameAr: string;
+  imageUrl: string;
   categoryEn: string | null;
   categoryAr: string | null;
   availableKg: number;
@@ -16,6 +17,21 @@ export type AdminInventoryProduct = {
   onHandKg: number;
   lowStockThresholdKg: number;
   status: InventoryStockStatus;
+};
+
+/** Real inventory_stock snapshot for a single product (used by the Product drawer). */
+export type ProductInventorySnapshot = {
+  availableKg: number;
+  reservedKg: number;
+  onHandKg: number;
+  lowStockThresholdKg: number;
+  status: InventoryStockStatus;
+};
+
+/** Compact low-stock alert used by the admin notification bell. */
+export type AdminLowStockAlert = {
+  count: number;
+  names: string[];
 };
 
 export type InventoryMovementType =
@@ -57,8 +73,31 @@ type ProductRow = {
   slug: string;
   name_en: string;
   name_ar: string;
+  image_url: string | null;
   category_slug: string | null;
 };
+
+// Category-scoped fallback imagery, mirroring admin-catalog.ts so inventory cards
+// show the same placeholder the public catalog uses when a product has no photo.
+const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
+  "turkish-blends": "/assets/categories/turkish.png",
+  "espresso-blends": "/assets/categories/espresso.png",
+  "easy-coffee": "/assets/products/espresso-pouch.png",
+  "coffee-mix": "/assets/products/classic-pouch.png",
+  cappuccino: "/assets/products/cappuccino-sachets.png",
+  "hot-chocolate": "/assets/products/cappuccino-sachets.png",
+  "flavor-coffee": "/assets/products/flavor-pouch.png",
+};
+
+const DEFAULT_PRODUCT_IMAGE = "/assets/products/classic-pouch.png";
+
+function resolveProductImage(product: ProductRow): string {
+  if (product.image_url) return product.image_url;
+  if (product.category_slug && FALLBACK_CATEGORY_IMAGES[product.category_slug]) {
+    return FALLBACK_CATEGORY_IMAGES[product.category_slug];
+  }
+  return DEFAULT_PRODUCT_IMAGE;
+}
 
 type CategoryRow = {
   slug: string;
@@ -121,7 +160,7 @@ export async function getAdminInventory(): Promise<AdminInventoryData> {
       .limit(2000),
     supabase
       .from("products")
-      .select("id, slug, name_en, name_ar, category_slug")
+      .select("id, slug, name_en, name_ar, image_url, category_slug")
       .limit(2000),
     supabase.from("categories").select("slug, name_en, name_ar").limit(500),
     supabase
@@ -155,6 +194,7 @@ export async function getAdminInventory(): Promise<AdminInventoryData> {
         slug: product.slug,
         nameEn: product.name_en,
         nameAr: product.name_ar,
+        imageUrl: resolveProductImage(product),
         categoryEn: category?.name_en ?? null,
         categoryAr: category?.name_ar ?? null,
         availableKg,
@@ -217,4 +257,99 @@ export async function adjustFinishedProductStock(
     reservedKg: numeric(result?.reserved_kg as number | string | undefined),
     onHandKg: numeric(result?.on_hand_kg as number | string | undefined),
   };
+}
+
+/**
+ * Reads the real inventory_stock snapshot for a single product. Returns null when
+ * the product has no stock row yet (honest "not tracked yet" state). Used by the
+ * Product drawer Inventory tab so it shows real stock instead of a hardcoded 0.
+ */
+export async function getProductInventory(
+  productId: string,
+): Promise<ProductInventorySnapshot | null> {
+  const { data, error } = await supabase
+    .from("inventory_stock")
+    .select("available_kg, reserved_kg, low_stock_threshold_kg")
+    .eq("product_id", productId)
+    .maybeSingle();
+
+  if (error) throw readError("product-stock", error.message);
+  if (!data) return null;
+
+  const row = data as StockRow;
+  const availableKg = numeric(row.available_kg);
+  const reservedKg = numeric(row.reserved_kg);
+  const lowStockThresholdKg = numeric(row.low_stock_threshold_kg);
+  return {
+    availableKg,
+    reservedKg,
+    onHandKg: availableKg + reservedKg,
+    lowStockThresholdKg,
+    status: stockStatus(availableKg, lowStockThresholdKg),
+  };
+}
+
+/**
+ * Persists a product's low-stock threshold (kg) to inventory_stock. RLS
+ * (inventory_stock_admin_all, is_admin()) is the write gate — no service role.
+ * Upsert so the threshold saves whether or not a stock row exists yet; on insert
+ * the available/reserved columns default to 0 (a real "tracked, no stock" row,
+ * never fake stock). Quantity is never written here — stock movements own that.
+ */
+export async function updateProductLowStockThreshold(
+  productId: string,
+  thresholdKg: number,
+): Promise<void> {
+  if (!productId) throw new AdminInventoryError("Missing product for the threshold update.");
+  if (!Number.isFinite(thresholdKg) || thresholdKg < 0 || thresholdKg > 100000) {
+    throw new AdminInventoryError("Enter a valid low-stock threshold in kg.");
+  }
+  const rounded = Math.round(thresholdKg * 1000) / 1000;
+
+  const { error } = await supabase
+    .from("inventory_stock")
+    .upsert(
+      { product_id: productId, low_stock_threshold_kg: rounded },
+      { onConflict: "product_id" },
+    );
+
+  if (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[admin-inventory:threshold] ${error.message}`);
+    }
+    throw new AdminInventoryError("Could not save the low-stock threshold.");
+  }
+}
+
+/**
+ * Compact low-stock summary for the admin notification bell. Uses the exact same
+ * rule as the dashboard (available_kg <= low_stock_threshold_kg → low/out), so
+ * every surface agrees. Reads inventory_stock + products only; never fabricated.
+ */
+export async function getAdminLowStockAlert(): Promise<AdminLowStockAlert> {
+  const [stockResult, productsResult] = await Promise.all([
+    supabase
+      .from("inventory_stock")
+      .select("product_id, available_kg, reserved_kg, low_stock_threshold_kg")
+      .limit(2000),
+    supabase.from("products").select("id, name_en").limit(2000),
+  ]);
+
+  if (stockResult.error) throw readError("low-stock", stockResult.error.message);
+  if (productsResult.error) throw readError("low-stock-products", productsResult.error.message);
+
+  const nameById = new Map(
+    ((productsResult.data ?? []) as { id: string; name_en: string }[]).map((p) => [p.id, p.name_en]),
+  );
+
+  const low = ((stockResult.data ?? []) as StockRow[])
+    .map((row) => ({
+      name: nameById.get(row.product_id) ?? "Product",
+      availableKg: numeric(row.available_kg),
+      thresholdKg: numeric(row.low_stock_threshold_kg),
+    }))
+    .filter((row) => row.availableKg <= row.thresholdKg)
+    .sort((a, b) => a.availableKg - b.availableKg);
+
+  return { count: low.length, names: low.slice(0, 5).map((row) => row.name) };
 }

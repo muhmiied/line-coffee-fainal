@@ -12,6 +12,7 @@ import {
   getAdminOrderOverview,
   type AdminOrderOverview,
 } from "@/lib/admin/admin-orders";
+import { getAdminLowStockAlert, type AdminLowStockAlert } from "@/lib/admin/admin-inventory";
 import { useAdminLanguage } from "./AdminLanguageProvider";
 
 function GateScreen({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,7 @@ export default function AdminShell({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [orderOverview, setOrderOverview] = useState<AdminOrderOverview | null>(null);
+  const [lowStock, setLowStock] = useState<AdminLowStockAlert | null>(null);
 
   // No session → bounce to login, preserving where the admin was headed.
   useEffect(() => {
@@ -63,6 +65,13 @@ export default function AdminShell({
         })
         .catch(() => {
           // Keep the last valid snapshot; initial failures show no fake counts.
+        });
+      void getAdminLowStockAlert()
+        .then((alert) => {
+          if (!cancelled) setLowStock(alert);
+        })
+        .catch(() => {
+          // Low-stock is a best-effort bell add-on; failures leave it absent.
         });
     };
     const handleVisibility = () => {
@@ -207,6 +216,7 @@ export default function AdminShell({
           admin={admin}
           onMenuToggle={handleMenuToggle}
           orderOverview={orderOverview}
+          lowStock={lowStock}
         />
         <main
           className="admin-scrollbar flex-1 overflow-y-auto p-4 md:p-6"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import Image from "next/image";
 import {
   AlertTriangle,
   Boxes,
@@ -10,6 +11,8 @@ import {
   Layers3,
   Loader2,
   PackagePlus,
+  Pencil,
+  Plus,
   RefreshCw,
   Search,
   Truck,
@@ -21,6 +24,7 @@ import {
   adjustFinishedProductStock,
   getAdminInventory,
   type AdminInventoryData,
+  type AdminInventoryMovement,
   type AdminInventoryProduct,
   type InventoryStockStatus,
 } from "@/lib/admin/admin-inventory";
@@ -30,10 +34,14 @@ import {
   type AdminEspressoBean,
 } from "@/lib/admin/admin-espresso";
 import {
+  createSupplier,
   listInventoryLots,
   listSuppliers,
+  updateSupplier,
   type InventoryLot,
   type Supplier,
+  type SupplierInput,
+  type SupplierStatus,
 } from "@/lib/admin/admin-purchasing";
 
 type Tab = "products" | "beans" | "packaging" | "movements" | "lots" | "suppliers";
@@ -46,10 +54,12 @@ const EMPTY_DATA: AdminInventoryData = { products: [], movements: [] };
 function Panel({
   title,
   description,
+  action,
   children,
 }: {
   title: string;
   description?: string;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -57,19 +67,27 @@ function Panel({
       className="rounded-2xl border p-4 md:p-5"
       style={{ borderColor: "rgba(182,136,94,0.14)", background: "rgba(245,230,216,0.02)" }}
     >
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: "var(--cream)" }}>
-          {title}
-        </h2>
-        {description && (
-          <p className="mt-1 text-xs" style={{ color: "var(--cream-dim)" }}>
-            {description}
-          </p>
-        )}
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--cream)" }}>
+            {title}
+          </h2>
+          {description && (
+            <p className="mt-1 text-xs" style={{ color: "var(--cream-dim)" }}>
+              {description}
+            </p>
+          )}
+        </div>
+        {action}
       </div>
       {children}
     </section>
   );
+}
+
+function beanStatus(bean: AdminEspressoBean): InventoryStockStatus {
+  if (!bean.stock || bean.stock.availableKg <= 0) return "out";
+  return bean.stock.availableKg <= bean.stock.lowStockThresholdKg ? "low" : "ok";
 }
 
 function StatusBadge({ status }: { status: InventoryStockStatus }) {
@@ -88,46 +106,52 @@ function StatusBadge({ status }: { status: InventoryStockStatus }) {
   );
 }
 
-function StockAdjustmentModal({
+// ── Unified Stock Movement modal ────────────────────────────────────────────
+// One action replaces the old separate Restock/Adjust: a signed quantity (kg)
+// where positive adds stock and negative removes it. Unit cost is only relevant
+// when adding. Reason/notes is required. Backed by the FIFO-safe RPCs.
+function StockMovementModal({
   target,
-  mode,
   onClose,
   onSaved,
 }: {
   target: StockTarget;
-  mode: "restock" | "adjust";
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const { localize, t } = useAdminLanguage();
-  const [quantity, setQuantity] = useState(mode === "restock" ? "1" : "");
+  const { formatNumber, localize, t } = useAdminLanguage();
+  const [quantity, setQuantity] = useState("");
   const [unitCost, setUnitCost] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
   const numericQuantity = Number(quantity);
-  const delta = mode === "restock" ? Math.abs(numericQuantity) : numericQuantity;
-  const valid = Number.isFinite(delta) && delta !== 0 && note.trim().length > 0;
-  const name = localize(
-    { en: target.item.nameEn, ar: target.item.nameAr },
-    target.item.nameEn,
-  );
+  const isAdding = Number.isFinite(numericQuantity) && numericQuantity > 0;
+  const valid =
+    Number.isFinite(numericQuantity) && numericQuantity !== 0 && note.trim().length > 0;
+  const name = localize({ en: target.item.nameEn, ar: target.item.nameAr }, target.item.nameEn);
+  const currentAvailable =
+    target.kind === "product" ? target.item.availableKg : target.item.stock?.availableKg ?? 0;
+  const projected = Number.isFinite(numericQuantity)
+    ? Math.round((currentAvailable + numericQuantity) * 1000) / 1000
+    : currentAvailable;
 
   async function submit() {
     if (!valid || saving) return;
     setSaving(true);
     setError("");
     try {
-      const cost = unitCost.trim() ? Number(unitCost) : undefined;
+      const cost = isAdding && unitCost.trim() ? Number(unitCost) : undefined;
       if (target.kind === "product") {
-        await adjustFinishedProductStock(target.item.id, delta, cost, note);
+        await adjustFinishedProductStock(target.item.id, numericQuantity, cost, note);
       } else {
-        await adjustEspressoBeanStock(target.item.id, delta, cost, note);
+        await adjustEspressoBeanStock(target.item.id, numericQuantity, cost, note);
       }
       await onSaved();
       onClose();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("Could not update stock."));
+      setError(saveError instanceof Error ? saveError.message : t("Could not save stock movement."));
     } finally {
       setSaving(false);
     }
@@ -144,14 +168,14 @@ function StockAdjustmentModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={mode === "restock" ? t("Restock") : t("Adjust stock")}
+        aria-label={t("Stock movement")}
         className="fixed inset-x-4 top-1/2 z-50 mx-auto max-w-lg -translate-y-1/2 rounded-2xl border p-5 shadow-2xl"
         style={{ borderColor: "rgba(182,136,94,0.22)", background: "#130e09" }}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h2 className="font-serif text-xl font-bold" style={{ color: "var(--cream)" }}>
-              {mode === "restock" ? t("Restock") : t("Adjust stock")}
+              {t("Stock movement")}
             </h2>
             <p className="mt-1 text-sm" style={{ color: "var(--cream-dim)" }}>
               {name}
@@ -165,32 +189,34 @@ function StockAdjustmentModal({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>
-              {mode === "restock" ? t("Quantity to add (kg)") : t("Signed quantity (kg)")}
+              {t("Quantity (kg) — positive adds, negative removes")}
             </span>
             <input
               type="number"
               step="0.001"
               value={quantity}
               onChange={(event) => setQuantity(event.target.value)}
-              placeholder={mode === "restock" ? "5" : "-2.5"}
+              placeholder="5  /  -2.5"
               className="w-full rounded-lg border px-3 py-2 text-sm"
               style={{ borderColor: "rgba(182,136,94,0.2)", background: "#0b0806" }}
             />
           </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>
-              {t("Unit cost (optional)")}
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={unitCost}
-              onChange={(event) => setUnitCost(event.target.value)}
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: "rgba(182,136,94,0.2)", background: "#0b0806" }}
-            />
-          </label>
+          {isAdding && (
+            <label className="block">
+              <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>
+                {t("Unit cost (optional, when adding)")}
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={unitCost}
+                onChange={(event) => setUnitCost(event.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: "rgba(182,136,94,0.2)", background: "#0b0806" }}
+              />
+            </label>
+          )}
           <label className="block sm:col-span-2">
             <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>
               {t("Reason / notes (required)")}
@@ -205,6 +231,14 @@ function StockAdjustmentModal({
             />
           </label>
         </div>
+
+        <p className="mt-4 rounded-lg border border-[#B6885E]/12 bg-white/[0.02] px-3 py-2 text-xs" style={{ color: "var(--cream-dim)" }}>
+          {t("Available now")}: <span className="tabular-nums" style={{ color: "var(--cream)" }}>{formatNumber(currentAvailable)} kg</span>
+          {" → "}
+          <span className="tabular-nums" style={{ color: isAdding ? "#4ade80" : numericQuantity < 0 ? "#fbbf24" : "var(--cream)" }}>
+            {formatNumber(projected)} kg
+          </span>
+        </p>
 
         {error && (
           <p className="mt-4 rounded-lg bg-red-400/10 px-3 py-2 text-xs text-red-300" role="alert">
@@ -223,7 +257,154 @@ function StockAdjustmentModal({
             style={{ background: "rgba(182,136,94,0.18)", color: "var(--gold)" }}
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? t("Saving…") : t("Save Changes")}
+            {saving ? t("Saving…") : t("Save movement")}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Supplier add/edit modal ─────────────────────────────────────────────────
+type SupplierForm = {
+  name: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  address: string;
+  notes: string;
+  status: SupplierStatus;
+};
+
+function SupplierModal({
+  supplier,
+  onClose,
+  onSaved,
+}: {
+  supplier: Supplier | null;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const { t } = useAdminLanguage();
+  const [form, setForm] = useState<SupplierForm>({
+    name: supplier?.name ?? "",
+    contactName: supplier?.contactName ?? "",
+    phone: supplier?.phone ?? "",
+    email: supplier?.email ?? "",
+    address: supplier?.address ?? "",
+    notes: supplier?.notes ?? "",
+    status: supplier?.status ?? "active",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const set = <K extends keyof SupplierForm>(key: K, value: SupplierForm[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
+
+  async function submit() {
+    if (saving) return;
+    if (!form.name.trim()) {
+      setError(t("Supplier name is required."));
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const input: SupplierInput = {
+        name: form.name.trim(),
+        contactName: form.contactName.trim() || null,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        address: form.address.trim() || null,
+        notes: form.notes.trim() || null,
+        status: form.status,
+      };
+      if (supplier) {
+        await updateSupplier(supplier.id, input);
+      } else {
+        await createSupplier(input);
+      }
+      await onSaved();
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : t("Could not save supplier."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const fieldClass = "w-full rounded-lg border px-3 py-2 text-sm outline-none";
+  const fieldStyle = { borderColor: "rgba(182,136,94,0.2)", background: "#0b0806", color: "var(--cream)" };
+
+  return (
+    <>
+      <button type="button" aria-label={t("Close")} onClick={onClose} className="fixed inset-0 z-40 cursor-default bg-black/60" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={supplier ? t("Edit supplier") : t("Add supplier")}
+        className="fixed inset-x-4 top-1/2 z-50 mx-auto max-w-lg -translate-y-1/2 overflow-y-auto rounded-2xl border p-5 shadow-2xl"
+        style={{ borderColor: "rgba(182,136,94,0.22)", background: "#130e09", maxHeight: "88vh" }}
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <h2 className="font-serif text-xl font-bold" style={{ color: "var(--cream)" }}>
+            {supplier ? t("Edit supplier") : t("Add supplier")}
+          </h2>
+          <button type="button" onClick={onClose} className="p-2" aria-label={t("Close")}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Supplier name")}</span>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Contact name")}</span>
+            <input value={form.contactName} onChange={(e) => set("contactName", e.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Status")}</span>
+            <select value={form.status} onChange={(e) => set("status", e.target.value as SupplierStatus)} className={fieldClass} style={fieldStyle}>
+              <option value="active">{t("Active")}</option>
+              <option value="inactive">{t("Inactive")}</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Phone")}</span>
+            <input dir="ltr" value={form.phone} onChange={(e) => set("phone", e.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Email")}</span>
+            <input dir="ltr" value={form.email} onChange={(e) => set("email", e.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Address")}</span>
+            <input value={form.address} onChange={(e) => set("address", e.target.value)} className={fieldClass} style={fieldStyle} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs" style={{ color: "var(--cream-dim)" }}>{t("Notes")}</span>
+            <textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${fieldClass} resize-none`} style={fieldStyle} />
+          </label>
+        </div>
+
+        {error && (
+          <p className="mt-4 rounded-lg bg-red-400/10 px-3 py-2 text-xs text-red-300" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="mt-5 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm">{t("Cancel")}</button>
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40"
+            style={{ background: "rgba(182,136,94,0.18)", color: "var(--gold)" }}
+          >
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving ? t("Saving…") : t("Save supplier")}
           </button>
         </div>
       </div>
@@ -243,10 +424,8 @@ export default function InventoryPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [adjustment, setAdjustment] = useState<{
-    target: StockTarget;
-    mode: "restock" | "adjust";
-  } | null>(null);
+  const [movement, setMovement] = useState<StockTarget | null>(null);
+  const [supplierModal, setSupplierModal] = useState<{ supplier: Supplier | null } | null>(null);
 
   const load = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true);
@@ -287,6 +466,16 @@ export default function InventoryPage() {
     [data.products],
   );
 
+  // Latest movement per product (data.movements is already newest-first) — a small
+  // "recent movement" hint on each product card.
+  const latestMovementByProduct = useMemo(() => {
+    const map = new Map<string, AdminInventoryMovement>();
+    for (const mv of data.movements) {
+      if (!map.has(mv.productId)) map.set(mv.productId, mv);
+    }
+    return map;
+  }, [data.movements]);
+
   const normalizedSearch = search.trim().toLowerCase();
   const filteredProducts = data.products.filter((product) =>
     `${product.nameEn} ${product.nameAr} ${product.categoryEn ?? ""} ${product.categoryAr ?? ""}`
@@ -313,6 +502,12 @@ export default function InventoryPage() {
   async function saved() {
     await load(true);
     setSuccess(t("Stock updated and persisted."));
+    window.setTimeout(() => setSuccess(""), 3000);
+  }
+
+  async function supplierSaved() {
+    await load(true);
+    setSuccess(t("Supplier saved."));
     window.setTimeout(() => setSuccess(""), 3000);
   }
 
@@ -415,48 +610,51 @@ export default function InventoryPage() {
           {tab === "products" && (
             <Panel
               title={t("Finished-product stock")}
-              description={t("Every value below comes from inventory_stock; writes update FIFO lots and inventory_movements atomically.")}
+              description={t("Every value below comes from inventory_stock; movements update FIFO lots and inventory_movements atomically.")}
             >
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
-                  <thead>
-                    <tr className="border-b border-[#B6885E]/10 text-left text-[10px] uppercase tracking-wider text-[#B79B85]">
-                      {[t("Product"), t("Category"), t("Available"), t("Reserved"), t("On hand"), t("Low threshold"), t("Status"), t("Actions")].map((heading) => (
-                        <th key={heading} className="px-3 py-3">{heading}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredProducts.map((product) => (
-                      <tr key={product.id} className="border-b border-[#B6885E]/5">
-                        <td className="px-3 py-3">
-                          <p className="font-medium text-[#F5E6D8]">{localize({ en: product.nameEn, ar: product.nameAr })}</p>
-                          <p className="text-[10px] text-[#B79B85]">{product.slug}</p>
-                        </td>
-                        <td className="px-3 py-3 text-xs text-[#B79B85]">
-                          {localize({ en: product.categoryEn, ar: product.categoryAr }, "—")}
-                        </td>
-                        <td className="px-3 py-3 font-semibold tabular-nums">{formatNumber(product.availableKg)} kg</td>
-                        <td className="px-3 py-3 tabular-nums text-[#93c5fd]">{formatNumber(product.reservedKg)} kg</td>
-                        <td className="px-3 py-3 tabular-nums">{formatNumber(product.onHandKg)} kg</td>
-                        <td className="px-3 py-3 tabular-nums text-[#B79B85]">{formatNumber(product.lowStockThresholdKg)} kg</td>
-                        <td className="px-3 py-3"><StatusBadge status={product.status} /></td>
-                        <td className="px-3 py-3">
-                          <div className="flex gap-2">
-                            <button type="button" onClick={() => setAdjustment({ target: { kind: "product", item: product }, mode: "restock" })} className="rounded-md bg-green-400/10 px-2.5 py-1.5 text-xs text-green-300">
-                              {t("Restock")}
-                            </button>
-                            <button type="button" onClick={() => setAdjustment({ target: { kind: "product", item: product }, mode: "adjust" })} className="rounded-md bg-amber-300/10 px-2.5 py-1.5 text-xs text-amber-200">
-                              {t("Adjust")}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filteredProducts.length === 0 && <p className="py-10 text-center text-sm text-[#B79B85]">{t("No products found.")}</p>}
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredProducts.map((product) => {
+                  const recent = latestMovementByProduct.get(product.id);
+                  return (
+                    <article key={product.id} className="flex flex-col rounded-xl border border-[#B6885E]/12 bg-white/[0.02] p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg" style={{ background: "rgba(182,136,94,0.07)" }}>
+                          <Image src={product.imageUrl} alt={product.nameEn} fill sizes="56px" className="object-contain p-1.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate font-semibold text-[#F5E6D8]">{localize({ en: product.nameEn, ar: product.nameAr })}</h3>
+                          <p className="mt-0.5 truncate text-[11px] text-[#B79B85]">
+                            {localize({ en: product.categoryEn, ar: product.categoryAr }, "—")}
+                          </p>
+                        </div>
+                        <StatusBadge status={product.status} />
+                      </div>
+
+                      <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                        <div><dt className="text-[#B79B85]">{t("Available")}</dt><dd className="mt-1 font-semibold tabular-nums">{formatNumber(product.availableKg)} kg</dd></div>
+                        <div><dt className="text-[#B79B85]">{t("Reserved")}</dt><dd className="mt-1 font-semibold tabular-nums text-[#93c5fd]">{formatNumber(product.reservedKg)} kg</dd></div>
+                        <div><dt className="text-[#B79B85]">{t("Threshold")}</dt><dd className="mt-1 font-semibold tabular-nums">{formatNumber(product.lowStockThresholdKg)} kg</dd></div>
+                      </dl>
+
+                      {recent && (
+                        <p className="mt-3 truncate text-[10.5px] text-[#B79B85]">
+                          {t("Last")}: {t(recent.movementType.replaceAll("_", " "))} · {recent.direction === "in" ? "+" : recent.direction === "out" ? "−" : ""}{formatNumber(recent.quantityKg)} kg · {formatDate(recent.createdAt, { dateStyle: "medium" })}
+                        </p>
+                      )}
+
+                      <div className="mt-4 flex-1" />
+                      <button
+                        type="button"
+                        onClick={() => setMovement({ kind: "product", item: product })}
+                        className="flex items-center justify-center gap-2 rounded-lg bg-[#B6885E]/12 px-3 py-2 text-xs font-semibold text-[#D6A373]"
+                      >
+                        <PackagePlus size={13} /> {t("Stock movement")}
+                      </button>
+                    </article>
+                  );
+                })}
               </div>
+              {filteredProducts.length === 0 && <p className="py-10 text-center text-sm text-[#B79B85]">{t("No products found.")}</p>}
             </Panel>
           )}
 
@@ -466,31 +664,28 @@ export default function InventoryPage() {
               description={t("Real raw-bean stock used by Make Your Espresso checkout and FIFO allocation.")}
             >
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {filteredBeans.map((bean) => {
-                  const status: InventoryStockStatus = !bean.stock || bean.stock.availableKg <= 0
-                    ? "out"
-                    : bean.stock.availableKg <= bean.stock.lowStockThresholdKg ? "low" : "ok";
-                  return (
-                    <article key={bean.id} className="rounded-xl border border-[#B6885E]/10 bg-white/[0.02] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold text-[#F5E6D8]">{localize({ en: bean.nameEn, ar: bean.nameAr })}</h3>
-                          <p className="mt-1 text-xs text-[#B79B85]">{localize({ en: bean.originEn, ar: bean.originAr }, bean.family)}</p>
-                        </div>
-                        <StatusBadge status={status} />
+                {filteredBeans.map((bean) => (
+                  <article key={bean.id} className="rounded-xl border border-[#B6885E]/10 bg-white/[0.02] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-[#F5E6D8]">{localize({ en: bean.nameEn, ar: bean.nameAr })}</h3>
+                        <p className="mt-1 text-xs text-[#B79B85]">{localize({ en: bean.originEn, ar: bean.originAr }, bean.family)}</p>
                       </div>
-                      <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                        <div><dt className="text-[#B79B85]">{t("Available")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.availableKg ?? 0)} kg</dd></div>
-                        <div><dt className="text-[#B79B85]">{t("Reserved")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.reservedKg ?? 0)} kg</dd></div>
-                        <div><dt className="text-[#B79B85]">{t("Threshold")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.lowStockThresholdKg ?? 0)} kg</dd></div>
-                      </dl>
-                      <div className="mt-4 flex gap-2">
-                        <button type="button" onClick={() => setAdjustment({ target: { kind: "bean", item: bean }, mode: "restock" })} className="rounded-md bg-green-400/10 px-2.5 py-1.5 text-xs text-green-300">{t("Restock")}</button>
-                        <button type="button" onClick={() => setAdjustment({ target: { kind: "bean", item: bean }, mode: "adjust" })} className="rounded-md bg-amber-300/10 px-2.5 py-1.5 text-xs text-amber-200">{t("Adjust")}</button>
-                      </div>
-                    </article>
-                  );
-                })}
+                      <StatusBadge status={beanStatus(bean)} />
+                    </div>
+                    <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                      <div><dt className="text-[#B79B85]">{t("Available")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.availableKg ?? 0)} kg</dd></div>
+                      <div><dt className="text-[#B79B85]">{t("Reserved")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.reservedKg ?? 0)} kg</dd></div>
+                      <div><dt className="text-[#B79B85]">{t("Threshold")}</dt><dd className="mt-1 font-semibold">{formatNumber(bean.stock?.lowStockThresholdKg ?? 0)} kg</dd></div>
+                    </dl>
+                    <div className="mt-4">
+                      <button type="button" onClick={() => setMovement({ kind: "bean", item: bean })} className="flex items-center justify-center gap-2 rounded-lg bg-[#B6885E]/12 px-3 py-2 text-xs font-semibold text-[#D6A373]">
+                        <PackagePlus size={13} /> {t("Stock movement")}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+                {filteredBeans.length === 0 && <p className="py-10 text-center text-sm text-[#B79B85]">{t("No beans found.")}</p>}
               </div>
             </Panel>
           )}
@@ -500,17 +695,17 @@ export default function InventoryPage() {
           {tab === "movements" && (
             <Panel title={t("Recent stock movements")} description={t("Real inventory_movements ledger; no generated rows.")}>
               <div className="space-y-2">
-                {data.movements.map((movement) => (
-                  <div key={movement.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[#B6885E]/8 bg-white/[0.02] px-3 py-3 text-xs">
+                {data.movements.map((mv) => (
+                  <div key={mv.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[#B6885E]/8 bg-white/[0.02] px-3 py-3 text-xs">
                     <div className="min-w-52 flex-1">
-                      <p className="font-semibold">{localize({ en: movement.productNameEn, ar: movement.productNameAr })}</p>
-                      <p className="mt-1 text-[#B79B85]">{formatDate(movement.createdAt, { dateStyle: "medium", timeStyle: "short" })}</p>
+                      <p className="font-semibold">{localize({ en: mv.productNameEn, ar: mv.productNameAr })}</p>
+                      <p className="mt-1 text-[#B79B85]">{formatDate(mv.createdAt, { dateStyle: "medium", timeStyle: "short" })}</p>
                     </div>
-                    <span className="rounded-full bg-white/5 px-2 py-1 text-[#D6A373]">{t(movement.movementType.replaceAll("_", " "))}</span>
-                    <span className={movement.direction === "in" ? "text-green-300" : movement.direction === "out" ? "text-red-300" : "text-blue-300"}>
-                      {movement.direction === "in" ? "+" : movement.direction === "out" ? "−" : ""}{formatNumber(movement.quantityKg)} kg
+                    <span className="rounded-full bg-white/5 px-2 py-1 text-[#D6A373]">{t(mv.movementType.replaceAll("_", " "))}</span>
+                    <span className={mv.direction === "in" ? "text-green-300" : mv.direction === "out" ? "text-red-300" : "text-blue-300"}>
+                      {mv.direction === "in" ? "+" : mv.direction === "out" ? "−" : ""}{formatNumber(mv.quantityKg)} kg
                     </span>
-                    {movement.reason && <p className="w-full text-[#B79B85]">{movement.reason}</p>}
+                    {mv.reason && <p className="w-full text-[#B79B85]">{mv.reason}</p>}
                   </div>
                 ))}
                 {data.movements.length === 0 && <p className="py-10 text-center text-sm text-[#B79B85]">{t("No movements recorded.")}</p>}
@@ -548,19 +743,41 @@ export default function InventoryPage() {
           )}
 
           {tab === "suppliers" && (
-            <Panel title={t("Suppliers")} description={t("Real supplier records. Purchasing actions remain in Accounting.")}>
+            <Panel
+              title={t("Suppliers")}
+              description={t("Real supplier records. Purchases and payments stay in Accounting.")}
+              action={
+                <button
+                  type="button"
+                  onClick={() => setSupplierModal({ supplier: null })}
+                  className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
+                  style={{ background: "rgba(182,136,94,0.15)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.3)" }}
+                >
+                  <Plus size={13} /> {t("Add supplier")}
+                </button>
+              }
+            >
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {suppliers.map((supplier) => (
                   <article key={supplier.id} className="rounded-xl border border-[#B6885E]/10 bg-white/[0.02] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="font-semibold">{supplier.name}</h3>
-                      <span className={supplier.status === "active" ? "text-xs text-green-300" : "text-xs text-[#B79B85]"}>{t(supplier.status)}</span>
+                      <span className={supplier.status === "active" ? "text-xs text-green-300" : "text-xs text-[#B79B85]"}>{supplier.status === "active" ? t("Active") : t("Inactive")}</span>
                     </div>
                     <p className="mt-3 text-xs text-[#B79B85]">{supplier.contactName || t("No contact name")}</p>
                     <p className="mt-1 text-xs text-[#B79B85]" dir="ltr">{supplier.phone || supplier.email || t("No contact details")}</p>
+                    <button
+                      type="button"
+                      onClick={() => setSupplierModal({ supplier })}
+                      className="mt-4 flex items-center gap-2 rounded-lg bg-[#B6885E]/10 px-3 py-1.5 text-xs font-semibold text-[#D6A373]"
+                    >
+                      <Pencil size={12} /> {t("Edit")}
+                    </button>
                   </article>
                 ))}
-                {suppliers.length === 0 && <p className="text-sm text-[#B79B85]">{t("No suppliers recorded.")}</p>}
+                {suppliers.length === 0 && (
+                  <p className="text-sm text-[#B79B85]">{t("No suppliers yet. Add your first supplier to start tracking purchases.")}</p>
+                )}
               </div>
             </Panel>
           )}
@@ -574,12 +791,19 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {adjustment && (
-        <StockAdjustmentModal
-          target={adjustment.target}
-          mode={adjustment.mode}
-          onClose={() => setAdjustment(null)}
+      {movement && (
+        <StockMovementModal
+          target={movement}
+          onClose={() => setMovement(null)}
           onSaved={saved}
+        />
+      )}
+
+      {supplierModal && (
+        <SupplierModal
+          supplier={supplierModal.supplier}
+          onClose={() => setSupplierModal(null)}
+          onSaved={supplierSaved}
         />
       )}
     </div>

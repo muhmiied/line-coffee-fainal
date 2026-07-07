@@ -863,6 +863,50 @@ const ARABIC_TRANSLATIONS: Record<string, string> = {
   "Flavor catalog item saved to Supabase.": "تم حفظ عنصر كتالوج النكهات في Supabase.",
   "French Coffee remains a standalone catalog product and is not included in the flavor builder bases.": "تظل القهوة الفرنسية منتجًا مستقلًا ولا تدخل ضمن قواعد أداة اصنع نكهتك.",
 
+  // ── Phase 20F — inventory source-of-truth, unified stock movement, suppliers ──
+  Available: "المتاح",
+  Reserved: "المحجوز",
+  Threshold: "حد التنبيه",
+  Out: "نافد",
+  Family: "الفصيلة",
+  Last: "الأخيرة",
+  "On hand": "في المخزن",
+  "Available stock": "المخزون المتاح",
+  "Search inventory": "البحث في المخزون",
+  "Search beans": "البحث في الحبوب",
+  "No beans found.": "لم يتم العثور على حبوب.",
+  "Stock movement": "حركة مخزون",
+  "Quantity (kg) — positive adds, negative removes": "الكمية (كجم) — الموجب يضيف والسالب يخصم",
+  "Unit cost (optional, when adding)": "تكلفة الوحدة (اختياري عند الإضافة)",
+  "Available now": "المتاح الآن",
+  "Save movement": "حفظ الحركة",
+  "Could not save stock movement.": "تعذر حفظ حركة المخزون.",
+  "Every value below comes from inventory_stock; movements update FIFO lots and inventory_movements atomically.":
+    "كل قيمة أدناه مصدرها inventory_stock، وتحدّث الحركات دفعات FIFO وسجل inventory_movements في معاملة واحدة.",
+  "Real supplier records. Purchases and payments stay in Accounting.":
+    "سجلات موردين حقيقية، وتبقى المشتريات والمدفوعات في المحاسبة.",
+  "No suppliers yet. Add your first supplier to start tracking purchases.":
+    "لا يوجد موردون بعد. أضف أول مورد لبدء تتبع المشتريات.",
+  "Add supplier": "إضافة مورد",
+  "Edit supplier": "تعديل مورد",
+  "Contact name": "اسم جهة الاتصال",
+  "Save supplier": "حفظ المورد",
+  "Could not save supplier.": "تعذر حفظ المورد.",
+  "Supplier saved.": "تم حفظ المورد.",
+  "Supplier name is required.": "اسم المورد مطلوب.",
+  "No contact name": "لا يوجد اسم جهة اتصال",
+  "No contact details": "لا توجد بيانات تواصل",
+  "Available, reserved, and threshold values are real espresso_bean_stock balances. Add or remove bean kg with a stock movement in Inventory → Espresso Beans; ratio and pricing formulas are unchanged.":
+    "قيم المتاح والمحجوز وحد التنبيه هي أرصدة espresso_bean_stock حقيقية. أضف أو اخصم كيلوجرامات الحبوب من خلال حركة مخزون في المخزون ← حبوب الإسبريسو، ومعادلات النسب والتسعير لم تتغير.",
+  "Flavor bases and add-ons are catalog and pricing only — they are not stock-tracked. No inventory is deducted for Make Your Flavor, so no stock or low-stock figures are shown here.":
+    "قواعد النكهات وإضافاتها للكتالوج والتسعير فقط، وهي غير متتبعة للمخزون. لا يُخصم أي مخزون في اصنع نكهتك، لذلك لا تظهر هنا أرقام مخزون أو مخزون منخفض.",
+
+  // Product drawer — real inventory tab labels
+  "Low stock threshold (kg)": "حد المخزون المنخفض (كجم)",
+  "Save threshold": "حفظ الحد",
+  "Loading stock…": "جارٍ تحميل المخزون…",
+  "No inventory record yet": "لا يوجد سجل مخزون بعد",
+
   "Loading settings…": "جارٍ تحميل الإعدادات…",
 };
 

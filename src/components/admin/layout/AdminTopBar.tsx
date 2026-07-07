@@ -15,6 +15,7 @@ import {
   Clock3,
   Truck,
   CircleDollarSign,
+  PackageX,
   Languages,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -25,6 +26,7 @@ import {
   type CurrentAdmin,
 } from "@/lib/auth/admin";
 import type { AdminOrderOverview } from "@/lib/admin/admin-orders";
+import type { AdminLowStockAlert } from "@/lib/admin/admin-inventory";
 import { useAdminLanguage } from "./AdminLanguageProvider";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -46,10 +48,12 @@ export default function AdminTopBar({
   admin,
   onMenuToggle,
   orderOverview,
+  lowStock,
 }: {
   admin: CurrentAdmin;
   onMenuToggle: () => void;
   orderOverview: AdminOrderOverview | null;
+  lowStock: AdminLowStockAlert | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -66,16 +70,15 @@ export default function AdminTopBar({
   const adminFirstName = adminName.split(" ")[0] || admin.email;
   const adminInitials = getAdminInitials(admin);
   const adminRoleLabel = formatAdminRole(admin.role);
-  const activeAlertCount = orderOverview
-    ? orderOverview.pending + orderOverview.shipped + orderOverview.deliveredUnpaid
-    : 0;
-  const alerts = orderOverview
+  const lowStockCount = lowStock?.count ?? 0;
+  const orderAlerts = orderOverview
     ? [
         {
           key: "pending",
           count: orderOverview.pending,
           Icon: Clock3,
           color: "#fbbf24",
+          href: "/admin/orders",
           label:
             language === "ar"
               ? `${orderOverview.pending} ${orderOverview.pending === 1 ? "طلب قيد الانتظار يحتاج" : "طلبات قيد الانتظار تحتاج"} إلى المراجعة`
@@ -86,6 +89,7 @@ export default function AdminTopBar({
           count: orderOverview.deliveredUnpaid,
           Icon: CircleDollarSign,
           color: "#f87171",
+          href: "/admin/orders",
           label:
             language === "ar"
               ? `${orderOverview.deliveredUnpaid} ${orderOverview.deliveredUnpaid === 1 ? "طلب تم توصيله وما زال غير مدفوع" : "طلبات تم توصيلها وما زالت غير مدفوعة"}`
@@ -96,6 +100,7 @@ export default function AdminTopBar({
           count: orderOverview.shipped,
           Icon: Truck,
           color: "#a78bfa",
+          href: "/admin/orders",
           label:
             language === "ar"
               ? `${orderOverview.shipped} ${orderOverview.shipped === 1 ? "طلب مشحون ينتظر" : "طلبات مشحونة تنتظر"} تأكيد التوصيل`
@@ -103,6 +108,26 @@ export default function AdminTopBar({
         },
       ].filter((alert) => alert.count > 0)
     : [];
+  const lowStockAlerts =
+    lowStockCount > 0
+      ? [
+          {
+            key: "low-stock",
+            count: lowStockCount,
+            Icon: PackageX,
+            color: "#f97316",
+            href: "/admin/inventory",
+            label:
+              language === "ar"
+                ? `${lowStockCount} ${lowStockCount === 1 ? "منتج وصل إلى حد المخزون المنخفض" : "منتجات وصلت إلى حد المخزون المنخفض"}`
+                : `${lowStockCount} ${lowStockCount === 1 ? "product is" : "products are"} at or below the low-stock threshold`,
+          },
+        ]
+      : [];
+  const alerts = [...orderAlerts, ...lowStockAlerts];
+  const activeAlertCount = alerts.reduce((sum, alert) => sum + alert.count, 0);
+  // Notifications are "unavailable" only when neither real source could load.
+  const notificationsUnavailable = orderOverview == null && lowStock == null;
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -197,7 +222,7 @@ export default function AdminTopBar({
                 </p>
               </div>
 
-              {orderOverview == null ? (
+              {notificationsUnavailable ? (
                 <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
                   {t("Notifications are temporarily unavailable.")}
                 </p>
@@ -207,10 +232,10 @@ export default function AdminTopBar({
                 </p>
               ) : (
                 <div className="divide-y divide-[#B6885E]/[0.07]">
-                  {alerts.map(({ key, Icon, color, label }) => (
+                  {alerts.map(({ key, Icon, color, label, href }) => (
                     <Link
                       key={key}
-                      href="/admin/orders"
+                      href={href}
                       onClick={() => setNotificationsOpen(false)}
                       className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025]"
                     >
