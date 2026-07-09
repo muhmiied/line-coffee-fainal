@@ -9,5 +9,4 @@ export type * from "./marketing";
 export type * from "./cms";
 export type * from "./admin";
 export type * from "./settings";
-export type * from "./flavor";
 export type * from "./builders";

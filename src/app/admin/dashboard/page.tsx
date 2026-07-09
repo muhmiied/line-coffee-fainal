@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import {
   getAdminDashboard,
@@ -8,8 +9,21 @@ import {
 } from "@/lib/admin/admin-dashboard";
 import WelcomeHero       from "@/components/admin/dashboard/WelcomeHero";
 import KPICard           from "@/components/admin/dashboard/KPICard";
-import SalesChart        from "@/components/admin/dashboard/SalesChart";
 import LatestOrders      from "@/components/admin/dashboard/LatestOrders";
+
+// Recharts is heavy (~100kb+). It lives only in SalesChart, so code-split it out
+// of the dashboard bundle and load it on the client once the chart is rendered.
+const SalesChart = dynamic(() => import("@/components/admin/dashboard/SalesChart"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="flex min-h-[290px] items-center justify-center rounded-2xl"
+      style={{ border: "1px solid var(--gold-border)", color: "var(--cream-dim)", opacity: 0.5 }}
+    >
+      <Loader2 size={16} className="animate-spin" />
+    </div>
+  ),
+});
 import AlertsCenter      from "@/components/admin/dashboard/AlertsCenter";
 import QuickActions      from "@/components/admin/dashboard/QuickActions";
 import BestSellersMonth  from "@/components/admin/dashboard/BestSellersMonth";

@@ -109,7 +109,7 @@ export function BestSellersSection({
           <Link
             href="/products"
             className={cn(
-              "group inline-flex items-center justify-center gap-2 text-sm font-medium text-[#FFDCC2]/45 transition-colors hover:text-[#FFDCC2]/80",
+              "line-text-link group inline-flex items-center justify-center gap-2 text-sm font-medium text-[#FFDCC2]/45 transition-colors hover:text-[#FFDCC2]/80",
             )}
           >
             {t({ en: "View All Best Sellers", ar: "عرض كل الأكثر مبيعًا" })}

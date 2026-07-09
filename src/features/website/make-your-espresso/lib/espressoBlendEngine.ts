@@ -1,4 +1,4 @@
-import type { LocalizedText } from "@/types/localization";
+import type { LocalizedValue } from "@/lib/context/language";
 import {
   espressoBeans,
   type EspressoBean,
@@ -25,20 +25,20 @@ export type BlendRatio = {
 
 export type BlendAnalysis = {
   tone: "neutral" | "good" | "warning";
-  message: LocalizedText;
+  message: LocalizedValue;
 };
 
 export type BlendHealth = {
   score: number;
   tone: "neutral" | "good" | "warning";
-  label: LocalizedText;
-  detail: LocalizedText;
+  label: LocalizedValue;
+  detail: LocalizedValue;
 };
 
 type BlendProfile = {
   id: BlendProfileId;
-  label: LocalizedText;
-  description: LocalizedText;
+  label: LocalizedValue;
+  description: LocalizedValue;
   target: EspressoMetrics;
   weights: Partial<Record<EspressoMetricKey, number>>;
 };
@@ -106,7 +106,7 @@ export const blendProfiles: BlendProfile[] = [
 
 export const blendAdjustments: Array<{
   id: BlendAdjustmentId;
-  label: LocalizedText;
+  label: LocalizedValue;
   metric: EspressoMetricKey;
 }> = [
   { id: "crema", label: { en: "More Crema", ar: "كريما أكثر" }, metric: "crema" },

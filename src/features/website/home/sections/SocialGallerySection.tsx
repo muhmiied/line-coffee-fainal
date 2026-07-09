@@ -41,7 +41,7 @@ export function SocialGallerySection({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t({ en: "Visit Line Coffee on Instagram", ar: "زيارة لاين كوفي على إنستغرام" })}
-            className="inline-flex items-center gap-2 rounded-full border border-[#B6885E]/20 bg-[#B6885E]/[0.07] px-4 py-2 text-sm text-[#B79B85]/65 transition-all duration-300 hover:border-[#D6A373]/35 hover:bg-[#B6885E]/12 hover:text-[#D6A373]"
+            className="line-text-link inline-flex items-center gap-2 rounded-full border border-[#B6885E]/20 bg-[#B6885E]/[0.07] px-4 py-2 text-sm text-[#B79B85]/65 transition-all duration-300 hover:border-[#D6A373]/35 hover:bg-[#B6885E]/12 hover:text-[#D6A373]"
           >
             <Camera className="h-3.5 w-3.5" aria-hidden />
             <span className="numeric-symbol">Instagram</span>

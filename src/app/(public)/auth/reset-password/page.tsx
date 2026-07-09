@@ -1,42 +1,113 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { AuthCard } from "@/components/layout/auth/AuthCard";
+import { supabase } from "@/lib/supabase/client";
 
-function ResetPasswordForm() {
+// Phases of the recovery flow. The recovery email link returns the user here
+// with recovery tokens in the URL; the browser client (detectSessionInUrl)
+// exchanges them for a short-lived session and fires PASSWORD_RECOVERY. Only
+// then can we call updateUser({ password }).
+type Phase = "checking" | "ready" | "invalid";
+
+export default function ResetPasswordPage() {
   const { t, dir } = useLanguage();
   const isRtl = dir === "rtl";
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
 
-  const [password, setPassword]   = useState("");
-  const [confirm, setConfirm]     = useState("");
-  const [showPass, setShowPass]   = useState(false);
-  const [showConf, setShowConf]   = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [done, setDone]           = useState(false);
+  const [phase, setPhase] = useState<Phase>("checking");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConf, setShowConf] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const passwordsMatch = !confirm || password === confirm;
   const valid = password.length >= 8 && password === confirm;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    let active = true;
+
+    // The recovery event can arrive either before or after this listener
+    // attaches, so we both subscribe AND poll getSession once.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === "PASSWORD_RECOVERY" || session) setPhase("ready");
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (data.session) {
+        setPhase("ready");
+      } else {
+        // Give detectSessionInUrl a moment to process the recovery hash/code
+        // before deciding the link is unusable.
+        setTimeout(() => {
+          if (active) setPhase((prev) => (prev === "checking" ? "invalid" : prev));
+        }, 1500);
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
+    setError(null);
     setLoading(true);
-    setTimeout(() => { setLoading(false); setDone(true); }, 1000);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+      setDone(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t({
+              en: "Could not update your password. Please request a new link.",
+              ar: "تعذر تحديث كلمة المرور. يرجى طلب رابط جديد.",
+            }),
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass =
     "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 transition-colors focus:border-[#B6885E]/40 focus:outline-none";
 
-  if (!token) {
+  if (phase === "checking") {
     return (
       <AuthCard
-        title={{ en: "Invalid link", ar: "رابط غير صالح" }}
+        title={{ en: "Set new password", ar: "تعيين كلمة مرور جديدة" }}
+        subtitle={{
+          en: "Verifying your reset link…",
+          ar: "جارٍ التحقق من رابط إعادة التعيين…",
+        }}
+      >
+        <div className="space-y-3 py-2">
+          <div className="h-11 animate-pulse rounded-lg bg-[#B6885E]/10" />
+          <div className="h-11 animate-pulse rounded-lg bg-[#B6885E]/10" />
+          <div className="h-11 animate-pulse rounded-lg bg-[#B6885E]/8" />
+        </div>
+      </AuthCard>
+    );
+  }
+
+  if (phase === "invalid") {
+    return (
+      <AuthCard
+        title={{ en: "Invalid or expired link", ar: "رابط غير صالح أو منتهي" }}
         subtitle={{
           en: "This reset link is missing or has expired.",
           ar: "رابط إعادة التعيين مفقود أو منتهي الصلاحية.",
@@ -154,15 +225,13 @@ function ResetPasswordForm() {
             ? t({ en: "Updating…", ar: "جارٍ التحديث…" })
             : t({ en: "Update password", ar: "تحديث كلمة المرور" })}
         </button>
+
+        {error ? (
+          <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {error}
+          </p>
+        ) : null}
       </form>
     </AuthCard>
-  );
-}
-
-export default function ResetPasswordPage() {
-  return (
-    <Suspense>
-      <ResetPasswordForm />
-    </Suspense>
   );
 }

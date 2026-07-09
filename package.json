@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:types": "supabase gen types typescript --linked > src/lib/types/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

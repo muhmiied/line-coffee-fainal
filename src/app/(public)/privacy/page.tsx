@@ -1,5 +1,5 @@
-"use client";
-
+// Server component: it only supplies static bilingual data to the (client)
+// LegalPageLayout, so it needs no "use client" of its own.
 import {
   LegalPageLayout,
   type LegalSection,

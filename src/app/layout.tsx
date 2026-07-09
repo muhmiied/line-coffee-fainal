@@ -56,6 +56,27 @@ const playfairDisplay = localFont({
   fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
+// Arabic display/body font, self-hosted + optimized (was a raw @font-face OTF
+// load in globals.css). Exposes --font-aligarh, referenced by the
+// --font-arabic-*-active variables in globals.css.
+const aligarh = localFont({
+  src: [
+    {
+      path: "../../public/fonts/ARABIC/aligarh-arabic-free-personal-use/AligarhArabicFREEPERSONALUSE-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/ARABIC/aligarh-arabic-free-personal-use/AligarhArabicFREEPERSONALUSE-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-aligarh",
+  display: "swap",
+  fallback: ["Tajawal", "Cairo", "Segoe UI", "Tahoma", "sans-serif"],
+});
+
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
   weight: ["300", "400", "500", "600", "700", "800", "900"],
@@ -140,7 +161,7 @@ export default async function RootLayout({
       lang={initialLanguage}
       dir={initialDir}
       suppressHydrationWarning
-      className={`${playfairDisplay.variable} ${cairo.variable} ${tajawal.variable}`}
+      className={`${playfairDisplay.variable} ${cairo.variable} ${tajawal.variable} ${aligarh.variable}`}
     >
       <body>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />

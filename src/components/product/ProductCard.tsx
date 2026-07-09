@@ -161,8 +161,9 @@ export function ProductCard({
             {badgeStack.map((b) => (
               <span
                 key={b.variant}
+                data-variant={b.variant}
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm",
+                  "line-product-badge rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm",
                   (b.variant === "new" || b.variant === "visual") && "bg-[#FFDCC2]/90 text-[#522500]",
                   b.variant === "best-seller" && "bg-[#D6A373]/90 text-[#2A1500]",
                   b.variant === "featured" && "bg-[#C9956A]/88 text-[#1F0F00]",
@@ -277,7 +278,7 @@ export function ProductCard({
           {priceChips.map((chip) => (
             <div
               key={chip.label}
-              className="rounded-lg border border-[#B6885E]/22 bg-[#D6A373]/[0.055] px-1 py-2 text-center text-[#F5E6D8] transition-all duration-200 group-hover:border-[#D6A373]/36 sm:px-1.5 sm:py-2.5"
+              className="line-price-chip rounded-lg border border-[#B6885E]/22 bg-[#D6A373]/[0.055] px-1 py-2 text-center text-[#F5E6D8] transition-all duration-200 group-hover:border-[#D6A373]/36 sm:px-1.5 sm:py-2.5"
             >
               <p className="text-[10px] font-semibold leading-none tracking-[0.02em] sm:text-[11px]">
                 {chip.label}

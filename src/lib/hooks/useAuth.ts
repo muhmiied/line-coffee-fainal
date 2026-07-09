@@ -12,6 +12,24 @@ export type AuthUser = {
   email: string;
 };
 
+// Non-sensitive "a session exists" presence cookie mirrored for the Edge
+// middleware (src/middleware.ts), which cannot read the localStorage-backed
+// Supabase session. It carries no token and is a UX hint only — RLS + AdminShell
+// remain the real admin gates. Refreshed on every load while a session lives.
+const SESSION_PRESENCE_COOKIE = "line-auth";
+const SESSION_PRESENCE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+function setSessionPresenceCookie(present: boolean) {
+  if (typeof document === "undefined") return;
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  document.cookie = present
+    ? `${SESSION_PRESENCE_COOKIE}=1; path=/; max-age=${SESSION_PRESENCE_MAX_AGE}; SameSite=Lax${secure}`
+    : `${SESSION_PRESENCE_COOKIE}=; path=/; max-age=0; SameSite=Lax${secure}`;
+}
+
 function mapUser(user: User | null): AuthUser | null {
   if (!user?.email) return null;
 
@@ -68,6 +86,7 @@ export function useAuth() {
       if (!active) return;
       setUser(mapUser(data.user));
       setIsLoading(false);
+      setSessionPresenceCookie(Boolean(data.user));
       // Persisted session detected: link same-device guest data once per load.
       if (data.user && !_guestLinkAttempted) {
         void linkGuestDataBestEffort();
@@ -79,6 +98,7 @@ export function useAuth() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(mapUser(session?.user ?? null));
       setIsLoading(false);
+      setSessionPresenceCookie(Boolean(session?.user));
     });
 
     return () => {
@@ -95,6 +115,7 @@ export function useAuth() {
     });
     if (error) throw error;
     setUser(mapUser(data.user));
+    setSessionPresenceCookie(true);
     notifyAuthOwnerChanged(data.user.id);
     // Link any same-device guest data to this account before the caller routes on.
     await linkGuestDataBestEffort();
@@ -113,6 +134,7 @@ export function useAuth() {
       });
       if (error) throw error;
       setUser(mapUser(data.user));
+      setSessionPresenceCookie(Boolean(data.session?.user));
       notifyAuthOwnerChanged(data.session?.user.id ?? null);
       // Only an active session can link (auth.uid() must resolve). When email
       // confirmation is required there is no session yet — linking happens on
@@ -131,6 +153,7 @@ export function useAuth() {
     // no stale admin/customer state survives the sign-out.
     clearLegacyMockAuth();
     setUser(null);
+    setSessionPresenceCookie(false);
     notifyAuthOwnerChanged(null);
     try {
       await supabase.auth.signOut({ scope: "local" });

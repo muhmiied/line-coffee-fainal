@@ -3,6 +3,12 @@
 import type { LocalizedValue } from "@/lib/context/language";
 import { supabase } from "@/lib/supabase/client";
 import type { PackageSize } from "@/lib/types/common";
+import {
+  hasLocalizedValue,
+  localized,
+  toNumber,
+  toOptionalNumber,
+} from "@/lib/catalog/catalog-mappers";
 
 const publicCatalogPackageSizes = ["250g", "500g", "1kg"] as const satisfies readonly PackageSize[];
 
@@ -17,6 +23,31 @@ const fallbackCategoryImages: Record<string, string> = {
 };
 
 const defaultProductImage = "/assets/products/classic-pouch.png";
+
+// The public_products column projection, shared by every product fetch below so
+// the list lives in one place instead of being copy-pasted per query.
+const PUBLIC_PRODUCT_COLUMNS = [
+  "id",
+  "slug",
+  "category_id",
+  "category_slug",
+  "name_en",
+  "name_ar",
+  "subtitle_en",
+  "subtitle_ar",
+  "description_en",
+  "description_ar",
+  "notes_en",
+  "notes_ar",
+  "pricing_model",
+  "sale_price_per_kg",
+  "featured",
+  "best_seller",
+  "blend",
+  "image_url",
+  "gallery",
+  "is_new",
+].join(", ");
 
 export type PublicCatalogSize = {
   label: PackageSize;
@@ -119,32 +150,6 @@ export class PublicCatalogReadError extends Error {
 function asCatalogError(error: unknown) {
   if (error instanceof PublicCatalogReadError) return error;
   return new PublicCatalogReadError(undefined, error);
-}
-
-function toNumber(value: number | string | null | undefined, fallback = 0) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-  return fallback;
-}
-
-function toOptionalNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined) return undefined;
-  const parsed = toNumber(value, Number.NaN);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function localized(en?: string | null, ar?: string | null): LocalizedValue {
-  return {
-    en: en?.trim() ?? "",
-    ar: ar?.trim() ?? en?.trim() ?? "",
-  };
-}
-
-function hasLocalizedValue(value?: LocalizedValue) {
-  return Boolean(value?.en || value?.ar);
 }
 
 function getFallbackImage(categorySlug?: string | null) {
@@ -330,28 +335,7 @@ async function fetchProductRows() {
   const { data, error } = await supabase
     .from("public_products")
     .select(
-      [
-        "id",
-        "slug",
-        "category_id",
-        "category_slug",
-        "name_en",
-        "name_ar",
-        "subtitle_en",
-        "subtitle_ar",
-        "description_en",
-        "description_ar",
-        "notes_en",
-        "notes_ar",
-        "pricing_model",
-        "sale_price_per_kg",
-        "featured",
-        "best_seller",
-        "blend",
-        "image_url",
-        "gallery",
-        "is_new",
-      ].join(", "),
+      PUBLIC_PRODUCT_COLUMNS,
     )
     .order("category_slug", { ascending: true })
     .order("name_en", { ascending: true });
@@ -364,28 +348,7 @@ async function fetchProductRowsByCategorySlug(slug: string) {
   const { data, error } = await supabase
     .from("public_products")
     .select(
-      [
-        "id",
-        "slug",
-        "category_id",
-        "category_slug",
-        "name_en",
-        "name_ar",
-        "subtitle_en",
-        "subtitle_ar",
-        "description_en",
-        "description_ar",
-        "notes_en",
-        "notes_ar",
-        "pricing_model",
-        "sale_price_per_kg",
-        "featured",
-        "best_seller",
-        "blend",
-        "image_url",
-        "gallery",
-        "is_new",
-      ].join(", "),
+      PUBLIC_PRODUCT_COLUMNS,
     )
     .eq("category_slug", slug)
     .order("name_en", { ascending: true });
@@ -400,28 +363,7 @@ async function fetchProductRowsBySlugs(slugs: string[]) {
   const { data, error } = await supabase
     .from("public_products")
     .select(
-      [
-        "id",
-        "slug",
-        "category_id",
-        "category_slug",
-        "name_en",
-        "name_ar",
-        "subtitle_en",
-        "subtitle_ar",
-        "description_en",
-        "description_ar",
-        "notes_en",
-        "notes_ar",
-        "pricing_model",
-        "sale_price_per_kg",
-        "featured",
-        "best_seller",
-        "blend",
-        "image_url",
-        "gallery",
-        "is_new",
-      ].join(", "),
+      PUBLIC_PRODUCT_COLUMNS,
     )
     .in("slug", slugs);
 
@@ -433,28 +375,7 @@ async function fetchProductRowBySlug(slug: string) {
   const { data, error } = await supabase
     .from("public_products")
     .select(
-      [
-        "id",
-        "slug",
-        "category_id",
-        "category_slug",
-        "name_en",
-        "name_ar",
-        "subtitle_en",
-        "subtitle_ar",
-        "description_en",
-        "description_ar",
-        "notes_en",
-        "notes_ar",
-        "pricing_model",
-        "sale_price_per_kg",
-        "featured",
-        "best_seller",
-        "blend",
-        "image_url",
-        "gallery",
-        "is_new",
-      ].join(", "),
+      PUBLIC_PRODUCT_COLUMNS,
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -525,28 +446,7 @@ async function fetchProductRowsBestSellers() {
   const { data, error } = await supabase
     .from("public_products")
     .select(
-      [
-        "id",
-        "slug",
-        "category_id",
-        "category_slug",
-        "name_en",
-        "name_ar",
-        "subtitle_en",
-        "subtitle_ar",
-        "description_en",
-        "description_ar",
-        "notes_en",
-        "notes_ar",
-        "pricing_model",
-        "sale_price_per_kg",
-        "featured",
-        "best_seller",
-        "blend",
-        "image_url",
-        "gallery",
-        "is_new",
-      ].join(", "),
+      PUBLIC_PRODUCT_COLUMNS,
     )
     .eq("best_seller", true)
     .order("name_en", { ascending: true });

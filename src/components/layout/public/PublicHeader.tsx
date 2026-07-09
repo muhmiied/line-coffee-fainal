@@ -64,6 +64,26 @@ const accountLinks = [
 
 type CommercePanel = "wishlist" | "cart";
 
+function cleanAccountName(name: string | null | undefined) {
+  const trimmed = name?.trim() ?? "";
+  if (!trimmed || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "";
+  return trimmed;
+}
+
+function getAccountInitials(name: string | null | undefined, fallback = "M") {
+  const parts = cleanAccountName(name).split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return fallback;
+  return parts
+    .slice(0, 2)
+    .map((part) => Array.from(part)[0])
+    .join("")
+    .toUpperCase();
+}
+
+function getAccountFirstName(name: string | null | undefined, fallback: string) {
+  return cleanAccountName(name).split(/\s+/)[0] || fallback;
+}
+
 // ─── Notifications dropdown ───────────────────────────────────────────────────
 
 function NotificationsDropdown({ onClose }: { onClose: () => void }) {
@@ -166,7 +186,13 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
 
 // ─── UserMenu dropdown ────────────────────────────────────────────────────────
 
-function UserMenu({ onClose }: { onClose: () => void }) {
+function UserMenu({
+  onClose,
+  profileName,
+}: {
+  onClose: () => void;
+  profileName: string | null;
+}) {
   const { t } = useLanguage();
   const { user, isLoggedIn, signOut } = useAuth();
   const { isAdmin, admin } = useCurrentAdmin();
@@ -181,11 +207,22 @@ function UserMenu({ onClose }: { onClose: () => void }) {
   // When the signed-in user is an active admin, surface their real admin_users
   // identity (display name, email, role) instead of the bare auth email.
   const showAdmin = isAdmin && admin !== null;
-  const displayName = showAdmin ? getAdminDisplayName(admin) : user?.name;
+  const customerDisplayName =
+    cleanAccountName(profileName) ||
+    cleanAccountName(user?.name) ||
+    t({ en: "Customer", ar: "عميل لاين" });
+  const adminDisplayName = showAdmin
+    ? cleanAccountName(getAdminDisplayName(admin))
+    : "";
+  const displayName = showAdmin
+    ? adminDisplayName || customerDisplayName
+    : customerDisplayName;
   const displayEmail = showAdmin ? admin.email : user?.email;
   const avatarText = showAdmin
-    ? getAdminInitials(admin)
-    : (user?.name?.[0]?.toUpperCase() ?? "M");
+    ? adminDisplayName
+      ? getAdminInitials(admin)
+      : getAccountInitials(displayName)
+    : getAccountInitials(displayName);
 
   return (
     <div className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-64 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl">
@@ -287,7 +324,13 @@ function UserMenu({ onClose }: { onClose: () => void }) {
 
 // ─── Mobile menu ─────────────────────────────────────────────────────────────
 
-function MobileMenu({ onClose }: { onClose: () => void }) {
+function MobileMenu({
+  onClose,
+  profileName,
+}: {
+  onClose: () => void;
+  profileName: string | null;
+}) {
   const { t, dir } = useLanguage();
   const { isLoggedIn, user, signOut } = useAuth();
   const { isAdmin, admin } = useCurrentAdmin();
@@ -301,11 +344,22 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
   };
 
   const showAdmin = isAdmin && admin !== null;
-  const displayName = showAdmin ? getAdminDisplayName(admin) : user?.name;
+  const customerDisplayName =
+    cleanAccountName(profileName) ||
+    cleanAccountName(user?.name) ||
+    t({ en: "Customer", ar: "عميل لاين" });
+  const adminDisplayName = showAdmin
+    ? cleanAccountName(getAdminDisplayName(admin))
+    : "";
+  const displayName = showAdmin
+    ? adminDisplayName || customerDisplayName
+    : customerDisplayName;
   const displayEmail = showAdmin ? admin.email : user?.email;
   const avatarText = showAdmin
-    ? getAdminInitials(admin)
-    : (user?.name?.[0]?.toUpperCase() ?? "M");
+    ? adminDisplayName
+      ? getAdminInitials(admin)
+      : getAccountInitials(displayName)
+    : getAccountInitials(displayName);
 
   return (
     <div className="fixed inset-0 z-[60] flex" dir={dir}>
@@ -738,7 +792,9 @@ export function PublicHeader() {
   const [announcementVisible, setAnnouncementVisible] = useState(true);
   const [storefront,           setStorefront]           = useState<StorefrontSettings | null>(null);
   const [announcements,        setAnnouncements]        = useState<PublicAnnouncement[]>(DEFAULT_ANNOUNCEMENTS);
+  const [accountProfile,       setAccountProfile]       = useState<{ userId: string; name: string } | null>(null);
 
+  const authUserId = user?.id;
   const isMakeYourEspressoPage = pathname === "/make-your-espresso";
   const closedNotice =
     storefront && !storefront.storeOpen
@@ -746,6 +802,17 @@ export function PublicHeader() {
         t({ en: "The store is currently closed.", ar: "المتجر مغلق حالياً." })
       : null;
   const currentAnnouncement = announcements[announcementIdx] ?? announcements[0];
+  const accountProfileName =
+    accountProfile && accountProfile.userId === authUserId
+      ? accountProfile.name
+      : null;
+  const headerAccountName =
+    cleanAccountName(accountProfileName) || cleanAccountName(user?.name);
+  const headerAccountLabel = getAccountFirstName(
+    headerAccountName,
+    t({ en: "Account", ar: "حسابي" }),
+  );
+  const headerAvatarText = getAccountInitials(headerAccountName, "L");
 
   const closeAll = () => {
     setOpenCommercePanel(null);
@@ -823,6 +890,31 @@ export function PublicHeader() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!isLoggedIn || !authUserId) {
+      return () => {
+        active = false;
+      };
+    }
+    const userId = authUserId;
+
+    import("@/lib/account/customer-account")
+      .then(({ getCustomerProfile }) => getCustomerProfile())
+      .then((profile) => {
+        if (!active) return;
+        const profileName = cleanAccountName(profile?.name);
+        setAccountProfile(profileName ? { userId, name: profileName } : null);
+      })
+      .catch(() => {
+        if (active) setAccountProfile(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isLoggedIn, authUserId]);
 
   // ESC to close everything + prevent body scroll when mobile menu open
   useEffect(() => {
@@ -984,7 +1076,7 @@ export function PublicHeader() {
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#B6885E]/18 bg-[#B6885E]/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/85 transition-all hover:border-[#D6A373]/35 hover:bg-[#B6885E]/12 hover:text-[#F5E6D8]"
+                className="line-language-toggle inline-flex h-9 items-center gap-1.5 rounded-full border border-[#B6885E]/18 bg-[#B6885E]/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/85 transition-all hover:border-[#D6A373]/35 hover:bg-[#B6885E]/12 hover:text-[#F5E6D8]"
                 aria-label={t({ en: "Switch language", ar: "تغيير اللغة" })}
               >
                 <Globe className="h-3.5 w-3.5" />
@@ -1049,19 +1141,35 @@ export function PublicHeader() {
                 <button
                   type="button"
                   onClick={handleUserToggle}
-                  className={cn("header-icon-button", isUserMenuOpen && "bg-[#B6885E]/12 text-[#F5E6D8]")}
+                  className={cn(
+                    "header-icon-button",
+                    isLoggedIn &&
+                      "!h-9 !w-auto max-w-[10.5rem] gap-2 overflow-hidden border border-[#D6A373]/24 bg-[#B6885E]/10 px-2 pe-3 text-[#F5E6D8] shadow-[0_0_22px_rgba(182,136,94,0.10)]",
+                    isUserMenuOpen && "bg-[#B6885E]/12 text-[#F5E6D8]",
+                  )}
                   aria-label={t({ en: "Account", ar: "الحساب" })}
                   aria-expanded={isUserMenuOpen ? "true" : "false"}
                 >
                   {isLoggedIn ? (
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#B6885E]/30 text-[9px] font-bold text-[#D6A373]">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <>
+                      <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#D6A373]/35 bg-[#D6A373]/18 text-[10px] font-bold leading-none text-[#FFE3CA]">
+                        {headerAvatarText}
+                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#120D09] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]" />
+                      </span>
+                      <span className="max-w-[6.5rem] truncate text-xs font-semibold normal-case tracking-normal text-[#F5E6D8]">
+                        {headerAccountLabel}
+                      </span>
+                    </>
                   ) : (
                     <User />
                   )}
                 </button>
-                {isUserMenuOpen && <UserMenu onClose={() => setIsUserMenuOpen(false)} />}
+                {isUserMenuOpen && (
+                  <UserMenu
+                    profileName={accountProfileName}
+                    onClose={() => setIsUserMenuOpen(false)}
+                  />
+                )}
               </div>
 
               {/* Commerce popovers */}
@@ -1099,7 +1207,12 @@ export function PublicHeader() {
       </header>
 
       {/* Mobile menu — rendered outside header to cover full viewport */}
-      {isMobileMenuOpen && <MobileMenu onClose={() => setIsMobileMenuOpen(false)} />}
+      {isMobileMenuOpen && (
+        <MobileMenu
+          profileName={accountProfileName}
+          onClose={() => setIsMobileMenuOpen(false)}
+        />
+      )}
     </>
   );
 }

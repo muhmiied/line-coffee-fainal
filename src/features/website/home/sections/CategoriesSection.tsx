@@ -40,7 +40,7 @@ export function CategoriesSection({
       <div className="relative z-10 mx-auto max-w-7xl px-4">
         <div className="mb-8 md:mb-10">
           <SectionHeading
-            eyebrow={{ en: "Our Menu", ar: "قائمتنا" }}
+            eyebrow={{ en: "Our Products", ar: "منتجاتنا" }}
             title={{ en: "Shop by Category", ar: "تسوق حسب الفئة" }}
             align="flush"
           />

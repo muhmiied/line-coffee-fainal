@@ -3,6 +3,12 @@
 import type { LocalizedValue } from "@/lib/context/language";
 import { supabase } from "@/lib/supabase/client";
 import type { PackageSize } from "@/lib/types/common";
+import {
+  hasLocalizedValue,
+  localized,
+  toNumber,
+  toOptionalNumber,
+} from "@/lib/catalog/catalog-mappers";
 
 export type ProductStatus = "In Stock" | "Low Stock" | "Out of Stock";
 export type AdminProductLifecycleStatus = "active" | "draft" | "archived";
@@ -191,32 +197,6 @@ function asCatalogError(error: unknown) {
   const message =
     error instanceof Error ? error.message : "Unable to read admin catalog data.";
   return new AdminCatalogReadError(message, error);
-}
-
-function toNumber(value: number | string | null | undefined, fallback = 0) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-  return fallback;
-}
-
-function toOptionalNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined) return undefined;
-  const parsed = toNumber(value, Number.NaN);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function localized(en?: string | null, ar?: string | null): LocalizedValue {
-  return {
-    en: en?.trim() ?? "",
-    ar: ar?.trim() ?? en?.trim() ?? "",
-  };
-}
-
-function hasLocalizedValue(value?: LocalizedValue) {
-  return Boolean(value?.en || value?.ar);
 }
 
 function getFallbackImage(categorySlug?: string | null) {

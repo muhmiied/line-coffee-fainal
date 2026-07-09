@@ -1,4 +1,4 @@
-import type { LocalizedText } from "@/types/localization";
+import type { LocalizedValue } from "@/lib/context/language";
 
 export type BeanFamily = "arabica" | "robusta";
 
@@ -14,16 +14,16 @@ export type EspressoMetrics = Record<EspressoMetricKey, number>;
 
 export type EspressoBean = {
   id: string;
-  name: LocalizedText;
+  name: LocalizedValue;
   family: BeanFamily;
   salePrice: number;
   purchasePrice: number;
-  origin: LocalizedText;
-  tasteHint: LocalizedText;
+  origin: LocalizedValue;
+  tasteHint: LocalizedValue;
   metrics: EspressoMetrics;
 };
 
-export const metricLabels: Record<EspressoMetricKey, LocalizedText> = {
+export const metricLabels: Record<EspressoMetricKey, LocalizedValue> = {
   body: { en: "Body", ar: "القوام" },
   crema: { en: "Crema", ar: "الكريما" },
   acidity: { en: "Acidity", ar: "الحموضة" },

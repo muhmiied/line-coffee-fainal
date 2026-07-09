@@ -104,7 +104,6 @@ export function StorySection({
             data-reveal
           >
             <div className="absolute -inset-4 rounded-2xl bg-[#FFDCC2]/8 blur-3xl" />
-            <div className="absolute -inset-1 rounded-2xl border border-[#FFDCC2]/10" />
 
             <div className="premium-image-card group relative aspect-[3/4] overflow-hidden rounded-2xl border border-[#FFDCC2]/14 bg-[#120D09] shadow-2xl">
               <Image
@@ -121,27 +120,23 @@ export function StorySection({
 
             {/* stats panel — flows on mobile, absolute bottom-left on lg+ */}
             <div
-              className={cn(
-                "luxury-panel mt-6 rounded-2xl p-5 shadow-2xl lg:absolute lg:mt-0 lg:-bottom-6",
-                dir === "rtl"
-                  ? "lg:-right-4"
-                  : "lg:-left-4",
-              )}
+              className="line-story-stats-panel luxury-panel mx-auto mt-4 w-[92%] rounded-2xl px-4 py-3.5 shadow-2xl sm:w-[82%] lg:absolute lg:bottom-0 lg:left-1/2 lg:mt-0 lg:w-[76%] lg:-translate-x-1/2 lg:translate-y-1/2 lg:px-5 lg:py-4"
             >
-              <div className="flex items-center gap-5">
+              <div className="grid grid-cols-3 items-center gap-0">
                 {stats.map((stat, index) => (
-                  <div key={stat.value} className="flex items-center gap-5">
-                    <div className="text-center">
-                      <p dir="ltr" className="text-2xl font-bold text-[#D6A373]">
-                        <NumericText value={stat.value} />
-                      </p>
-                      <p className="mt-1 text-[11px] text-[#B79B85]/65">
-                        {t(stat.label)}
-                      </p>
-                    </div>
-                    {index < stats.length - 1 && (
-                      <div className="h-10 w-px bg-[#B6885E]/20" />
+                  <div
+                    key={stat.value}
+                    className={cn(
+                      "line-story-stat text-center",
+                      index < stats.length - 1 && "border-e border-[#B6885E]/22",
                     )}
+                  >
+                    <p dir="ltr" className="text-xl font-bold leading-none text-[#D6A373] md:text-2xl">
+                      <NumericText value={stat.value} />
+                    </p>
+                    <p className="mt-1.5 text-[10px] leading-tight text-[#B79B85]/65 md:text-[11px]">
+                      {t(stat.label)}
+                    </p>
                   </div>
                 ))}
               </div>

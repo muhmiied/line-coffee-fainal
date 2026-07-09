@@ -130,8 +130,8 @@ export function ContactSection({ items = contactItems }: ContactSectionProps) {
                 const Icon = contactIconMap[item.kind];
                 const content = (
                   <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#B6885E]/22 bg-[#B6885E]/10">
-                      <Icon className="h-4 w-4 text-[#B6885E]" />
+                    <div className="line-card-icon-shell flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#B6885E]/22 bg-[#B6885E]/10">
+                      <Icon className="line-card-icon h-4 w-4 text-[#B6885E]" />
                     </div>
                     <div>
                       <p className="mb-0.5 font-medium text-[#F5E6D8]">

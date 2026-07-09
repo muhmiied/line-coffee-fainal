@@ -7,7 +7,6 @@ import { FeaturesSection } from "./sections/FeaturesSection";
 import { StorySection } from "./sections/StorySection";
 import { BestSellersSection } from "./sections/BestSellersSection";
 import { JournalSection } from "./sections/JournalSection";
-import { TestimonialsSection } from "./sections/TestimonialsSection";
 import { SocialGallerySection } from "./sections/SocialGallerySection";
 import { ContactSection } from "./sections/ContactSection";
 
@@ -15,16 +14,15 @@ export function LineCoffeeHome() {
   useLuxuryScrollReveal();
 
   return (
-    <>
+    <div className="line-home-coffee-palette">
       <HeroSection />
       <CategoriesSection />
       <FeaturesSection />
       <StorySection />
       <BestSellersSection />
       <JournalSection />
-      <TestimonialsSection />
       <SocialGallerySection />
       <ContactSection />
-    </>
+    </div>
   );
 }

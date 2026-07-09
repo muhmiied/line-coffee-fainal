@@ -27,20 +27,21 @@
 
 import { supabase } from "@/lib/supabase/client";
 import type { OrderStatus, PaymentStatus } from "@/lib/types/order";
+import {
+  DAY,
+  MONTH_SHORT,
+  WEEKDAY_SHORT,
+  firstOrderStatus,
+  money,
+  trendPct,
+  ts,
+} from "@/lib/admin/admin-metrics";
 
 const ORDERS_SCAN_LIMIT = 5000;
 const ITEMS_SCAN_LIMIT = 12000;
 const LEDGER_SCAN_LIMIT = 8000;
 const CUSTOMERS_SCAN_LIMIT = 5000;
 const REDEMPTIONS_SCAN_LIMIT = 5000;
-
-const DAY = 86_400_000;
-
-const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -191,24 +192,8 @@ function readError(scope: string, message: string) {
   return new AdminAnalyticsError("Could not load analytics data. Please try again.");
 }
 
-function money(value: number | string | null | undefined): number {
-  const parsed = typeof value === "number" ? value : Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-function ts(value: string | null | undefined): number {
-  if (!value) return 0;
-  const parsed = new Date(value).getTime();
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function trendPct(current: number, previous: number): AnalyticsTrend {
-  if (previous <= 0) return null;
-  return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
 // ── Row shapes ───────────────────────────────────────────────────────────────
@@ -255,12 +240,6 @@ type RedemptionRow = {
 type ReviewRow = { status: string; hidden: boolean };
 
 type ContactRow = { status: string };
-
-function firstOrderStatus(orders: ItemRow["orders"]): string | null {
-  if (!orders) return null;
-  if (Array.isArray(orders)) return orders[0]?.status ?? null;
-  return orders.status ?? null;
-}
 
 function prettyLabel(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());

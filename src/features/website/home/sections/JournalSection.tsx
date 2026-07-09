@@ -32,7 +32,7 @@ export function JournalSection({ posts = visualJournal }: JournalSectionProps) {
           />
           <Link
             href="/blog"
-            className="group inline-flex w-fit items-center justify-center gap-2 text-sm font-semibold text-[#D6A373] transition-colors hover:text-[#F5E6D8]"
+            className="line-text-link group inline-flex w-fit items-center justify-center gap-2 text-sm font-semibold text-[#D6A373] transition-colors hover:text-[#F5E6D8]"
           >
             {t({ en: "View all posts", ar: "عرض كل المقالات" })}
             <ArrowRight
@@ -50,7 +50,7 @@ export function JournalSection({ posts = visualJournal }: JournalSectionProps) {
               key={post.slug}
               href={`/blog/${post.slug}`}
               data-reveal
-              className="reveal-on-scroll group overflow-hidden rounded-2xl border border-[#B6885E]/14 bg-[#120D09]/68 shadow-[0_16px_48px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D6A373]/30 hover:shadow-[0_24px_64px_rgba(0,0,0,0.4)]"
+              className="line-journal-card reveal-on-scroll group overflow-hidden rounded-2xl border border-[#B6885E]/14 bg-[#120D09]/68 shadow-[0_16px_48px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D6A373]/30 hover:shadow-[0_24px_64px_rgba(0,0,0,0.4)]"
             >
               {/* Card image — taller for editorial feel */}
               <div className="relative h-52 overflow-hidden bg-[#1A120D] sm:h-56">
@@ -66,7 +66,7 @@ export function JournalSection({ posts = visualJournal }: JournalSectionProps) {
 
                 {/* Category tag floats over image */}
                 {post.category && (
-                  <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-[#B6885E]/30 bg-[#0B0806]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D6A373]/90 backdrop-blur-md">
+                  <div className="line-journal-tag absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-[#B6885E]/30 bg-[#0B0806]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D6A373]/90 backdrop-blur-md">
                     <Tag className="h-2.5 w-2.5" />
                     <span>{t(post.category)}</span>
                   </div>
@@ -80,7 +80,7 @@ export function JournalSection({ posts = visualJournal }: JournalSectionProps) {
                 <p className="line-clamp-3 text-[0.82rem] leading-relaxed text-[#D6B79A]/60">
                   {t(post.excerpt)}
                 </p>
-                <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#D6A373]/60 transition-colors group-hover:text-[#D6A373]">
+                <div className="line-text-link mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#D6A373]/60 transition-colors group-hover:text-[#D6A373]">
                   <span>{t({ en: "Read more", ar: "اقرأ المزيد" })}</span>
                   <ArrowRight
                     className={cn(

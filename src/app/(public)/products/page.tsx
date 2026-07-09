@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { ChevronRight, Eye, Search, Sparkles } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
@@ -12,8 +13,30 @@ import {
   type PublicCatalogCategory,
   type PublicCatalogProduct,
 } from "@/lib/catalog/public-catalog";
-import { EspressoBlendStudio } from "@/features/website/make-your-espresso/EspressoBlendStudio";
-import { FlavorMixStudio } from "@/features/website/make-your-flavor/FlavorMixStudio";
+// The builders are heavy (bean/flavor catalogs + pricing engines + rich UI) and
+// only render when a studio category is selected, so load them on demand instead
+// of shipping them in the products page's initial JS bundle.
+function StudioFallback() {
+  return (
+    <div className="flex min-h-[320px] items-center justify-center text-sm text-[#D6B79A]/45">
+      Loading studio…
+    </div>
+  );
+}
+const EspressoBlendStudio = dynamic(
+  () =>
+    import("@/features/website/make-your-espresso/EspressoBlendStudio").then(
+      (m) => m.EspressoBlendStudio,
+    ),
+  { ssr: false, loading: StudioFallback },
+);
+const FlavorMixStudio = dynamic(
+  () =>
+    import("@/features/website/make-your-flavor/FlavorMixStudio").then(
+      (m) => m.FlavorMixStudio,
+    ),
+  { ssr: false, loading: StudioFallback },
+);
 
 type CatalogLoadState = "loading" | "ready" | "error";
 type StudioCategory = "make-your-espresso" | "make-your-flavor";

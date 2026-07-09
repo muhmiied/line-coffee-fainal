@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -9,18 +9,40 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { resolvePostLoginDestination } from "@/lib/auth/admin";
 import { AuthCard } from "@/components/layout/auth/AuthCard";
 
+// Resolve where a (possibly already-authenticated) visitor should land. A
+// `next` back to the admin area is collapsed to the admin dashboard, which
+// resolvePostLoginDestination gates on real admin_users membership.
+function resolveNextParam() {
+  if (typeof window === "undefined") return "/";
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("/admin") ? next : "/";
+}
+
 export default function LoginPage() {
   const { t, dir } = useLanguage();
-  const { signIn } = useAuth();
+  const { signIn, isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
   const isRtl = dir === "rtl";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Already signed in (e.g. bounced here by the admin edge gate after the
+  // presence cookie expired while the session was still alive) — forward to the
+  // right destination instead of stranding them on the login form.
+  useEffect(() => {
+    if (isLoading || !isLoggedIn) return;
+    let active = true;
+    void resolvePostLoginDestination(resolveNextParam()).then((destination) => {
+      if (active) router.replace(destination);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isLoading, isLoggedIn, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +51,7 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      const fallback = next && next.startsWith("/") && !next.startsWith("/admin") ? next : "/";
-      const destination = await resolvePostLoginDestination(fallback);
+      const destination = await resolvePostLoginDestination(resolveNextParam());
       router.replace(destination);
     } catch (err) {
       setError(
@@ -96,16 +115,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-[#B79B85]/70">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-[#B6885E]/30 bg-[#1B140F] accent-[#B6885E]"
-            />
-            {t({ en: "Remember me", ar: "تذكرني" })}
-          </label>
+        <div className="flex items-center justify-end">
           <Link
             href="/auth/forgot-password"
             className="text-sm text-[#B6885E]/80 transition-colors hover:text-[#D6A373]"

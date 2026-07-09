@@ -24,6 +24,14 @@
 import { supabase } from "@/lib/supabase/client";
 import { getAdminOrders } from "@/lib/admin/admin-orders";
 import type { OrderStatus, PaymentStatus } from "@/lib/types/order";
+import {
+  MONTH_SHORT,
+  WEEKDAY_SHORT,
+  firstOrderStatus,
+  money,
+  trendPct,
+  ts,
+} from "@/lib/admin/admin-metrics";
 
 const ORDERS_SCAN_LIMIT = 5000;
 const ITEMS_SCAN_LIMIT = 8000;
@@ -155,23 +163,8 @@ function readError(scope: string, message: string) {
   return new AdminDashboardError("Could not load dashboard data. Please try again.");
 }
 
-function money(value: number | string | null | undefined) {
-  const parsed = typeof value === "number" ? value : Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function fmtInt(value: number) {
   return Math.round(value).toLocaleString("en-US");
-}
-
-function ts(value: string): number {
-  const parsed = new Date(value).getTime();
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function trendPct(current: number, previous: number): number | null {
-  if (previous <= 0) return null;
-  return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
 // ── Row shapes ───────────────────────────────────────────────────────────────
@@ -252,18 +245,6 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
   returned: "Returned",
 };
-
-const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-function firstOrderStatus(orders: ItemRow["orders"]): string | null {
-  if (!orders) return null;
-  if (Array.isArray(orders)) return orders[0]?.status ?? null;
-  return orders.status ?? null;
-}
 
 // ── Period KPI builder ──────────────────────────────────────────────────────
 

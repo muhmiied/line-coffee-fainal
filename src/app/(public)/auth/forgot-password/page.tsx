@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { AuthCard } from "@/components/layout/auth/AuthCard";
+import { supabase } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const { t, dir } = useLanguage();
@@ -14,12 +15,37 @@ export default function ForgotPasswordPage() {
   const [email, setEmail]   = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent]     = useState(false);
+  const [error, setError]   = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setError(null);
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSent(true); }, 1000);
+    try {
+      // Sends the Supabase recovery email. The link returns the user to
+      // /auth/reset-password with a recovery session in the URL, which the
+      // browser client picks up (detectSessionInUrl) so they can set a new
+      // password there. Supabase does not reveal whether the email exists.
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        trimmed,
+        { redirectTo: `${window.location.origin}/auth/reset-password` },
+      );
+      if (resetError) throw resetError;
+      setSent(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t({
+              en: "Could not send the reset link. Please try again.",
+              ar: "تعذر إرسال رابط إعادة التعيين. حاول مرة أخرى.",
+            }),
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
@@ -96,6 +122,12 @@ export default function ForgotPasswordPage() {
             ? t({ en: "Sending…", ar: "جارٍ الإرسال…" })
             : t({ en: "Send reset link", ar: "إرسال رابط الاسترداد" })}
         </button>
+
+        {error ? (
+          <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {error}
+          </p>
+        ) : null}
       </form>
 
       <p className="mt-6 text-center text-sm">

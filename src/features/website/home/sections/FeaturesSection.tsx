@@ -54,9 +54,9 @@ export function FeaturesSection({ features = visualFeatures }: FeaturesSectionPr
                 data-reveal
                 className="premium-info-card reveal-on-scroll group flex flex-col items-center py-7 text-center"
               >
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#B6885E]/22 bg-[#B6885E]/[0.09] transition-all duration-300 group-hover:scale-110 group-hover:border-[#D6A373]/36 group-hover:bg-[#B6885E]/14 md:h-16 md:w-16">
+                <div className="line-card-icon-shell mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#B6885E]/22 bg-[#B6885E]/[0.09] transition-all duration-300 group-hover:scale-110 group-hover:border-[#D6A373]/36 group-hover:bg-[#B6885E]/14 md:h-16 md:w-16">
                   <Icon
-                    className="h-5 w-5 text-[#B6885E] md:h-6 md:w-6"
+                    className="line-card-icon h-5 w-5 text-[#B6885E] md:h-6 md:w-6"
                     strokeWidth={1.5}
                   />
                 </div>

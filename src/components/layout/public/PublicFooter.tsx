@@ -127,7 +127,7 @@ export function PublicFooter() {
     Boolean(whatsappHref);
 
   return (
-    <footer className="relative overflow-hidden bg-[#070504]" dir={dir}>
+    <footer className="line-footer relative overflow-hidden bg-[#070504]" dir={dir}>
       <Image
         src="/assets/hero/dark-roast.png"
         alt=""
@@ -173,7 +173,7 @@ export function PublicFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[#B6885E]/18 bg-[#B6885E]/[0.08] text-[#B79B85]/70 transition-all duration-300 hover:border-[#B6885E]/40 hover:bg-[#B6885E]/18 hover:text-[#D6A373]"
+                    className="line-footer-social flex h-9 w-9 items-center justify-center rounded-full border border-[#B6885E]/18 bg-[#B6885E]/[0.08] text-[#B79B85]/70 transition-all duration-300 hover:border-[#B6885E]/40 hover:bg-[#B6885E]/18 hover:text-[#D6A373]"
                   >
                     <Icon className="h-4 w-4" />
                   </a>
@@ -192,7 +192,7 @@ export function PublicFooter() {
               <ul className="space-y-3.5">
                 {settings.contact.businessAddress.trim() && (
                 <li className="flex items-start gap-2.5">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]" />
+                  <MapPin className="line-footer-contact-icon mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]" />
                   <span className="text-sm text-[#B79B85]/65">
                     {settings.contact.businessAddress}
                   </span>
@@ -200,7 +200,7 @@ export function PublicFooter() {
                 )}
                 {phoneHref && phoneDisplay && (
                 <li className="flex items-center gap-2.5">
-                  <Phone className="h-4 w-4 shrink-0 text-[#B6885E]" />
+                  <Phone className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
                   <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={phoneHref}>
                     {phoneDisplay}
                   </a>
@@ -208,7 +208,7 @@ export function PublicFooter() {
                 )}
                 {emailHref && (
                 <li className="flex items-center gap-2.5">
-                  <Mail className="h-4 w-4 shrink-0 text-[#B6885E]" />
+                  <Mail className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
                   <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={emailHref}>
                     {settings.contact.supportEmail}
                   </a>
@@ -216,7 +216,7 @@ export function PublicFooter() {
                 )}
                 {whatsappHref && (
                   <li className="flex items-center gap-2.5">
-                    <MessageCircle className="h-4 w-4 shrink-0 text-[#B6885E]" />
+                    <MessageCircle className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
                     <a
                       className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]"
                       href={whatsappHref}
