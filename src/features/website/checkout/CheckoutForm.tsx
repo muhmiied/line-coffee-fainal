@@ -1,7 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
@@ -18,6 +23,7 @@ import {
 import type { PromoValidationResult } from "@/lib/types/marketing";
 import {
   getCustomerAddresses,
+  getCustomerProfile,
   type CustomerAddress,
 } from "@/lib/account/customer-account";
 import { resolveDeliveryFee } from "@/lib/delivery";
@@ -34,7 +40,101 @@ import { AddressSection } from "./AddressSection";
 import { PaymentSection } from "./PaymentSection";
 import { OrderSummary } from "./OrderSummary";
 import { buildCheckoutItem, type CheckoutRpcItem } from "./checkout-rpc";
-import { EMPTY_FORM, type FormData, type FormErrors } from "./types";
+import {
+  EMPTY_FORM,
+  type FormData,
+  type FormErrors,
+  type TranslateFn,
+} from "./types";
+
+function resolveSavedAddress(address: CustomerAddress) {
+  const governorateValue = address.governorate.trim();
+  const governorate = GOVS.find(
+    (option) =>
+      option.en.toLowerCase() === governorateValue.toLowerCase() ||
+      option.ar === governorateValue,
+  );
+  const savedArea = (address.area ?? "").trim();
+  const areaValue =
+    savedArea &&
+    savedArea.toLowerCase() !== "other" &&
+    savedArea !== "أخرى"
+      ? savedArea
+      : address.city.trim();
+  const area = governorate?.areas.find(
+    (option) =>
+      option.en.toLowerCase() === areaValue.toLowerCase() ||
+      option.ar === areaValue,
+  );
+
+  return { governorate, area, areaValue };
+}
+
+function getPreferredSavedAddress(addresses: CustomerAddress[]) {
+  const isValid = (address: CustomerAddress) => {
+    const { governorate, area, areaValue } = resolveSavedAddress(address);
+    return Boolean(governorate && (area || areaValue) && address.street.trim());
+  };
+
+  return (
+    addresses.find((address) => address.isDefault && isValid(address)) ??
+    addresses.find(isValid) ??
+    addresses.find((address) => address.isDefault) ??
+    addresses[0] ??
+    null
+  );
+}
+
+function mergeSavedAddress(
+  current: FormData,
+  address: CustomerAddress,
+  t: TranslateFn,
+  overwriteAddress: boolean,
+): FormData {
+  const { governorate, area, areaValue } = resolveSavedAddress(address);
+  const floorApt = [
+    address.floor && `${t({ en: "Floor", ar: "الدور" })} ${address.floor}`,
+    address.apartment && `${t({ en: "Apt", ar: "شقة" })} ${address.apartment}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const fill = (existing: string, saved: string) =>
+    overwriteAddress || !existing.trim() ? saved : existing;
+
+  return {
+    ...current,
+    name: current.name.trim() ? current.name : (address.recipientName ?? ""),
+    phone: current.phone.trim() ? current.phone : (address.phone ?? ""),
+    governorate: governorate
+      ? fill(current.governorate, governorate.en)
+      : current.governorate,
+    area: governorate
+      ? area
+        ? fill(current.area, area.en)
+        : areaValue
+          ? "Other"
+          : overwriteAddress
+            ? ""
+            : current.area
+      : current.area,
+    manualArea:
+      governorate && !area && areaValue
+        ? fill(current.manualArea, areaValue)
+        : overwriteAddress
+          ? ""
+          : current.manualArea,
+    street: fill(current.street, address.street || current.street),
+    building: overwriteAddress
+      ? (address.building ?? "")
+      : fill(current.building, address.building ?? ""),
+    floorApt: floorApt
+      ? fill(current.floorApt, floorApt)
+      : current.floorApt,
+    googleMapsUrl: overwriteAddress
+      ? (address.locationUrl ?? "")
+      : fill(current.googleMapsUrl, address.locationUrl ?? ""),
+  };
+}
 
 export function CheckoutForm() {
   const { t, dir, language } = useLanguage();
@@ -43,6 +143,7 @@ export function CheckoutForm() {
   const router = useRouter();
   const checkoutAttemptId = useRef<string | null>(null);
   const submitInFlight = useRef(false);
+  const profilePrefillOwnerRef = useRef<string | null>(null);
   const ownerKey = isAuthLoading ? "loading" : (user?.id ?? "guest");
 
   const [ownedForm, setOwnedForm] = useState<{
@@ -82,14 +183,14 @@ export function CheckoutForm() {
   const savedAddresses =
     user && savedAddressState.ownerId === user.id ? savedAddressState.rows : [];
 
-  function setForm(action: React.SetStateAction<FormData>) {
+  const setForm = useCallback((action: React.SetStateAction<FormData>) => {
     setOwnedForm((current) => {
       const currentValue = current.ownerKey === ownerKey ? current.value : EMPTY_FORM;
       const value =
         typeof action === "function" ? action(currentValue) : action;
       return { ownerKey, value };
     });
-  }
+  }, [ownerKey]);
 
   useEffect(() => {
     let active = true;
@@ -118,60 +219,65 @@ export function CheckoutForm() {
     if (isAuthLoading) return;
 
     const ownerId = user?.id ?? null;
-    if (!ownerId) return;
+    if (!ownerId) {
+      profilePrefillOwnerRef.current = null;
+      return;
+    }
+    if (profilePrefillOwnerRef.current === ownerId) return;
 
     let active = true;
-    getCustomerAddresses()
-      .then((rows) => {
-        if (active) setSavedAddressState({ ownerId, rows });
+    const authName = user?.name !== user?.email ? (user?.name ?? "") : "";
+
+    Promise.all([getCustomerProfile(), getCustomerAddresses()])
+      .then(([profile, rows]) => {
+        if (!active) return;
+
+        const preferredAddress = getPreferredSavedAddress(rows);
+        profilePrefillOwnerRef.current = ownerId;
+        setSavedAddressState({ ownerId, rows });
+        setSelectedAddressId(preferredAddress?.id ?? null);
+        setForm((current) => {
+          const withProfile = {
+            ...current,
+            name: profile?.name.trim() || authName,
+            email: profile?.email?.trim() || user?.email || "",
+            phone: profile?.phone?.trim() || "",
+            whatsapp: profile?.whatsapp?.trim() || "",
+          };
+
+          return preferredAddress
+            ? mergeSavedAddress(withProfile, preferredAddress, t, false)
+            : withProfile;
+        });
       })
       .catch(() => {
         if (active) setSavedAddressState({ ownerId, rows: [] });
       });
     return () => { active = false; };
-  }, [isAuthLoading, user?.id]);
+  }, [isAuthLoading, setForm, t, user?.email, user?.id, user?.name]);
 
   // Map a saved address onto the checkout form. Address fields overwrite; identity
   // fields fill only when empty (don't clobber what the user already typed).
   // Governorate/area are matched against the known options so the zone preview
   // still resolves; an unmatched value is left for the user to pick manually.
   function applySavedAddress(a: CustomerAddress) {
-    const govNorm = a.governorate.trim().toLowerCase();
-    const gov = GOVS.find(
-      (g) => g.en.toLowerCase() === govNorm || g.ar === a.governorate.trim(),
-    );
-    const areaNorm = (a.area ?? "").trim().toLowerCase();
-    const area = gov?.areas.find(
-      (ar) => ar.en.toLowerCase() === areaNorm || ar.ar === (a.area ?? "").trim(),
-    );
-    const floorApt = [
-      a.floor && `${t({ en: "Floor", ar: "الدور" })} ${a.floor}`,
-      a.apartment && `${t({ en: "Apt", ar: "شقة" })} ${a.apartment}`,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-
     setSelectedAddressId(a.id);
     setSubmitError(null);
     setErrors({});
-    setForm((prev) => ({
-      ...prev,
-      name:        prev.name.trim()  ? prev.name  : (a.recipientName ?? ""),
-      phone:       prev.phone.trim() ? prev.phone : (a.phone ?? ""),
-      governorate: gov ? gov.en : prev.governorate,
-      area:        gov ? (area ? area.en : "") : prev.area,
-      street:      a.street || prev.street,
-      building:    a.building ?? "",
-      floorApt:    floorApt || prev.floorApt,
-    }));
+    setForm((current) => mergeSavedAddress(current, a, t, true));
   }
 
   // Zone-based delivery (Decisions 10 + 11). This mirrors the server for an
   // accurate preview; create_checkout_order recomputes the authoritative fee.
   // Resolvable only once both governorate AND area are chosen.
+  const resolvedArea =
+    form.area === "Other" ? form.manualArea.trim() : form.area;
   const deliveryZone =
     form.governorate && form.area
-      ? resolveDeliveryFee(form.governorate, form.area)
+      ? resolveDeliveryFee(
+          form.governorate,
+          resolvedArea || "Other",
+        )
       : null;
   const deliveryFee = deliveryZone?.fee ?? 0;
   const promoMatchesSubtotal =
@@ -199,8 +305,29 @@ export function CheckoutForm() {
       setSelectedAddressId(null);
     }
     if (field === "governorate") {
-      setForm((prev) => ({ ...prev, governorate: value, area: "" }));
-      setErrors((prev) => ({ ...prev, governorate: undefined, area: undefined }));
+      setForm((prev) => ({
+        ...prev,
+        governorate: value,
+        area: "",
+        manualArea: "",
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        governorate: undefined,
+        area: undefined,
+        manualArea: undefined,
+      }));
+    } else if (field === "area") {
+      setForm((prev) => ({
+        ...prev,
+        area: value,
+        manualArea: value === "Other" ? prev.manualArea : "",
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        area: undefined,
+        manualArea: undefined,
+      }));
     } else {
       setForm((prev) => ({ ...prev, [field]: value }));
       if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -221,7 +348,24 @@ export function CheckoutForm() {
     else if (!isValidEgyptianPhone(form.whatsapp)) e.whatsapp = invalidPhone;
     if (!form.governorate.trim()) e.governorate = req;
     if (!form.area.trim())        e.area        = req;
+    if (form.area === "Other" && !form.manualArea.trim()) e.manualArea = req;
     if (!form.street.trim())      e.street      = req;
+    if (form.googleMapsUrl.trim()) {
+      try {
+        const url = new URL(form.googleMapsUrl.trim());
+        if (!["http:", "https:"].includes(url.protocol)) {
+          e.googleMapsUrl = t({
+            en: "Enter a valid Google Maps link",
+            ar: "أدخل رابط Google Maps صالحاً",
+          });
+        }
+      } catch {
+        e.googleMapsUrl = t({
+          en: "Enter a valid Google Maps link",
+          ar: "أدخل رابط Google Maps صالحاً",
+        });
+      }
+    }
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       e.email = t({ en: "Enter a valid email", ar: "أدخل بريداً إلكترونياً صحيحاً" });
     }
@@ -313,6 +457,12 @@ export function CheckoutForm() {
     if (message?.includes("Invalid email")) {
       return t({ en: "Enter a valid email address.", ar: "أدخل بريداً إلكترونياً صحيحاً." });
     }
+    if (message?.includes("Invalid Google Maps URL")) {
+      return t({
+        en: "Enter a valid Google Maps link.",
+        ar: "أدخل رابط Google Maps صالحاً.",
+      });
+    }
     return t({
       en: "We could not place your order. Please try again.",
       ar: "تعذر تسجيل طلبك. يرجى المحاولة مرة أخرى.",
@@ -394,11 +544,12 @@ export function CheckoutForm() {
           },
           address: {
             governorate: form.governorate,
-            area: form.area,
-            city: form.area,
+            area: resolvedArea,
+            city: resolvedArea,
             street: form.street.trim(),
             building: form.building.trim() || null,
             floor: form.floorApt.trim() || null,
+            googleMapsUrl: form.googleMapsUrl.trim() || null,
           },
           payment: {
             method: form.paymentMethod,
@@ -427,7 +578,7 @@ export function CheckoutForm() {
         },
         address: {
           governorate: form.governorate,
-          area: form.area,
+          area: resolvedArea,
           street: form.street.trim(),
           building: form.building.trim(),
           floorApt: form.floorApt.trim(),

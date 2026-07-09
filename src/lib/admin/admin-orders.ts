@@ -71,6 +71,7 @@ export type AdminOrderDetail = AdminOrderSummary & {
     floor: string;
     apartment: string;
     landmark: string;
+    googleMapsUrl: string;
   };
   type: OrderType;
   channel: OrderChannel;
@@ -412,6 +413,7 @@ function mapDetail(
       floor: text(address.floor),
       apartment: text(address.apartment),
       landmark: text(address.landmark),
+      googleMapsUrl: text(address.googleMapsUrl),
     },
     type: row.type,
     channel: row.channel,

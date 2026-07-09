@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { CustomerAddress } from "@/lib/account/customer-account";
 import type { AuthUser } from "@/lib/hooks/useAuth";
@@ -10,6 +11,18 @@ import {
   inputClass,
 } from "./CheckoutPrimitives";
 import type { FormData, FormErrors, SelectOption, TranslateFn } from "./types";
+
+function getSafeLocationUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 type AddressSectionProps = {
   t: TranslateFn;
@@ -38,6 +51,11 @@ export function AddressSection({
   govOptions,
   areaOptions,
 }: AddressSectionProps) {
+  const selectedLocationUrl = getSafeLocationUrl(
+    savedAddresses.find((address) => address.id === selectedAddressId)
+      ?.locationUrl ?? null,
+  );
+
   return (
     <>
       {/* Saved addresses (registered customers only) */}
@@ -91,6 +109,17 @@ export function AddressSection({
               );
             })}
           </div>
+          {selectedLocationUrl && (
+            <a
+              href={selectedLocationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1 text-[11px] text-[#B6885E]/70 hover:text-[#D6A373]"
+            >
+              <ExternalLink className="h-3 w-3" />
+              {t({ en: "View selected address on map", ar: "عرض العنوان المحدد على الخريطة" })}
+            </a>
+          )}
         </div>
       )}
 
@@ -104,7 +133,9 @@ export function AddressSection({
           <div>
             <FieldLabel label={t({ en: "Full Name", ar: "الاسم الكامل" })} required />
             <input
+              name="name"
               type="text"
+              autoComplete={user ? "off" : "name"}
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
               placeholder={t({ en: "Your full name", ar: "اسمك الكامل" })}
@@ -118,7 +149,9 @@ export function AddressSection({
             <div>
               <FieldLabel label={t({ en: "Phone Number", ar: "رقم الهاتف" })} required />
               <input
+                name="phone"
                 type="tel"
+                autoComplete={user ? "off" : "tel"}
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
                 placeholder="+20 1XX XXX XXXX"
@@ -130,7 +163,9 @@ export function AddressSection({
             <div>
               <FieldLabel label={t({ en: "WhatsApp Number", ar: "رقم الواتساب" })} required />
               <input
+                name="whatsapp"
                 type="tel"
+                autoComplete={user ? "off" : "tel"}
                 value={form.whatsapp}
                 onChange={(e) => update("whatsapp", e.target.value)}
                 placeholder="+20 1XX XXX XXXX"
@@ -144,7 +179,9 @@ export function AddressSection({
           <div>
             <FieldLabel label={t({ en: "Email", ar: "البريد الإلكتروني" })} />
             <input
+              name="email"
               type="email"
+              autoComplete={user ? "off" : "email"}
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
               placeholder={t({ en: "Optional", ar: "اختياري" })}
@@ -193,10 +230,40 @@ export function AddressSection({
             {errors.area && <p className={errorClass}>{errors.area}</p>}
           </div>
 
+          {form.area === "Other" && (
+            <div>
+              <FieldLabel
+                label={t({
+                  en: "Area / District name",
+                  ar: "اسم المنطقة / الحي",
+                })}
+                required
+              />
+              <input
+                name="manualArea"
+                type="text"
+                autoComplete="address-level2"
+                value={form.manualArea}
+                onChange={(e) => update("manualArea", e.target.value)}
+                placeholder={t({
+                  en: "Enter your area or district",
+                  ar: "أدخل اسم المنطقة أو الحي",
+                })}
+                dir={dir}
+                className={inputClass}
+              />
+              {errors.manualArea && (
+                <p className={errorClass}>{errors.manualArea}</p>
+              )}
+            </div>
+          )}
+
           <div>
             <FieldLabel label={t({ en: "Street Address", ar: "عنوان الشارع" })} required />
             <input
+              name="street"
               type="text"
+              autoComplete="address-line1"
               value={form.street}
               onChange={(e) => update("street", e.target.value)}
               placeholder={t({ en: "Street name and number", ar: "اسم الشارع والرقم" })}
@@ -210,7 +277,9 @@ export function AddressSection({
             <div>
               <FieldLabel label={t({ en: "Building", ar: "المبنى" })} />
               <input
+                name="building"
                 type="text"
+                autoComplete="address-line2"
                 value={form.building}
                 onChange={(e) => update("building", e.target.value)}
                 placeholder={t({ en: "Name or number", ar: "اسم أو رقم المبنى" })}
@@ -221,7 +290,9 @@ export function AddressSection({
             <div>
               <FieldLabel label={t({ en: "Floor / Apartment", ar: "الطابق / الشقة" })} />
               <input
+                name="floorApt"
                 type="text"
+                autoComplete="address-line3"
                 value={form.floorApt}
                 onChange={(e) => update("floorApt", e.target.value)}
                 placeholder={t({ en: "e.g. Floor 3, Apt 12", ar: "مثال: الطابق 3، شقة 12" })}
@@ -229,6 +300,28 @@ export function AddressSection({
                 className={inputClass}
               />
             </div>
+          </div>
+
+          <div>
+            <FieldLabel label={t({ en: "Google Maps link", ar: "رابط Google Maps" })} />
+            <input
+              name="googleMapsUrl"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              maxLength={2048}
+              value={form.googleMapsUrl}
+              onChange={(e) => update("googleMapsUrl", e.target.value)}
+              placeholder={t({
+                en: "Paste your location link from Google Maps",
+                ar: "الصق رابط موقعك من Google Maps",
+              })}
+              dir="ltr"
+              className={inputClass}
+            />
+            {errors.googleMapsUrl && (
+              <p className={errorClass}>{errors.googleMapsUrl}</p>
+            )}
           </div>
 
         </div>

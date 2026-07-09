@@ -96,4 +96,5 @@ export interface AddressSnapshot {
   floor?: string;
   apartment?: string;
   landmark?: string;
+  googleMapsUrl?: string;
 }

@@ -9,9 +9,11 @@ export type FormData = {
   email:         string;
   governorate:   string;
   area:          string;
+  manualArea:    string;
   street:        string;
   building:      string;
   floorApt:      string;
+  googleMapsUrl: string;
   paymentMethod: "cash" | "instapay" | "e-wallet";
   paymentReference: string;
   paymentPhone:     string;
@@ -21,7 +23,9 @@ export type FormErrors = Partial<Record<keyof FormData, string>>;
 
 export const EMPTY_FORM: FormData = {
   name: "", phone: "", whatsapp: "", email: "",
-  governorate: "", area: "", street: "", building: "", floorApt: "",
+  governorate: "", area: "", manualArea: "",
+  street: "", building: "", floorApt: "",
+  googleMapsUrl: "",
   paymentMethod: "cash",
   paymentReference: "", paymentPhone: "",
 };

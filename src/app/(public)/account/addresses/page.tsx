@@ -12,6 +12,7 @@ import {
   setDefaultCustomerAddress,
   type CustomerAddress,
 } from "@/lib/account/customer-account";
+import { EGYPT_GOVERNORATES as GOVS } from "@/lib/checkout/governorates";
 import { cn } from "@/lib/utils/cn";
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -23,6 +24,7 @@ type AddressForm = {
   governorate:   string;
   city:          string;
   area:          string;
+  manualArea:    string;
   street:        string;
   building:      string;
   floor:         string;
@@ -34,20 +36,40 @@ type AddressForm = {
 
 const EMPTY_FORM: AddressForm = {
   label: "", recipientName: "", phone: "",
-  governorate: "", city: "", area: "",
+  governorate: "", city: "", area: "", manualArea: "",
   street: "", building: "", floor: "",
   apartment: "", landmark: "", locationUrl: "",
   isDefault: false,
 };
 
 function formFromAddress(a: CustomerAddress): AddressForm {
+  const governorateValue = a.governorate.trim();
+  const governorate = GOVS.find(
+    (option) =>
+      option.en.toLowerCase() === governorateValue.toLowerCase() ||
+      option.ar === governorateValue,
+  );
+  const savedArea = (a.area ?? "").trim();
+  const areaValue =
+    savedArea &&
+    savedArea.toLowerCase() !== "other" &&
+    savedArea !== "أخرى"
+      ? savedArea
+      : a.city.trim();
+  const area = governorate?.areas.find(
+    (option) =>
+      option.en.toLowerCase() === areaValue.toLowerCase() ||
+      option.ar === areaValue,
+  );
+
   return {
     label:         a.label,
     recipientName: a.recipientName ?? "",
     phone:         a.phone ?? "",
-    governorate:   a.governorate,
+    governorate:   governorate?.en ?? a.governorate,
     city:          a.city,
-    area:          a.area ?? "",
+    area:          area?.en ?? (areaValue ? "Other" : ""),
+    manualArea:    area ? "" : areaValue,
     street:        a.street,
     building:      a.building ?? "",
     floor:         a.floor ?? "",
@@ -199,6 +221,9 @@ function AddressFormPanel({
     "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-3 py-2.5 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 focus:border-[#B6885E]/40 focus:outline-none";
   const labelCls = "mb-1 block text-xs font-medium text-[#D6B79A]/70";
   const row2 = "grid grid-cols-2 gap-3";
+  const selectedGovernorate = GOVS.find(
+    (governorate) => governorate.en === form.governorate,
+  );
 
   return (
     <div className="space-y-4 rounded-xl border border-[#B6885E]/18 bg-[#120D09] px-5 py-5">
@@ -227,30 +252,84 @@ function AddressFormPanel({
         </div>
       </div>
 
-      {/* Governorate + City */}
+      {/* Governorate + Area */}
       <div className={row2}>
         <div>
           <label className={labelCls}>{t({ en: "Governorate *", ar: "المحافظة *" })}</label>
-          <input value={form.governorate} onChange={field("governorate")} className={inputCls}
-            placeholder={t({ en: "Cairo", ar: "القاهرة" })} />
+          <select
+            value={form.governorate}
+            onChange={(e) =>
+              setForm((current) => ({
+                ...current,
+                governorate: e.target.value,
+                city: "",
+                area: "",
+                manualArea: "",
+              }))
+            }
+            className={inputCls}
+          >
+            <option value="">{t({ en: "Select governorate", ar: "اختر المحافظة" })}</option>
+            {!selectedGovernorate && form.governorate && (
+              <option value={form.governorate}>{form.governorate}</option>
+            )}
+            {GOVS.map((governorate) => (
+              <option key={governorate.en} value={governorate.en}>
+                {t(governorate)}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
-          <label className={labelCls}>{t({ en: "City *", ar: "المدينة *" })}</label>
-          <input value={form.city} onChange={field("city")} className={inputCls}
-            placeholder={t({ en: "Nasr City", ar: "مدينة نصر" })} />
+          <label className={labelCls}>{t({ en: "Area / District *", ar: "الحي / المنطقة *" })}</label>
+          <select
+            value={form.area}
+            disabled={!selectedGovernorate}
+            onChange={(e) =>
+              setForm((current) => ({
+                ...current,
+                area: e.target.value,
+                manualArea:
+                  e.target.value === "Other" ? current.manualArea : "",
+              }))
+            }
+            className={`${inputCls} disabled:cursor-not-allowed disabled:opacity-45`}
+          >
+            <option value="">
+              {selectedGovernorate
+                ? t({ en: "Select area", ar: "اختر المنطقة" })
+                : t({ en: "Select governorate first", ar: "اختر المحافظة أولاً" })}
+            </option>
+            {selectedGovernorate?.areas.map((area) => (
+              <option key={area.en} value={area.en}>
+                {t(area)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Area + Street */}
-      <div className={row2}>
+      {form.area === "Other" && (
         <div>
-          <label className={labelCls}>{t({ en: "Area / District", ar: "الحي / المنطقة" })}</label>
-          <input value={form.area} onChange={field("area")} className={inputCls} />
+          <label className={labelCls}>
+            {t({ en: "Area / District name *", ar: "اسم الحي / المنطقة *" })}
+          </label>
+          <input
+            value={form.manualArea}
+            onChange={field("manualArea")}
+            className={inputCls}
+            placeholder={t({
+              en: "Enter your area or district",
+              ar: "أدخل اسم المنطقة أو الحي",
+            })}
+          />
         </div>
-        <div>
-          <label className={labelCls}>{t({ en: "Street *", ar: "الشارع *" })}</label>
-          <input value={form.street} onChange={field("street")} className={inputCls} />
-        </div>
+      )}
+
+      {/* Street */}
+      <div>
+        <label className={labelCls}>{t({ en: "Street *", ar: "الشارع *" })}</label>
+        <input value={form.street} onChange={field("street")} className={inputCls} />
       </div>
 
       {/* Building + Floor + Apt */}
@@ -358,21 +437,34 @@ export default function AddressesPage() {
   const closeForm = () => setFormMode({ kind: "hidden" });
 
   const handleSubmit = async (form: AddressForm) => {
-    if (!form.governorate.trim() || !form.city.trim() || !form.street.trim()) {
-      setFormError(t({ en: "Governorate, city and street are required.", ar: "المحافظة والمدينة والشارع مطلوبة." }));
+    const resolvedArea =
+      form.area === "Other" ? form.manualArea.trim() : form.area.trim();
+    if (!form.governorate.trim() || !resolvedArea || !form.street.trim()) {
+      setFormError(t({
+        en: "Governorate, area and street are required.",
+        ar: "المحافظة والمنطقة والشارع مطلوبة.",
+      }));
       return;
     }
+    const normalizedForm = {
+      ...form,
+      city: resolvedArea,
+      area: resolvedArea,
+    };
     setSaving(true);
     setFormError(null);
     try {
       if (formMode.kind === "add") {
-        const id = await addCustomerAddress(form);
+        const id = await addCustomerAddress(normalizedForm);
         if (!id) {
           setFormError(t({ en: "Could not save — place an order first to create your account.", ar: "تعذّر الحفظ — أكمل طلباً أولاً لإنشاء حسابك." }));
           return;
         }
       } else if (formMode.kind === "edit") {
-        const ok = await updateCustomerAddress(formMode.address.id, form);
+        const ok = await updateCustomerAddress(
+          formMode.address.id,
+          normalizedForm,
+        );
         if (!ok) {
           setFormError(t({ en: "Could not update address.", ar: "تعذّر تحديث العنوان." }));
           return;

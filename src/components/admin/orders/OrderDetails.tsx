@@ -1,4 +1,4 @@
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ExternalLink, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import {
   ADMIN_ORDER_STATUS_LABELS,
   ADMIN_PAYMENT_METHOD_LABELS,
@@ -21,6 +21,18 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getSafeExternalUrl(value: string) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function DetailCard({
@@ -67,6 +79,7 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
   const zoneLabel = order.deliveryZone
     ? DELIVERY_ZONE_LABELS[order.deliveryZone] ?? order.deliveryZone
     : null;
+  const googleMapsUrl = getSafeExternalUrl(order.address.googleMapsUrl);
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -115,6 +128,17 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
               {cityLine && <p>{cityLine}</p>}
               {order.address.landmark && (
                 <p className="text-[#D6B79A]/48">Landmark: {order.address.landmark}</p>
+              )}
+              {googleMapsUrl && (
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex items-center gap-1 text-[#D6A373]/75 hover:text-[#D6A373]"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open Google Maps
+                </a>
               )}
             </div>
           </div>
