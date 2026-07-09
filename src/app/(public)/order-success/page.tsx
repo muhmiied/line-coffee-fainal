@@ -18,6 +18,21 @@ const RECEIPT_LOADING = "__receipt_loading__";
 const subscribeToNothing = () => () => {};
 const getLoadingSnapshot = () => RECEIPT_LOADING;
 
+function isMobileDevice() {
+  const navigatorWithUserAgentData = navigator as Navigator & {
+    userAgentData?: { mobile?: boolean };
+  };
+
+  if (typeof navigatorWithUserAgentData.userAgentData?.mobile === "boolean") {
+    return navigatorWithUserAgentData.userAgentData.mobile;
+  }
+
+  return (
+    /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("id");
@@ -59,7 +74,12 @@ function OrderSuccessContent() {
     } catch {
       // Continue with the handoff even when session storage is unavailable.
     }
-    window.location.assign(whatsappUrl);
+    if (isMobileDevice()) {
+      window.location.assign(whatsappUrl);
+      return;
+    }
+
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   }, [orderId, whatsappUrl]);
 
   if (rawResult === RECEIPT_LOADING) {
@@ -179,12 +199,14 @@ function OrderSuccessContent() {
             {whatsappUrl && (
               <a
                 href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="premium-button mb-3 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold"
               >
                 <MessageCircle className="h-4 w-4" />
                 {t({
-                  en: "Send Order on WhatsApp",
-                  ar: "إرسال الطلب عبر واتساب",
+                  en: "Open WhatsApp",
+                  ar: "فتح واتساب",
                 })}
               </a>
             )}
