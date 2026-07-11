@@ -53,8 +53,8 @@ Last updated: 2026-06-28
 
 | Route | Source | Type |
 |---|---|---|
-| `/make-your-espresso` | Bean catalog + copy in `src/features/website/make-your-espresso/*` (local) | Static *(→ Phase 8: real beans)* |
-| `/make-your-flavor` | Bases/flavors + copy in `src/features/website/make-your-flavor/data/flavorData.ts` | Static *(→ Phase 9: real config)* |
+| `/products?category=make-your-espresso` | Bean catalog + copy in `src/features/website/make-your-espresso/*` (local) | Static *(→ Phase 8: real beans)* |
+| `/products?category=make-your-flavor` | Bases/flavors + copy in `src/features/website/make-your-flavor/data/flavorData.ts` | Static *(→ Phase 9: real config)* |
 
 ---
 

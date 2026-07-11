@@ -65,7 +65,7 @@ export function AuthCard({ title, subtitle, children }: AuthCardProps) {
           <h1 className="mb-1.5 font-serif text-2xl font-bold text-[#F5E6D8] sm:text-3xl">
             {t(title)}
           </h1>
-          <p className="mb-7 text-sm leading-relaxed text-[#B79B85]/65">
+          <p className="mb-7 text-sm leading-relaxed text-[#D6B79A]/80">
             {t(subtitle)}
           </p>
 
@@ -73,8 +73,8 @@ export function AuthCard({ title, subtitle, children }: AuthCardProps) {
         </div>
 
         {/* Back to home */}
-        <p className="mt-6 text-center text-xs text-[#B79B85]/35">
-          <Link href="/" className="transition-colors hover:text-[#B6885E]/70">
+        <p className="mt-6 text-center text-xs text-[#B79B85]/75">
+          <Link href="/" className="transition-colors hover:text-[#D6A373]">
             {t({ en: "← Back to Line Coffee", ar: "لاين كوفي ←" })}
           </Link>
         </p>

@@ -43,7 +43,7 @@ export default function CartPage() {
               <h2 className="mb-3 font-serif text-2xl font-bold text-[#F5E6D8]">
                 {t({ en: "Your cart is empty", ar: "سلتك فارغة" })}
               </h2>
-              <p className="mb-8 text-sm leading-relaxed text-[#D6B79A]/60">
+              <p className="mb-8 text-sm leading-relaxed text-[#D6B79A]/80">
                 {t({
                   en: "Choose a blend and your coffee ritual starts here.",
                   ar: "اختر خلطة وسيبدأ طقس قهوتك من هنا.",
@@ -67,14 +67,14 @@ export default function CartPage() {
                 <div className="mb-5 flex items-center justify-between">
                   <h2 className="font-serif text-lg font-bold text-[#F5E6D8]">
                     {t({ en: "Items", ar: "المنتجات" })}
-                    <span className="arabic-number ml-2 text-sm font-normal text-[#D6B79A]/55">
+                    <span className="arabic-number ml-2 text-sm font-normal text-[#D6B79A]/75">
                       ({items.length})
                     </span>
                   </h2>
                   <button
                     type="button"
                     onClick={clearCart}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-[#D6B79A]/45 transition-colors hover:text-red-400"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#D6B79A]/65 transition-colors hover:text-red-400"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     {t({ en: "Clear all", ar: "مسح الكل" })}
@@ -96,7 +96,7 @@ export default function CartPage() {
                         <p className="truncate text-sm font-semibold text-[#F5E6D8]/90">
                           {t(item.name)}
                         </p>
-                        <p className="mt-0.5 truncate text-[11px] text-[#D6B79A]/50">
+                        <p className="mt-0.5 truncate text-[11px] text-[#D6B79A]/70">
                           {t(item.detail)}
                         </p>
 
@@ -133,7 +133,7 @@ export default function CartPage() {
                               type="button"
                               onClick={() => removeItem(item.id)}
                               aria-label={t({ en: "Remove item", ar: "حذف المنتج" })}
-                              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#B6885E]/14 text-[#D6B79A]/45 transition-all hover:border-red-500/30 hover:text-red-400"
+                              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#B6885E]/14 text-[#D6B79A]/65 transition-all hover:border-red-500/30 hover:text-red-400"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -168,7 +168,7 @@ export default function CartPage() {
 
                   <div className="space-y-3 border-b border-[#B6885E]/12 pb-4">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#D6B79A]/65">
+                      <span className="text-[#D6B79A]/85">
                         {t({ en: "Subtotal", ar: "المجموع الجزئي" })}
                       </span>
                       <span className="arabic-number font-semibold text-[#F5E6D8]">
@@ -176,7 +176,7 @@ export default function CartPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#D6B79A]/65">
+                      <span className="text-[#D6B79A]/85">
                         {t({ en: "Delivery", ar: "التوصيل" })}
                       </span>
                       <span

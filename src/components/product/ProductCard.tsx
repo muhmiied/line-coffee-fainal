@@ -162,12 +162,7 @@ export function ProductCard({
               <span
                 key={b.variant}
                 data-variant={b.variant}
-                className={cn(
-                  "line-product-badge rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm",
-                  (b.variant === "new" || b.variant === "visual") && "bg-[#FFDCC2]/90 text-[#522500]",
-                  b.variant === "best-seller" && "bg-[#D6A373]/90 text-[#2A1500]",
-                  b.variant === "featured" && "bg-[#C9956A]/88 text-[#1F0F00]",
-                )}
+                className="line-product-badge rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm"
               >
                 {t(b)}
               </span>
@@ -226,7 +221,7 @@ export function ProductCard({
             {t(product.name)}
           </h3>
           {description ? (
-            <p className="line-clamp-2 min-h-[2rem] text-[11px] leading-4 text-[#D6B79A]/58 sm:text-xs">
+            <p className="line-clamp-2 min-h-[2rem] text-[11px] leading-4 text-[#D6B79A]/78 sm:text-xs">
               {description}
             </p>
           ) : null}
@@ -234,20 +229,20 @@ export function ProductCard({
           {/* Blend composition */}
           {showBlend && blend && blend.length > 0 ? (
             <div className="border-t border-[#B6885E]/12 pt-2">
-              <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[#D6A373]/55">
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[#D6A373]/75">
                 {t({ en: "Blend", ar: "التوليفة" })}
               </p>
               <div className="space-y-0.5">
                 {blend.map((b) => (
                   <div key={b.origin.en} className="flex items-center justify-between gap-1">
                     <div className="flex min-w-0 items-center gap-1">
-                      <span className="truncate text-[9px] text-[#D6B79A]/50 sm:text-[10px]">
+                      <span className="truncate text-[9px] text-[#D6B79A]/70 sm:text-[10px]">
                         {t(b.origin)}
                       </span>
                       <span
                         className={
                           b.beanType === "arabica"
-                            ? "shrink-0 text-[8px] leading-none text-[#D6A373]/60"
+                            ? "shrink-0 text-[8px] leading-none text-[#D6A373]/80"
                             : "shrink-0 text-[8px] leading-none text-[#F5E6D8]/35"
                         }
                       >
@@ -256,7 +251,7 @@ export function ProductCard({
                           : t({ en: "Robusta", ar: "روبوستا" })}
                       </span>
                     </div>
-                    <span className="shrink-0 text-[9px] font-semibold text-[#D6A373]/65 sm:text-[10px]">
+                    <span className="shrink-0 text-[9px] font-semibold text-[#D6A373]/85 sm:text-[10px]">
                       {b.pct}%
                     </span>
                   </div>

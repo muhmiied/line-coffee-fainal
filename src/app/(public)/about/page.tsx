@@ -145,7 +145,7 @@ export default function AboutPage() {
                 {t(INTRO.badge)}
               </span>
 
-              <h1 className="mb-6 font-serif text-4xl font-bold leading-tight text-[#F5E6D8] drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)] sm:text-5xl lg:text-6xl">
+              <h1 className="pub-display mb-6 font-serif text-4xl font-bold leading-tight drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)] sm:text-5xl lg:text-6xl">
                 {t(INTRO.heading)}
               </h1>
 
@@ -188,7 +188,7 @@ export default function AboutPage() {
                   {t(PHILOSOPHY.eyebrow)}
                 </p>
 
-                <h2 className="mb-5 font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+                <h2 className="pub-display mb-5 font-serif text-3xl font-bold sm:text-4xl">
                   {t(PHILOSOPHY.heading)}
                 </h2>
 
@@ -204,7 +204,7 @@ export default function AboutPage() {
                         <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#D6A373]/70">
                           {t(pillar.label)}
                         </p>
-                        <p className="text-sm leading-6 text-[#D6B79A]/66">
+                        <p className="text-sm leading-6 text-[#D6B79A]/85">
                           {t(pillar.value)}
                         </p>
                       </div>
@@ -250,7 +250,7 @@ export default function AboutPage() {
             {t({ en: "Our Story", ar: "قصتنا" })}
           </p>
 
-          <h2 className="mb-16 font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+          <h2 className="pub-display mb-16 font-serif text-3xl font-bold sm:text-4xl">
             {t({ en: "A Decade of Craft", ar: "عقد من الحرفة" })}
           </h2>
 
@@ -281,7 +281,7 @@ export default function AboutPage() {
                       <h3 className="mb-2 font-serif text-lg font-bold text-[#F5E6D8]">
                         {t(item.title)}
                       </h3>
-                      <p className="text-sm leading-7 text-[#D6B79A]/60">
+                      <p className="text-sm leading-7 text-[#D6B79A]/72">
                         {t(item.body)}
                       </p>
                     </div>
@@ -333,7 +333,7 @@ export default function AboutPage() {
           <div className="mx-auto my-14 h-px w-24 bg-[#D6A373]/24" />
 
           {/* CTA */}
-          <h2 className="mb-10 font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+          <h2 className="pub-display mb-10 font-serif text-3xl font-bold sm:text-4xl">
             {t(CTA_SECTION.heading)}
           </h2>
 
@@ -347,7 +347,7 @@ export default function AboutPage() {
             </Link>
 
             <Link
-              href="/make-your-espresso"
+              href="/products?category=make-your-espresso"
               className="studio-espresso-btn inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
             >
               {t({ en: "Make Your Espresso", ar: "اصنع إسبريسو خاصتك" })}
@@ -355,7 +355,7 @@ export default function AboutPage() {
             </Link>
 
             <Link
-              href="/make-your-flavor"
+              href="/products?category=make-your-flavor"
               className="studio-flavor-btn inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
             >
               {t({ en: "Make Your Flavor", ar: "اصنع نكهتك" })}

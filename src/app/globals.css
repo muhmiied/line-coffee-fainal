@@ -24,6 +24,70 @@
   --ease-luxury: cubic-bezier(0.22, 1, 0.36, 1);
   --font-arabic-display-active: var(--font-aligarh);
   --font-arabic-body-active: var(--font-aligarh);
+
+  /* ─────────────────────────────────────────────────────────────────────
+     PUBLIC VISUAL TOKENS — single source of truth for the OFF-home public
+     UI (products, category, detail, cart, checkout, contact, blog, about,
+     auth, account, header, footer). Mirrors the Codex Home coffee palette
+     so the whole public site reads as one system. Change a value here and
+     it propagates through the .pub-* classes + the shared public classes
+     below. The scoped .line-home-coffee-palette (Home) is intentionally
+     left as Codex authored it — it derives from these same palette values.
+     ───────────────────────────────────────────────────────────────────── */
+
+  /* Coffee palette (01 → 10) */
+  --pub-espresso:     #0c0503;
+  --pub-dark-roast:   #180d09;
+  --pub-mocha:        #42200c;
+  --pub-cappuccino:   #532a12;
+  --pub-latte:        #90603a;
+  --pub-caramel:      #a16e41;
+  --pub-hazelnut:     #c69974;
+  --pub-vanilla:      #d1aa84;
+  --pub-cream:        #d6bb9f;
+  --pub-white-coffee: #e3d2b8;
+  --pub-highlight:    #ffdcc2; /* special/accent highlight ONLY */
+
+  /* Backgrounds */
+  --pub-bg:      #0b0806;
+  --pub-section: #0f0a07;
+
+  /* Text — warm + readable on dark (never buried) */
+  --pub-heading: #e7d7bf;
+  --pub-text:    rgb(227 210 184 / 0.94);
+  --pub-muted:   rgb(214 187 159 / 0.88);
+  --pub-faint:   rgb(198 153 116 / 0.78);
+
+  /* Accents */
+  --pub-accent-soft:   #d1aa84;
+  --pub-accent:        #c69974;
+  --pub-accent-strong: #a16e41;
+
+  /* Dark ink for text sitting ON light/gold surfaces (buttons, light tags) */
+  --pub-ink:        #2a1608;
+  --pub-ink-strong: #180d09;
+
+  /* Borders */
+  --pub-border:        rgb(198 153 116 / 0.22);
+  --pub-border-strong: rgb(209 170 132 / 0.42);
+
+  /* Glows + shadows (warm coffee light, never neon) */
+  --pub-glow:        rgb(182 136 94 / 0.18);
+  --pub-glow-strong: rgb(214 163 115 / 0.26);
+  --pub-shadow:      0 18px 48px rgb(12 5 3 / 0.34);
+  --pub-shadow-lift: 0 26px 72px rgb(12 5 3 / 0.46);
+  --pub-inset:       inset 0 1px 0 rgb(227 210 184 / 0.08);
+
+  /* Icons */
+  --pub-icon: #d6b79a;
+
+  /* Motion + shape */
+  --pub-ease:        cubic-bezier(0.22, 1, 0.36, 1);
+  --pub-dur:         420ms;
+  --pub-dur-fast:    240ms;
+  --pub-radius:      0.9rem;
+  --pub-radius-lg:   1.25rem;
+  --pub-radius-pill: 9999px;
 }
 
 html[dir="rtl"] .arabic-body,
@@ -285,7 +349,7 @@ html[dir="rtl"] .announcement-marquee {
 }
 
 .nav-glass .nav-link {
-  color: rgba(245, 230, 216, 0.88);
+  color: rgba(245, 230, 216, 0.95);
 }
 
 .scroll-progress-bar {
@@ -293,8 +357,8 @@ html[dir="rtl"] .announcement-marquee {
 }
 
 .nav-glass .header-icon-button {
-  color: rgba(245, 230, 216, 0.82);
-  background: rgba(182, 136, 94, 0.055);
+  color: rgba(245, 230, 216, 0.92);
+  background: rgba(182, 136, 94, 0.07);
 }
 
 .header-icon-button {
@@ -304,7 +368,7 @@ html[dir="rtl"] .announcement-marquee {
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  color: rgba(214, 183, 154, 0.75);
+  color: rgba(227, 210, 184, 0.86);
   transition:
     color 260ms var(--ease-luxury),
     background 260ms var(--ease-luxury),
@@ -740,6 +804,330 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
   color: rgb(198 153 116 / 0.56) !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   PUBLIC REUSABLE CLASSES (token-driven) — align the OFF-home public pages
+   with the Codex Home visual language. Enhancements that touch shared base
+   classes are scoped under .line-public (added on the (public) route-group
+   layout) so the admin dashboard is never affected.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Text helpers */
+.pub-heading {
+  color: var(--pub-heading);
+  text-shadow: 0 1px 0 rgb(227 210 184 / 0.12), 0 8px 26px rgb(12 5 3 / 0.55);
+}
+.pub-text  { color: var(--pub-text); }
+.pub-muted { color: var(--pub-muted); }
+.pub-faint { color: var(--pub-faint); }
+
+/* Legacy public utility bridge: Claude's pass raised many one-off opacity
+   values, but these old warm text utilities still bypassed the token scale.
+   Keep them scoped to public pages/header/footer and map them to readable
+   coffee-palette roles without touching admin surfaces. */
+:where(.line-public, .line-public-header, .line-footer) :where(
+  .text-\[\#B79B85\]\/60,
+  .text-\[\#B79B85\]\/65,
+  .text-\[\#B79B85\]\/70
+) {
+  color: var(--pub-faint);
+}
+
+:where(.line-public, .line-public-header, .line-footer) :where(
+  .text-\[\#B79B85\]\/75,
+  .text-\[\#B79B85\]\/80,
+  .text-\[\#B79B85\]\/85
+) {
+  color: var(--pub-muted);
+}
+
+:where(.line-public, .line-public-header, .line-footer) :where(
+  .text-\[\#D6B79A\]\/28,
+  .text-\[\#D6B79A\]\/30,
+  .text-\[\#D6B79A\]\/35,
+  .text-\[\#D6B79A\]\/38,
+  .text-\[\#D6B79A\]\/60,
+  .text-\[\#D6B79A\]\/62,
+  .text-\[\#D6B79A\]\/65,
+  .text-\[\#D6B79A\]\/68
+) {
+  color: var(--pub-muted);
+}
+
+:where(.line-public, .line-public-header, .line-footer) :where(
+  .text-\[\#D6B79A\]\/70,
+  .text-\[\#D6B79A\]\/72,
+  .text-\[\#D6B79A\]\/74,
+  .text-\[\#D6B79A\]\/75,
+  .text-\[\#D6B79A\]\/76,
+  .text-\[\#D6B79A\]\/78,
+  .text-\[\#D6B79A\]\/80,
+  .text-\[\#D6B79A\]\/82,
+  .text-\[\#D6B79A\]\/84,
+  .text-\[\#D6B79A\]\/85
+) {
+  color: var(--pub-text);
+}
+
+:where(.line-public, .line-public-header, .line-footer) :where(
+  .text-\[\#D6A373\]\/60,
+  .text-\[\#D6A373\]\/64,
+  .text-\[\#D6A373\]\/65,
+  .text-\[\#D6A373\]\/70,
+  .text-\[\#D6A373\]\/72,
+  .text-\[\#D6A373\]\/75,
+  .text-\[\#D6A373\]\/78,
+  .text-\[\#D6A373\]\/80
+) {
+  color: var(--pub-accent-soft);
+}
+
+:where(.line-public, .line-public-header, .line-footer) :where(
+  .text-\[\#F5E6D8\]\/35
+) {
+  color: var(--pub-faint);
+}
+
+/* Luminous / glass big-heading treatment — a restrained warm light on large
+   display headings (off-home hero + section titles). Readable warm-light
+   gradient fill (White Coffee → Cream → Vanilla) with a subtle warm glow and a
+   dark depth shadow for separation on dark backgrounds. No neon, no heavy blur.
+   Falls back to a solid readable color where background-clip:text is missing. */
+.pub-display {
+  color: var(--pub-white-coffee);
+  text-shadow:
+    0 1px 0 rgb(227 210 184 / 0.06),
+    0 10px 30px rgb(12 5 3 / 0.5),
+    0 0 22px rgb(214 163 115 / 0.10);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .pub-display {
+    background-image: linear-gradient(
+      176deg,
+      var(--pub-white-coffee) 0%,
+      #f3e4d0 42%,
+      var(--pub-cream) 74%,
+      var(--pub-vanilla) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
+
+/* Warm icon circle — feature/contact/card icons. Matches the footer's 3D
+   warm-glass language (radial highlight + warm gradient + inset + drop-shadow
+   on the glyph) so every off-home icon reads with the same depth as the footer
+   social/contact icons. */
+.pub-icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pub-radius-pill);
+  border: 1px solid var(--pub-border-strong);
+  background:
+    radial-gradient(circle at 34% 24%, rgb(227 210 184 / 0.18), transparent 42%),
+    linear-gradient(145deg, rgb(83 42 18 / 0.44), rgb(24 13 9 / 0.76));
+  color: var(--pub-white-coffee);
+  box-shadow:
+    0 12px 30px rgb(12 5 3 / 0.30),
+    inset 0 1px 0 rgb(227 210 184 / 0.14),
+    inset 0 -7px 16px rgb(12 5 3 / 0.20);
+  transition:
+    transform var(--pub-dur) var(--pub-ease),
+    border-color var(--pub-dur) var(--pub-ease),
+    box-shadow var(--pub-dur) var(--pub-ease),
+    color var(--pub-dur) var(--pub-ease),
+    background var(--pub-dur) var(--pub-ease);
+}
+.pub-icon-circle svg {
+  filter: drop-shadow(0 4px 10px rgb(12 5 3 / 0.5));
+}
+.pub-icon-circle:hover {
+  transform: translateY(-1px) scale(1.05);
+  color: #f3e4d0;
+  border-color: rgb(227 210 184 / 0.5);
+  box-shadow:
+    0 16px 38px rgb(12 5 3 / 0.36),
+    0 0 22px var(--pub-glow-strong),
+    inset 0 1px 0 rgb(227 210 184 / 0.18),
+    inset 0 -7px 16px rgb(12 5 3 / 0.18);
+}
+
+/* Warm floating card — the glow belongs to the surface (radius: inherit) */
+.pub-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid var(--pub-border);
+  background:
+    linear-gradient(145deg, rgb(83 42 18 / 0.18), rgb(24 13 9 / 0.44) 46%, rgb(12 5 3 / 0.58)),
+    rgb(24 13 9 / 0.55);
+  box-shadow: var(--pub-shadow), var(--pub-inset);
+  transition:
+    transform var(--pub-dur) var(--pub-ease),
+    box-shadow var(--pub-dur) var(--pub-ease),
+    border-color var(--pub-dur) var(--pub-ease);
+}
+.pub-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(78% 58% at 18% 0%, rgb(227 210 184 / 0.12), transparent 62%),
+    linear-gradient(135deg, rgb(227 210 184 / 0.06), transparent 34%);
+  opacity: 0.42;
+  transition: opacity var(--pub-dur) var(--pub-ease);
+}
+.pub-card > * { position: relative; z-index: 1; }
+.pub-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--pub-border-strong);
+  box-shadow: var(--pub-shadow-lift), 0 0 30px var(--pub-glow-strong);
+}
+.pub-card:hover::before { opacity: 0.62; }
+
+/* Premium 3D badge/tag base — warm dark face + white-coffee text (matches
+   Home). Applies to catalog/detail/blog tags off-home; the richer
+   .line-home-coffee-palette rules still win on the homepage. */
+.line-product-badge,
+.line-journal-tag {
+  background:
+    radial-gradient(circle at 22% 18%, rgb(227 210 184 / 0.13), transparent 32%),
+    linear-gradient(145deg, rgb(24 13 9 / 0.9), rgb(66 32 12 / 0.66));
+  color: rgb(227 210 184 / 0.96);
+  border: 1px solid rgb(209 170 132 / 0.5);
+  box-shadow:
+    0 9px 22px rgb(12 5 3 / 0.34),
+    inset 0 1px 0 rgb(227 210 184 / 0.16),
+    inset 0 -8px 18px rgb(12 5 3 / 0.2);
+  text-shadow: 0 1px 8px rgb(12 5 3 / 0.5);
+}
+.line-product-badge[data-variant="featured"] {
+  background:
+    radial-gradient(circle at 22% 18%, rgb(227 210 184 / 0.13), transparent 32%),
+    linear-gradient(145deg, rgb(66 32 12 / 0.88), rgb(83 42 18 / 0.68));
+}
+.line-product-badge[data-variant="new"],
+.line-product-badge[data-variant="visual"] {
+  background:
+    radial-gradient(circle at 22% 18%, rgb(227 210 184 / 0.16), transparent 32%),
+    linear-gradient(145deg, rgb(83 42 18 / 0.86), rgb(144 96 58 / 0.72));
+}
+
+/* Price chip base depth (off-home) */
+.line-price-chip {
+  background:
+    linear-gradient(180deg, rgb(83 42 18 / 0.2), rgb(24 13 9 / 0.32)),
+    rgb(12 5 3 / 0.16);
+  border-color: rgb(209 170 132 / 0.24);
+  box-shadow:
+    inset 0 1px 0 rgb(227 210 184 / 0.05),
+    0 6px 14px rgb(12 5 3 / 0.18);
+}
+
+/* Public primary button — warm face, inner sheen sweep on hover, warm glow.
+   Scoped to .line-public so the admin dashboard's shared .premium-button is
+   untouched. Home keeps its own higher-specificity palette rule. */
+.line-public .premium-button {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgb(255 244 232 / 0.24), rgb(255 244 232 / 0) 46%),
+    linear-gradient(135deg, var(--pub-caramel) 0%, var(--pub-vanilla) 48%, var(--pub-accent-strong) 100%);
+  color: var(--pub-ink-strong);
+  border: 1px solid rgb(198 153 116 / 0.4);
+  box-shadow:
+    0 12px 30px rgb(83 42 18 / 0.26),
+    0 0 0 1px rgb(182 136 94 / 0.14),
+    inset 0 1px 0 rgb(227 210 184 / 0.28);
+}
+.line-public .premium-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, rgb(255 250 244 / 0.34) 46%, transparent 60%);
+  transform: translateX(-130%);
+  transition: transform 760ms var(--pub-ease);
+}
+.line-public .premium-button:hover::after { transform: translateX(130%); }
+.line-public .premium-button:hover {
+  transform: translateY(-2px);
+  filter: saturate(1.06) brightness(1.02);
+  box-shadow:
+    0 18px 44px rgb(83 42 18 / 0.36),
+    0 0 26px var(--pub-glow-strong),
+    inset 0 1px 0 rgb(227 210 184 / 0.3);
+}
+.line-public .premium-button:active { transform: translateY(0); }
+.line-public .premium-button :where(span, svg) { color: var(--pub-ink-strong); }
+
+/* Warm hover light on the shared off-home panels. Uses a radius-correct
+   box-shadow glow (no positioned overlay) so it never overrides a panel's
+   own position — e.g. the products sidebar's `sticky` stays intact. */
+.line-public .luxury-panel {
+  transition:
+    border-color var(--pub-dur) var(--pub-ease),
+    box-shadow var(--pub-dur) var(--pub-ease);
+}
+.line-public .luxury-panel:hover {
+  border-color: var(--pub-border-strong);
+  box-shadow:
+    var(--pub-shadow-lift),
+    0 0 26px var(--pub-glow);
+}
+
+/* ── Branded loading screen ──────────────────────────────────────────── */
+.line-loader {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+.line-loader::before,
+.line-loader::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--pub-radius-pill);
+}
+.line-loader::before {
+  border: 2px solid rgb(198 153 116 / 0.16);
+}
+.line-loader::after {
+  border: 2px solid transparent;
+  border-top-color: var(--pub-accent-soft);
+  border-right-color: rgb(214 163 115 / 0.55);
+  animation: line-loader-spin 1s linear infinite;
+}
+.line-loader-core {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.line-loader-bean {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: var(--pub-radius-pill);
+  background: radial-gradient(circle at 35% 30%, var(--pub-vanilla), var(--pub-accent-strong));
+  box-shadow: 0 0 18px var(--pub-glow-strong);
+  animation: line-loader-pulse 1.5s var(--pub-ease) infinite;
+}
+@keyframes line-loader-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes line-loader-pulse {
+  0%, 100% { transform: scale(0.82); opacity: 0.7; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+
 .line-footer {
   --footer-copy: rgb(227 210 184 / 0.82);
   --footer-muted: rgb(214 187 159 / 0.72);
@@ -826,6 +1214,25 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
 @keyframes hero-image-drift {
   from { transform: scale(1) translateZ(0); }
   to   { transform: scale(1.07) translateZ(0); }
+}
+
+/* Slow warm ambient light drift behind the hero copy — a cinematic, restrained
+   entrance touch. Decorative + GPU-composited (transform/opacity only); the
+   global prefers-reduced-motion rule freezes it. */
+.hero-ambient {
+  position: absolute;
+  inset: -12% -12% auto -12%;
+  height: 62%;
+  pointer-events: none;
+  background: radial-gradient(58% 60% at 50% 22%, rgba(182, 136, 94, 0.16), transparent 70%);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  animation: hero-ambient-drift 17s var(--ease-luxury) infinite alternate;
+}
+
+@keyframes hero-ambient-drift {
+  from { transform: translate3d(-3%, -2%, 0) scale(1);    opacity: 0.72; }
+  to   { transform: translate3d(3%, 2%, 0)  scale(1.08);  opacity: 1; }
 }
 
 .hero-title-layer,
@@ -1122,6 +1529,14 @@ html[lang="ar"] .premium-heading-shimmer {
 
 /* ── Buttons ──────────────────────────────────────────────────────── */
 
+/* Default pill radius so buttons that don't set their own rounded-* utility
+   (auth, account, error screens) read as premium pills instead of sharp
+   rectangles. :where() keeps 0 specificity, so any rounded-xl / rounded-full
+   utility on a specific button still wins and existing shapes are unchanged. */
+:where(.premium-button, .premium-button-outline, .studio-espresso-btn, .studio-flavor-btn) {
+  border-radius: 9999px;
+}
+
 .premium-button {
   background: linear-gradient(135deg, #a8744e 0%, #d6a373 46%, #b6885e 100%);
   color: var(--coffee-black);
@@ -1144,24 +1559,37 @@ html[lang="ar"] .premium-heading-shimmer {
 }
 
 .premium-button-outline {
-  background: rgba(182, 136, 94, 0.075);
-  color: var(--gold-light);
-  border: 1px solid rgba(182, 136, 94, 0.3);
-  box-shadow: inset 0 1px 0 rgba(245, 230, 216, 0.04);
+  /* Dark coffee glass with a warm border and light, readable text. */
+  background:
+    linear-gradient(145deg, rgba(182, 136, 94, 0.12), rgba(182, 136, 94, 0.05));
+  color: #ecd6bf;
+  border: 1px solid rgba(214, 163, 115, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 230, 216, 0.06),
+    0 10px 28px rgba(0, 0, 0, 0.2);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   transition:
     transform 420ms var(--ease-luxury),
     border-color 420ms var(--ease-luxury),
     background 420ms var(--ease-luxury),
-    box-shadow 420ms var(--ease-luxury);
+    box-shadow 420ms var(--ease-luxury),
+    color 420ms var(--ease-luxury);
 }
 
 .premium-button-outline:hover {
   transform: translateY(-2px);
-  background: rgba(182, 136, 94, 0.13);
-  border-color: rgba(214, 163, 115, 0.55);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.26), 0 0 28px rgba(182, 136, 94, 0.12);
+  color: #f8ecdd;
+  background: linear-gradient(145deg, rgba(182, 136, 94, 0.2), rgba(182, 136, 94, 0.09));
+  border-color: rgba(214, 163, 115, 0.6);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.28),
+    0 0 30px rgba(182, 136, 94, 0.16),
+    inset 0 1px 0 rgba(245, 230, 216, 0.1);
+}
+
+.premium-button-outline:active {
+  transform: translateY(0);
 }
 
 /* ── Studio sidebar buttons (accent variants, same dimensions as premium-button) */
@@ -1239,6 +1667,11 @@ html[lang="ar"] .premium-heading-shimmer {
   overflow: hidden;
   margin-inline: calc(50% - 50vw);
   padding-inline: max(1rem, calc((100vw - 80rem) / 2));
+  /* Vertical breathing room so a card's hover lift (translateY(-5px)) and its
+     warm glow are not eaten by this container's horizontal overflow clip.
+     The mask below fades the left/right edges only, so this padded band stays
+     fully visible top and bottom. */
+  padding-block: 1.6rem;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
@@ -1466,41 +1899,70 @@ html[lang="ar"] .uppercase {
 
 /* ── Products sidebar ─────────────────────────────────────────────── */
 
+/* Selected category — same warm 3D "polish language" and rounded curve as the
+   Make Your studio buttons (crisp warm border + top sheen + inset highlight),
+   kept in gold so it stays distinct from the orange/red studio accent. */
 .products-cat-active {
-  background: linear-gradient(135deg, #b6885e 0%, #d6a373 100%);
+  background:
+    linear-gradient(180deg, rgb(255 244 232 / 0.22), rgb(255 244 232 / 0) 46%),
+    linear-gradient(135deg, #b6885e 0%, #d6a373 100%);
   color: #0b0806;
-  box-shadow: 0 4px 16px rgba(182, 136, 94, 0.3);
+  border: 1px solid rgb(214 163 115 / 0.55);
+  box-shadow:
+    0 10px 26px rgba(182, 136, 94, 0.30),
+    0 0 0 1px rgb(182 136 94 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.28);
 }
 
 /* ── Form inputs ──────────────────────────────────────────────────── */
 
 .line-input {
   width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(182, 136, 94, 0.18);
-  background: rgba(182, 136, 94, 0.07);
-  color: var(--cream);
+  border-radius: var(--pub-radius);
+  border: 1px solid var(--pub-border);
+  background:
+    linear-gradient(180deg, rgb(182 136 94 / 0.09), rgb(18 13 9 / 0.62));
+  color: var(--pub-white-coffee);
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
+  box-shadow:
+    inset 0 1px 0 rgb(227 210 184 / 0.05),
+    inset 0 2px 10px rgb(12 5 3 / 0.28);
   transition:
-    border-color 240ms var(--ease-luxury),
-    box-shadow 240ms var(--ease-luxury),
-    background 240ms var(--ease-luxury);
+    border-color var(--pub-dur-fast) var(--pub-ease),
+    box-shadow var(--pub-dur-fast) var(--pub-ease),
+    background var(--pub-dur-fast) var(--pub-ease);
 }
 
 .line-input-search {
   padding-left: 2.5rem;
 }
 
+/* Placeholders — slightly more visible while still clearly secondary */
 .line-input::placeholder {
-  color: rgba(214, 183, 154, 0.56);
+  color: rgb(209 170 132 / 0.6);
+}
+
+:where(.line-public, .line-public-header, .line-footer) .line-input::placeholder {
+  color: rgb(209 170 132 / 0.74);
 }
 
 .line-input:focus {
-  border-color: rgba(214, 163, 115, 0.72);
-  box-shadow: 0 0 0 3px rgba(182, 136, 94, 0.24);
-  background: rgba(18, 13, 9, 0.76);
+  border-color: var(--pub-accent);
+  box-shadow:
+    0 0 0 3px rgb(214 163 115 / 0.18),
+    0 0 20px var(--pub-glow-strong),
+    inset 0 2px 10px rgb(12 5 3 / 0.22);
+  background: rgb(18 13 9 / 0.86);
   outline: none;
+}
+
+/* Native <select> option list — keep it dark coffee glass instead of the OS
+   default white, so checkout/contact dropdowns read as one system. */
+.line-input option,
+.line-select option {
+  background-color: #130e09;
+  color: var(--cream);
 }
 
 /* ── Products hero ───────────────────────────────────────────────── */

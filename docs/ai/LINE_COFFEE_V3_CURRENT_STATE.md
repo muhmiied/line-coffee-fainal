@@ -104,7 +104,7 @@ These admin modules render from `src/lib/mock-data/admin/*` (or local component 
 ## Public Website (visually locked)
 
 Routes exist and are styled; the homepage visual direction is **locked** — do not redesign:
-`/` · `/products` · `/products/category/[slug]` · `/products/[slug]` · `/make-your-espresso` · `/make-your-flavor` · `/cart` · `/checkout` · `/order-success` · `/about` · `/blog` · `/blog/[slug]` · `/contact` · `/privacy` · `/terms` · `/shipping` · `/returns`.
+`/` · `/products` · `/products?category=make-your-espresso` · `/products?category=make-your-flavor` · `/products/category/[slug]` · `/products/[slug]` · `/cart` · `/checkout` · `/order-success` · `/about` · `/blog` · `/blog/[slug]` · `/contact` · `/privacy` · `/terms` · `/shipping` · `/returns`.
 
 Account/auth: `/auth/login` · `/auth/signup` · `/auth/forgot-password` · `/auth/reset-password` · `/account/{profile,orders,orders/[id],addresses,wishlist,notifications,settings}`.
 

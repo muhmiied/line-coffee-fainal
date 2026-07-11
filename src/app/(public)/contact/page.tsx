@@ -4,6 +4,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useLanguage } from "@/lib/context/language";
 import { submitContactMessage } from "@/lib/cms/public-cms";
 import {
@@ -81,12 +82,12 @@ function ContactCard({
   const display = typeof value === "string" ? value : t(value);
 
   const inner = (
-    <div className="luxury-panel flex items-start gap-4 rounded-2xl p-5 transition-colors duration-300 hover:border-[#D6A373]/28">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#B6885E]/24 bg-[#B6885E]/10">
-        <Icon className="h-5 w-5 text-[#D6A373]" />
+    <div className="luxury-panel flex items-start gap-4 rounded-2xl p-5">
+      <div className="pub-icon-circle h-11 w-11 shrink-0">
+        <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#D6A373]/68">
+        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#D6A373]/80">
           {t(label)}
         </p>
         <p className="break-all text-sm font-semibold text-[#F5E6D8]">{display}</p>
@@ -136,13 +137,15 @@ export default function ContactPage() {
     settings.contact.whatsappNumber,
     process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
   );
-  const supportPhone = resolvePublicPhone(
-    settings.contact.supportPhone,
-    whatsappNumber ?? "",
-  );
-  const phoneDisplay = supportPhone ? formatPublicPhone(supportPhone) : null;
+  // No WhatsApp fallback here — a Phone card only appears for a real, distinct
+  // support line, so the same number is never shown twice.
+  const supportPhone = resolvePublicPhone(settings.contact.supportPhone);
   const whatsappDisplay = whatsappNumber ? formatPublicPhone(whatsappNumber) : null;
-  const phoneHref = supportPhone ? toPhoneHref(supportPhone) : null;
+  const supportPhoneDisplay = supportPhone ? formatPublicPhone(supportPhone) : null;
+  const phoneIsDistinct =
+    Boolean(supportPhone) && supportPhoneDisplay !== whatsappDisplay;
+  const phoneDisplay = phoneIsDistinct ? supportPhoneDisplay : null;
+  const phoneHref = phoneIsDistinct && supportPhone ? toPhoneHref(supportPhone) : null;
   const emailHref = toEmailHref(settings.contact.supportEmail);
   const whatsappHref = toWhatsAppHref(
     whatsappNumber ?? "",
@@ -231,7 +234,7 @@ export default function ContactPage() {
         />
 
         <div className="relative z-10 mx-auto max-w-3xl px-4 text-center">
-          <h1 className="mb-4 font-serif text-4xl font-bold leading-tight text-[#F5E6D8] sm:text-5xl lg:text-6xl">
+          <h1 className="pub-display mb-4 font-serif text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
             {t({ en: "Get in Touch", ar: "تواصل معنا" })}
           </h1>
           <p className="mx-auto max-w-xl text-base leading-7 text-[#D6B79A]/70">
@@ -264,13 +267,13 @@ export default function ContactPage() {
                 {submitted ? (
                   /* Success state */
                   <div className="flex flex-col items-center py-10 text-center">
-                    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-[#D6A373]/30 bg-[#D6A373]/10">
-                      <MessageCircle className="h-7 w-7 text-[#D6A373]" />
+                    <div className="pub-icon-circle mb-5 h-16 w-16">
+                      <MessageCircle className="h-7 w-7" />
                     </div>
                     <h2 className="mb-2 font-serif text-2xl font-bold text-[#F5E6D8]">
                       {t({ en: "Message Sent", ar: "تم إرسال رسالتك" })}
                     </h2>
-                    <p className="mb-8 max-w-sm text-sm leading-7 text-[#D6B79A]/68">
+                    <p className="mb-8 max-w-sm text-sm leading-7 text-[#D6B79A]/85">
                       {t({
                         en: "Thank you for reaching out. We will get back to you within 24 hours.",
                         ar: "شكراً على تواصلك. سنرد عليك في غضون 24 ساعة.",
@@ -367,7 +370,7 @@ export default function ContactPage() {
                           </select>
                           <ChevronDown
                             className={cn(
-                              "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6A373]/60",
+                              "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6A373]/80",
                               isRtl ? "left-3" : "right-3",
                             )}
                           />
@@ -417,7 +420,7 @@ export default function ContactPage() {
               </h2>
 
               {whatsappHref && <ContactCard
-                icon={MessageCircle}
+                icon={WhatsAppIcon}
                 label={{ en: "WhatsApp", ar: "واتساب" }}
                 value={whatsappDisplay || "WhatsApp"}
                 href={whatsappHref}
@@ -449,7 +452,7 @@ export default function ContactPage() {
               )}
 
               {(whatsappHref || emailHref) && <div className="luxury-panel mt-1 rounded-2xl p-5">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#D6A373]/68">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#D6A373]/85">
                   {t({ en: "Response time", ar: "وقت الرد" })}
                 </p>
                 <p className="text-sm leading-6 text-[#D6B79A]/70">
@@ -474,14 +477,14 @@ export default function ContactPage() {
 
         <div className="relative z-10 mx-auto max-w-3xl px-4 text-center">
           <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full border border-[#9e3b1c]/40 bg-[#9e3b1c]/14">
-            <MessageCircle className="h-6 w-6 text-[#f5cdb2]" />
+            <WhatsAppIcon className="h-6 w-6 text-[#f5cdb2]" />
           </div>
 
-          <h2 className="mb-3 font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+          <h2 className="pub-display mb-3 font-serif text-3xl font-bold sm:text-4xl">
             {t({ en: "Prefer WhatsApp?", ar: "تفضل واتساب؟" })}
           </h2>
 
-          <p className="mx-auto mb-6 max-w-md text-base leading-7 text-[#D6B79A]/68">
+          <p className="mx-auto mb-6 max-w-md text-base leading-7 text-[#D6B79A]/85">
             {t({
               en: "Most customers reach us faster on WhatsApp. Click below to start a conversation.",
               ar: "معظم عملائنا يصلونا بشكل أسرع عبر واتساب. اضغط أدناه لبدء محادثة.",
@@ -516,7 +519,7 @@ export default function ContactPage() {
             <p className="premium-section-kicker mx-auto mb-5">
               {t({ en: "FAQ", ar: "الأسئلة الشائعة" })}
             </p>
-            <h2 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+            <h2 className="pub-display font-serif text-3xl font-bold sm:text-4xl">
               {t({ en: "Common Questions", ar: "أسئلة شائعة" })}
             </h2>
           </div>
@@ -553,7 +556,7 @@ export default function ContactPage() {
 
                   {isOpen && (
                     <div className="border-t border-[#B6885E]/14 px-5 pb-5 pt-4">
-                      <p className="text-sm leading-7 text-[#D6B79A]/68">
+                      <p className="text-sm leading-7 text-[#D6B79A]/85">
                         {t(item.a)}
                       </p>
                     </div>
@@ -565,7 +568,7 @@ export default function ContactPage() {
 
           {/* CTA */}
           <div className="mt-14 text-center">
-            <p className="mb-5 text-sm text-[#D6B79A]/58">
+            <p className="mb-5 text-sm text-[#D6B79A]/78">
               {t({ en: "Ready to explore the range?", ar: "مستعد لاستكشاف المجموعة؟" })}
             </p>
             <Link

@@ -87,7 +87,7 @@ export default function BlogPage() {
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.26em] text-[#D6A373]">
             {t({ en: "Coffee Journal", ar: "مجلة القهوة" })}
           </p>
-          <h1 className="font-serif text-4xl font-bold text-[#F5E6D8] sm:text-5xl">
+          <h1 className="pub-display font-serif text-4xl font-bold sm:text-5xl">
             {t({ en: "All Things Coffee", ar: "كل ما يخص القهوة" })}
           </h1>
           <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-[#D6B79A]/70">
@@ -131,10 +131,10 @@ export default function BlogPage() {
                 <h2 className="mb-4 font-serif text-2xl font-bold leading-snug text-[#F5E6D8] transition-colors group-hover:text-[#D6A373] md:text-3xl">
                   {t(featured.title)}
                 </h2>
-                <p className="mb-6 text-sm leading-relaxed text-[#D6B79A]/65 md:text-base">
+                <p className="mb-6 text-sm leading-relaxed text-[#D6B79A]/85 md:text-base">
                   {t(featured.excerpt)}
                 </p>
-                <div className="mb-6 flex flex-wrap items-center gap-4 text-xs text-[#D6B79A]/45">
+                <div className="mb-6 flex flex-wrap items-center gap-4 text-xs text-[#D6B79A]/65">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5" />
                     {formatDate(featured.date, language)}
@@ -168,7 +168,7 @@ export default function BlogPage() {
             <div className="relative w-full max-w-sm">
               <Search
                 className={cn(
-                  "absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6885E]/60",
+                  "absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6885E]/80",
                   dir === "rtl" ? "right-4" : "left-4",
                 )}
               />
@@ -189,7 +189,7 @@ export default function BlogPage() {
                   onClick={() => setQuery("")}
                   aria-label={t({ en: "Clear search", ar: "مسح البحث" })}
                   className={cn(
-                    "absolute top-1/2 -translate-y-1/2 text-[#D6B79A]/50 hover:text-[#D6B79A]",
+                    "absolute top-1/2 -translate-y-1/2 text-[#D6B79A]/70 hover:text-[#D6B79A]",
                     dir === "rtl" ? "left-4" : "right-4",
                   )}
                 >
@@ -206,7 +206,7 @@ export default function BlogPage() {
                   "rounded-full border px-4 py-1.5 text-xs font-semibold transition-all",
                   !activeCategory
                     ? "border-[#D6A373]/40 bg-[#D6A373]/12 text-[#D6A373]"
-                    : "border-[#B6885E]/20 text-[#D6B79A]/55 hover:border-[#B6885E]/40 hover:text-[#D6B79A]",
+                    : "border-[#B6885E]/20 text-[#D6B79A]/75 hover:border-[#B6885E]/40 hover:text-[#D6B79A]",
                 )}
               >
                 {t({ en: "All", ar: "الكل" })}
@@ -224,7 +224,7 @@ export default function BlogPage() {
                     "rounded-full border px-4 py-1.5 text-xs font-semibold transition-all",
                     activeCategory === cat.en
                       ? "border-[#D6A373]/40 bg-[#D6A373]/12 text-[#D6A373]"
-                      : "border-[#B6885E]/20 text-[#D6B79A]/55 hover:border-[#B6885E]/40 hover:text-[#D6B79A]",
+                      : "border-[#B6885E]/20 text-[#D6B79A]/75 hover:border-[#B6885E]/40 hover:text-[#D6B79A]",
                   )}
                 >
                   {t(cat)}
@@ -236,13 +236,13 @@ export default function BlogPage() {
           {/* Grid */}
           {loading ? (
             <div className="py-20 text-center">
-              <p className="text-[#D6B79A]/50">
+              <p className="text-[#D6B79A]/70">
                 {t({ en: "Loading articles...", ar: "جارٍ تحميل المقالات..." })}
               </p>
             </div>
           ) : loadError ? (
             <div className="py-20 text-center">
-              <p className="text-[#D6B79A]/50">
+              <p className="text-[#D6B79A]/70">
                 {t({
                   en: "Articles could not be loaded. Please try again.",
                   ar: "تعذر تحميل المقالات. يرجى المحاولة مرة أخرى.",
@@ -251,7 +251,7 @@ export default function BlogPage() {
             </div>
           ) : posts.length === 0 ? (
             <div className="py-20 text-center">
-              <p className="text-[#D6B79A]/50">
+              <p className="text-[#D6B79A]/70">
                 {t({
                   en: "No published articles yet.",
                   ar: "لا توجد مقالات منشورة حتى الآن.",
@@ -260,7 +260,7 @@ export default function BlogPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-20 text-center">
-              <p className="text-[#D6B79A]/50">
+              <p className="text-[#D6B79A]/70">
                 {t({ en: "No articles found.", ar: "لا توجد مقالات." })}
               </p>
               <button
@@ -297,7 +297,7 @@ export default function BlogPage() {
                     </div>
                   </div>
                   <div className="p-5 pb-6">
-                    <div className="mb-3 flex flex-wrap items-center gap-3 text-[10px] text-[#D6B79A]/42">
+                    <div className="mb-3 flex flex-wrap items-center gap-3 text-[10px] text-[#D6B79A]/62">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {formatDate(post.date, language)}
@@ -310,10 +310,10 @@ export default function BlogPage() {
                     <h3 className="mb-3 line-clamp-2 text-[1.05rem] font-bold leading-snug text-[#F5E6D8] transition-colors group-hover:text-[#D6A373]">
                       {t(post.title)}
                     </h3>
-                    <p className="line-clamp-3 text-[0.82rem] leading-relaxed text-[#D6B79A]/60">
+                    <p className="line-clamp-3 text-[0.82rem] leading-relaxed text-[#D6B79A]/72">
                       {t(post.excerpt)}
                     </p>
-                    <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#D6A373]/60 transition-colors group-hover:text-[#D6A373]">
+                    <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#D6A373]/80 transition-colors group-hover:text-[#D6A373]">
                       <span>{t({ en: "Read more", ar: "اقرأ المزيد" })}</span>
                       <ArrowRight
                         className={cn(

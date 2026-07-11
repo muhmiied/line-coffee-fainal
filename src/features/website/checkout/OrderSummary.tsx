@@ -62,7 +62,7 @@ export function OrderSummary({
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-[#F5E6D8]/85">{t(item.name)}</p>
-              <p className="truncate text-[10px] text-[#D6B79A]/42">{t(item.detail)}</p>
+              <p className="truncate text-[10px] text-[#D6B79A]/80">{t(item.detail)}</p>
             </div>
             <span className="arabic-number shrink-0 text-xs font-bold text-[#D6A373]">
               {item.pricePerUnit * item.qty}
@@ -83,14 +83,14 @@ export function OrderSummary({
 
       <div className="space-y-2.5 border-t border-[#B6885E]/12 pt-4">
         <div className="flex justify-between text-sm">
-          <span className="text-[#D6B79A]/58">{t({ en: "Subtotal", ar: "المجموع الجزئي" })}</span>
+          <span className="text-[#D6B79A]/72">{t({ en: "Subtotal", ar: "المجموع الجزئي" })}</span>
           <span className="arabic-number font-semibold text-[#F5E6D8]">
             {total} {t({ en: "EGP", ar: "ج.م" })}
           </span>
         </div>
         {promoDiscount > 0 && (
           <div className="flex justify-between text-sm">
-            <span className="text-[#D6B79A]/58">
+            <span className="text-[#D6B79A]/72">
               {t({ en: "Product discount", ar: "خصم المنتجات" })}
             </span>
             <span className="arabic-number font-semibold text-emerald-400">
@@ -99,9 +99,9 @@ export function OrderSummary({
           </div>
         )}
         <div className="flex justify-between text-sm">
-          <span className="text-[#D6B79A]/58">{t({ en: "Delivery", ar: "التوصيل" })}</span>
+          <span className="text-[#D6B79A]/72">{t({ en: "Delivery", ar: "التوصيل" })}</span>
           {deliveryZone === null ? (
-            <span className="text-[#D6B79A]/45">
+            <span className="text-[#D6B79A]/80">
               {t({ en: "Select address", ar: "اختر العنوان" })}
             </span>
           ) : deliveryZone.zone === "governorate_courier" ? (
@@ -115,7 +115,7 @@ export function OrderSummary({
           )}
         </div>
         {deliveryZone?.zone === "governorate_courier" && (
-          <p className="text-[10px] leading-4 text-[#D6B79A]/42">
+          <p className="text-[10px] leading-4 text-[#D6B79A]/78">
             {t({
               en: "Outside Cairo & Giza — the courier collects the delivery fee on arrival.",
               ar: "خارج القاهرة والجيزة — يحصّل المندوب رسوم التوصيل عند الوصول.",
@@ -158,7 +158,7 @@ export function OrderSummary({
         )}
       </button>
 
-      <p className="mt-3 text-center text-[10px] text-[#D6B79A]/32">
+      <p className="mt-3 text-center text-[10px] text-[#D6B79A]/75">
         {paymentMethod === "cash"
           ? t({ en: "Pay when delivered", ar: "الدفع عند الاستلام" })
           : paymentMethod === "instapay"

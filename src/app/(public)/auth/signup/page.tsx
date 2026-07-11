@@ -60,7 +60,7 @@ export default function SignupPage() {
   };
 
   const inputClass =
-    "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 transition-colors focus:border-[#B6885E]/40 focus:outline-none";
+    "w-full rounded-xl border border-[#B6885E]/22 bg-[#120D09]/70 px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/38 outline-none transition-all focus:border-[#D6A373]/50 focus:ring-2 focus:ring-[#D6A373]/18";
 
   if (done) {
     return (
@@ -137,7 +137,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/50 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
+              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
               aria-label="Toggle password visibility"
             >
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -167,7 +167,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
-              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/50 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
+              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
               aria-label="Toggle confirm password visibility"
             >
               {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -197,7 +197,7 @@ export default function SignupPage() {
         ) : null}
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#B79B85]/60">
+      <p className="mt-6 text-center text-sm text-[#B79B85]/80">
         {t({ en: "Already have an account?", ar: "لديك حساب بالفعل؟" })}{" "}
         <Link
           href="/auth/login"

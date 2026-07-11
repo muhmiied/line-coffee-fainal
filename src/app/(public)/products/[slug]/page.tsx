@@ -172,21 +172,21 @@ function ProductLoadPanel({ state }: { state: "loading" | "error" }) {
 
 function Breadcrumb({ product, category }: { product: PublicCatalogProduct; category?: PublicCatalogCategory }) {
   const { dir, t } = useLanguage();
-  const separator = <ChevronRight className={cn("h-3.5 w-3.5 text-[#D6A373]/44", dir === "rtl" && "rotate-180")} />;
+  const separator = <ChevronRight className={cn("h-3.5 w-3.5 text-[#D6A373]/64", dir === "rtl" && "rotate-180")} />;
 
   return (
     <nav aria-label={t({ en: "Breadcrumb", ar: "مسار الصفحة" })} className="flex flex-wrap items-center gap-2 text-xs font-semibold" dir={dir}>
-      <Link href="/" className="text-[#D6B79A]/64 transition-colors hover:text-[#F5E6D8]">
+      <Link href="/" className="text-[#D6B79A]/84 transition-colors hover:text-[#F5E6D8]">
         {t({ en: "Home", ar: "الرئيسية" })}
       </Link>
       {separator}
-      <Link href="/products" className="text-[#D6B79A]/64 transition-colors hover:text-[#F5E6D8]">
+      <Link href="/products" className="text-[#D6B79A]/84 transition-colors hover:text-[#F5E6D8]">
         {t({ en: "Products", ar: "المنتجات" })}
       </Link>
       {category ? (
         <>
           {separator}
-          <Link href={`/products?category=${category.slug}`} className="text-[#D6B79A]/64 transition-colors hover:text-[#F5E6D8]">
+          <Link href={`/products?category=${category.slug}`} className="text-[#D6B79A]/84 transition-colors hover:text-[#F5E6D8]">
             {t(category.name)}
           </Link>
         </>
@@ -255,7 +255,7 @@ function MetricBar({ metric }: { metric: ProductMetric }) {
 
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between gap-3 text-[11px] font-medium text-[#D6B79A]/64">
+      <div className="mb-1 flex items-center justify-between gap-3 text-[11px] font-medium text-[#D6B79A]/84">
         <span className="truncate">{t(metric.label)}</span>
         <span className="arabic-number shrink-0 font-bold text-[#D6A373]">{metric.value}/5</span>
       </div>
@@ -442,7 +442,7 @@ export default function ProductDetailPage() {
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#D6A373]">
               {category ? t(category.name) : t({ en: "Line Coffee", ar: "لاين كوفي" })}
             </p>
-            <h1 className="font-serif text-4xl font-bold leading-tight text-[#F5E6D8] drop-shadow-[0_12px_34px_rgba(0,0,0,0.52)] sm:text-5xl lg:text-6xl">
+            <h1 className="pub-display font-serif text-4xl font-bold leading-tight drop-shadow-[0_12px_34px_rgba(0,0,0,0.52)] sm:text-5xl lg:text-6xl">
               {primaryName}
             </h1>
           </div>
@@ -508,7 +508,7 @@ export default function ProductDetailPage() {
                         <p className="truncate text-sm font-semibold text-[#F5E6D8]/88">
                           {t(component.origin)}
                         </p>
-                        <p className="text-[11px] text-[#D6B79A]/50">
+                        <p className="text-[11px] text-[#D6B79A]/70">
                           {component.beanType === "arabica"
                             ? t({ en: "Arabica", ar: "أرابيكا" })
                             : t({ en: "Robusta", ar: "روبوستا" })}
@@ -536,7 +536,7 @@ export default function ProductDetailPage() {
               </p>
 
               <div className="mt-4 rounded-2xl border border-[#D6A373]/18 bg-[#D6A373]/8 p-4">
-                <p className="text-xs text-[#D6B79A]/64">
+                <p className="text-xs text-[#D6B79A]/84">
                   {selectedWeight} × <span className="arabic-number">{quantity}</span>
                 </p>
                 <p className="mt-1 font-serif text-4xl font-bold text-[#D6A373]">
@@ -580,7 +580,7 @@ export default function ProductDetailPage() {
                   "mt-2 flex w-full items-center justify-center gap-2 rounded-full border py-2.5 text-xs font-semibold transition-all",
                   wishlisted
                     ? "border-[#D6A373]/35 bg-[#D6A373]/08 text-[#D6A373]"
-                    : "border-[#B6885E]/16 text-[#D6B79A]/58 hover:border-[#D6A373]/30 hover:text-[#F5E6D8]",
+                    : "border-[#B6885E]/16 text-[#D6B79A]/78 hover:border-[#D6A373]/30 hover:text-[#F5E6D8]",
                 )}
               >
                 <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted && "fill-[#D6A373]")} />

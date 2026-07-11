@@ -18,7 +18,7 @@ import {
 // of shipping them in the products page's initial JS bundle.
 function StudioFallback() {
   return (
-    <div className="flex min-h-[320px] items-center justify-center text-sm text-[#D6B79A]/45">
+    <div className="flex min-h-[320px] items-center justify-center text-sm text-[#D6B79A]/65">
       Loading studio…
     </div>
   );
@@ -98,7 +98,7 @@ function ProductsHero() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_65%,_rgba(182,136,94,0.08)_0%,_transparent_70%)]" />
 
       <div className="relative z-10 px-4 text-center text-white">
-        <h1 className="mb-4 font-serif text-4xl font-bold md:text-5xl lg:text-6xl">
+        <h1 className="pub-display mb-4 font-serif text-4xl font-bold md:text-5xl lg:text-6xl">
           {t({ en: "Our Products", ar: "منتجاتنا" })}
         </h1>
         <p className="mx-auto max-w-2xl text-lg text-white/90 md:text-xl">
@@ -279,19 +279,19 @@ export default function ProductsPage() {
           <main className="min-w-0 flex-1">
             {catalogState === "loading" ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
-                <p className="font-serif text-lg text-[#F5E6D8]/50">
+                <p className="font-serif text-lg text-[#F5E6D8]/70">
                   {t({ en: "Loading products", ar: "جاري تحميل المنتجات" })}
                 </p>
-                <p className="text-sm text-[#D6B79A]/40">
+                <p className="text-sm text-[#D6BB9F]/82">
                   {t({ en: "Reading the live catalog.", ar: "نقرأ الكتالوج الحي." })}
                 </p>
               </div>
             ) : catalogState === "error" ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
-                <p className="font-serif text-lg text-[#F5E6D8]/50">
+                <p className="font-serif text-lg text-[#F5E6D8]/70">
                   {t({ en: "Products could not be loaded", ar: "تعذر تحميل المنتجات" })}
                 </p>
-                <p className="text-sm text-[#D6B79A]/40">
+                <p className="text-sm text-[#D6BB9F]/82">
                   {t({ en: "Please try again in a moment.", ar: "يرجى المحاولة مرة أخرى بعد قليل." })}
                 </p>
               </div>
@@ -304,7 +304,7 @@ export default function ProductsPage() {
             ) : (
               <>
                 <div className="relative mb-4">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/45" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65" />
                   <input
                     type="search"
                     value={search}
@@ -314,7 +314,7 @@ export default function ProductsPage() {
                   />
                 </div>
 
-                <p className="mb-5 text-sm text-[#D6B79A]/55">
+                <p className="mb-5 text-sm text-[#D6BB9F]/75">
                   {filtered.length}{" "}
                   {t({ en: "products", ar: "منتج" })}
                 </p>
@@ -342,10 +342,10 @@ export default function ProductsPage() {
                   </div>
                 ) : (
                   <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
-                    <p className="font-serif text-lg text-[#F5E6D8]/50">
+                    <p className="font-serif text-lg text-[#F5E6D8]/70">
                       {t({ en: "No products found", ar: "لا توجد منتجات" })}
                     </p>
-                    <p className="text-sm text-[#D6B79A]/40">
+                    <p className="text-sm text-[#D6BB9F]/82">
                       {t({ en: "Try a different search or category", ar: "جرّب بحثاً أو تصنيفاً مختلفاً" })}
                     </p>
                   </div>

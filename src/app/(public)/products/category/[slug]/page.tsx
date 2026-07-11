@@ -176,8 +176,8 @@ function sortProducts(products: PublicCatalogProduct[], sort: SortValue, localiz
 
 function Breadcrumb({ category }: { category?: PublicCatalogCategory }) {
   const { dir, t } = useLanguage();
-  const itemClass = "text-[#D6B79A]/64 transition-colors hover:text-[#F5E6D8]";
-  const separator = <ChevronRight className={cn("h-3.5 w-3.5 text-[#D6A373]/44", dir === "rtl" && "rotate-180")} />;
+  const itemClass = "text-[#D6B79A]/84 transition-colors hover:text-[#F5E6D8]";
+  const separator = <ChevronRight className={cn("h-3.5 w-3.5 text-[#D6A373]/64", dir === "rtl" && "rotate-180")} />;
 
   return (
     <nav aria-label={t({ en: "Breadcrumb", ar: "مسار الصفحة" })} className="flex flex-wrap items-center gap-2 text-xs font-semibold" dir={dir}>
@@ -377,7 +377,7 @@ export default function ProductCategoryPage() {
                 {t({ en: "Browse Controls", ar: "أدوات التصفح" })}
               </h2>
             </div>
-            <p className="mt-2 text-sm leading-6 text-[#D6B79A]/62">
+            <p className="mt-2 text-sm leading-6 text-[#D6B79A]/82">
               {t({
                 en: "Search within this category, filter by price, or reorder the collection.",
                 ar: "ابحث داخل هذا التصنيف، صف حسب السعر، أو غير ترتيب المجموعة.",
@@ -389,7 +389,7 @@ export default function ProductCategoryPage() {
         <section className="sticky top-24 z-20 my-7 rounded-2xl border border-[#B6885E]/16 bg-[#120D09]/88 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-xl md:top-32">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
             <div className="relative">
-              <Search className={cn("pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/45", dir === "rtl" ? "right-3" : "left-3")} />
+              <Search className={cn("pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65", dir === "rtl" ? "right-3" : "left-3")} />
               <input
                 type="search"
                 value={search}
@@ -436,7 +436,7 @@ export default function ProductCategoryPage() {
         </section>
 
         <div className="mb-5 flex items-center justify-between gap-4">
-          <p className="text-sm text-[#D6B79A]/58">
+          <p className="text-sm text-[#D6B79A]/78">
             <span className="arabic-number">{filteredProducts.length}</span>{" "}
             {t({ en: "matching products", ar: "منتجات مطابقة" })}
           </p>
@@ -465,7 +465,7 @@ export default function ProductCategoryPage() {
             <p className="font-serif text-2xl font-bold text-[#F5E6D8]/72">
               {t({ en: "No products found", ar: "لا توجد منتجات مطابقة" })}
             </p>
-            <p className="mt-2 max-w-md text-sm leading-6 text-[#D6B79A]/58">
+            <p className="mt-2 max-w-md text-sm leading-6 text-[#D6B79A]/78">
               {t({ en: "Try clearing the search or selecting a different price range.", ar: "جرب مسح البحث أو اختيار نطاق سعر مختلف." })}
             </p>
           </section>

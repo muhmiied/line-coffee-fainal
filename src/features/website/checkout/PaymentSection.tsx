@@ -55,11 +55,11 @@ export function PaymentSection({ t, dir, form, update }: PaymentSectionProps) {
                   : "border-[#B6885E]/18 hover:border-[#B6885E]/35",
               )}
             >
-              <Icon className={cn("mb-2.5 h-4 w-4", active ? "text-[#D6A373]" : "text-[#B6885E]/50")} />
+              <Icon className={cn("mb-2.5 h-4 w-4", active ? "text-[#D6A373]" : "text-[#B6885E]/70")} />
               <p className="text-sm font-semibold text-[#F5E6D8]">
                 {t({ en: labelEn, ar: labelAr })}
               </p>
-              <p className="mt-0.5 text-[11px] text-[#D6B79A]/48">
+              <p className="mt-0.5 text-[11px] text-[#D6B79A]/68">
                 {t({ en: descEn, ar: descAr })}
               </p>
             </button>

@@ -13,7 +13,7 @@ export const errorClass = "mt-1.5 text-[11px] text-red-400";
 
 export function FieldLabel({ label, required }: { label: string; required?: boolean }) {
   return (
-    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/60">
+    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/80">
       {label}
       {required && <span className="ml-1 text-[#D6A373]">*</span>}
     </label>
@@ -61,7 +61,7 @@ export function CustomSelect({
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-[#B6885E]/45 transition-transform duration-200",
+            "h-4 w-4 shrink-0 text-[#B6885E]/65 transition-transform duration-200",
             open && "rotate-180",
           )}
         />

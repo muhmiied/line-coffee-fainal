@@ -136,16 +136,16 @@ function AddressCard({
               <p className="text-xs text-[#B79B85]/70">{address.recipientName}</p>
             )}
             {streetLine && (
-              <p className="text-xs text-[#B79B85]/65">{streetLine}</p>
+              <p className="text-xs text-[#B79B85]/85">{streetLine}</p>
             )}
             {cityLine && (
-              <p className="text-xs text-[#B79B85]/65">{cityLine}</p>
+              <p className="text-xs text-[#B79B85]/85">{cityLine}</p>
             )}
             {address.landmark && (
-              <p className="text-xs italic text-[#B79B85]/45">{address.landmark}</p>
+              <p className="text-xs italic text-[#B79B85]/65">{address.landmark}</p>
             )}
             {address.phone && (
-              <p className="mt-0.5 text-xs text-[#B79B85]/50">{address.phone}</p>
+              <p className="mt-0.5 text-xs text-[#B79B85]/70">{address.phone}</p>
             )}
             {address.locationUrl && (
               <a
@@ -167,7 +167,7 @@ function AddressCard({
             <button
               type="button"
               onClick={onSetDefault}
-              className="rounded-md border border-[#B6885E]/15 px-2.5 py-1 text-xs text-[#B79B85]/60 transition-colors hover:border-[#B6885E]/35 hover:text-[#D6A373]"
+              className="rounded-md border border-[#B6885E]/15 px-2.5 py-1 text-xs text-[#B79B85]/80 transition-colors hover:border-[#B6885E]/35 hover:text-[#D6A373]"
             >
               {t({ en: "Set default", ar: "افتراضي" })}
             </button>
@@ -175,7 +175,7 @@ function AddressCard({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-md p-1.5 text-[#B79B85]/40 transition-colors hover:text-[#D6A373]"
+            className="rounded-md p-1.5 text-[#B79B85]/60 transition-colors hover:text-[#D6A373]"
             aria-label="Edit address"
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -183,7 +183,7 @@ function AddressCard({
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-md p-1.5 text-[#B79B85]/40 transition-colors hover:text-red-400/70"
+            className="rounded-md p-1.5 text-[#B79B85]/60 transition-colors hover:text-red-400/70"
             aria-label="Remove address"
           >
             <Trash2 className="h-4 w-4" />
@@ -536,10 +536,10 @@ export default function AddressesPage() {
         {addresses.length === 0 && formMode.kind === "hidden" && (
           <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-10 text-center">
             <MapPin className="mx-auto mb-3 h-8 w-8 text-[#B6885E]/20" />
-            <p className="text-sm text-[#B79B85]/55">
+            <p className="text-sm text-[#B79B85]/75">
               {t({ en: "No addresses saved yet.", ar: "لا توجد عناوين محفوظة بعد." })}
             </p>
-            <p className="mt-1.5 text-xs text-[#B79B85]/40">
+            <p className="mt-1.5 text-xs text-[#B79B85]/60">
               {t({ en: "Add a delivery address to speed up future orders.", ar: "أضف عنوان توصيل لتسريع طلباتك القادمة." })}
             </p>
           </div>
@@ -563,7 +563,7 @@ export default function AddressesPage() {
           <button
             type="button"
             onClick={openAdd}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#B6885E]/20 bg-transparent py-4 text-sm text-[#B79B85]/60 transition-colors hover:border-[#B6885E]/40 hover:text-[#D6A373]"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#B6885E]/20 bg-transparent py-4 text-sm text-[#B79B85]/80 transition-colors hover:border-[#B6885E]/40 hover:text-[#D6A373]"
           >
             <Plus className="h-4 w-4" />
             {t({ en: "Add new address", ar: "إضافة عنوان جديد" })}

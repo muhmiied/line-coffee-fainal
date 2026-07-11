@@ -23,7 +23,7 @@ function ToggleRow({
     <div className="flex items-center justify-between gap-4 py-4">
       <div className="min-w-0">
         <label htmlFor={id} className="cursor-pointer text-sm font-medium text-[#F5E6D8]">{label}</label>
-        <p className="mt-0.5 text-xs text-[#B79B85]/60">{description}</p>
+        <p className="mt-0.5 text-xs text-[#B79B85]/80">{description}</p>
       </div>
       {/* Visually styled toggle backed by a real checkbox */}
       <label htmlFor={id} className="relative cursor-pointer">
@@ -71,7 +71,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium text-[#F5E6D8]">
                 {t({ en: "Language", ar: "اللغة" })}
               </p>
-              <p className="mt-0.5 text-xs text-[#B79B85]/60">
+              <p className="mt-0.5 text-xs text-[#B79B85]/80">
                 {t({ en: "Currently: English", ar: "الحالية: العربية" })}
               </p>
             </div>
@@ -90,7 +90,7 @@ export default function SettingsPage() {
                     "rounded-lg border px-4 py-1.5 text-sm transition-all",
                     language === code
                       ? "border-[#B6885E]/40 bg-[#B6885E]/12 text-[#D6A373]"
-                      : "border-[#B6885E]/12 text-[#B79B85]/60 hover:border-[#B6885E]/25 hover:text-[#D6B79A]",
+                      : "border-[#B6885E]/12 text-[#B79B85]/80 hover:border-[#B6885E]/25 hover:text-[#D6B79A]",
                   )}
                 >
                   {code === "en" ? "English" : "العربية"}
@@ -138,7 +138,7 @@ export default function SettingsPage() {
           </p>
           <Link
             href="/auth/login"
-            className="block text-sm text-[#B79B85]/60 transition-colors hover:text-red-400/70"
+            className="block text-sm text-[#B79B85]/80 transition-colors hover:text-red-400/70"
           >
             {t({ en: "Sign out of all devices", ar: "تسجيل الخروج من جميع الأجهزة" })}
           </Link>

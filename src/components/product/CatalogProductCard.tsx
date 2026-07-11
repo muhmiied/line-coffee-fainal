@@ -69,7 +69,7 @@ export function CatalogProductCard({
             <h3 className="font-serif text-base font-bold leading-tight text-[#F5E6D8] sm:text-lg">
               {primaryName}
             </h3>
-            <p className="line-clamp-2 min-h-[2.75rem] text-xs leading-[1.7] text-[#D6B79A]/68">
+            <p className="line-clamp-2 min-h-[2.75rem] text-xs leading-[1.7] text-[#D6B79A]/85">
               {primaryDescription}
             </p>
           </div>

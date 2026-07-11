@@ -54,7 +54,7 @@ export function LegalPageLayout({
           <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
             {t(heroTitle)}
           </h1>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#D6B79A]/65">
+          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#D6B79A]/85">
             {t(heroSubtitle)}
           </p>
         </div>
@@ -63,7 +63,7 @@ export function LegalPageLayout({
       {/* ── Content ── */}
       <section className="cinematic-section section-bg-warm py-14 md:py-20">
         <div className="relative z-10 mx-auto max-w-3xl px-4">
-          <p className="mb-10 text-xs text-[#D6B79A]/40" dir="ltr">
+          <p className="mb-10 text-xs text-[#D6B79A]/60" dir="ltr">
             {`Last updated: ${lastUpdated}`}
           </p>
 
@@ -78,7 +78,7 @@ export function LegalPageLayout({
                   {section.paragraphs.map((para, j) => (
                     <p
                       key={j}
-                      className="text-sm leading-[1.9] text-[#D6B79A]/68"
+                      className="text-sm leading-[1.9] text-[#D6B79A]/85"
                     >
                       {t(para)}
                     </p>
@@ -90,7 +90,7 @@ export function LegalPageLayout({
 
           {/* Footer CTA */}
           <div className="mt-16 border-t border-[#B6885E]/14 pt-10 text-center">
-            <p className="mb-5 text-sm text-[#D6B79A]/55">
+            <p className="mb-5 text-sm text-[#D6B79A]/75">
               {t({
                 en: "Questions about our policies? We're happy to help.",
                 ar: "أسئلة حول سياساتنا؟ يسعدنا المساعدة.",

@@ -84,7 +84,7 @@ export function PromoSection({
     <div className="mb-4 border-t border-[#B6885E]/12 pt-4">
       <label
         htmlFor="promo-code"
-        className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/60"
+        className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/80"
       >
         <Tag className="h-3.5 w-3.5" />
         {t({ en: "Promo code", ar: "كود الخصم" })}
@@ -123,7 +123,7 @@ export function PromoSection({
           {getPromoFeedback(promoResult)}
         </p>
       )}
-      <p className="mt-2 text-[10px] leading-4 text-[#D6B79A]/42">
+      <p className="mt-2 text-[10px] leading-4 text-[#D6B79A]/62">
         {t({
           en: "Discount applies to product subtotal only. Delivery fee is calculated separately and is not discounted.",
           ar: "يُطبق الخصم على قيمة المنتجات فقط. تُحسب رسوم التوصيل بشكل منفصل ولا يشملها الخصم.",

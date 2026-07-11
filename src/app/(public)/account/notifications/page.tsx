@@ -71,10 +71,10 @@ export default function NotificationsPage() {
       {items.length === 0 ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Bell className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/20" />
-          <p className="text-sm text-[#B79B85]/55">
+          <p className="text-sm text-[#B79B85]/75">
             {t({ en: "No notifications yet.", ar: "لا توجد إشعارات بعد." })}
           </p>
-          <p className="mt-2 text-xs text-[#B79B85]/40">
+          <p className="mt-2 text-xs text-[#B79B85]/60">
             {t({
               en: "Order updates will appear here when your order status changes.",
               ar: "ستظهر هنا تحديثات طلباتك عند تغيير حالة طلبك.",
@@ -96,21 +96,21 @@ export default function NotificationsPage() {
                 className="block w-full rounded-xl border border-[#B6885E]/18 bg-[#15100B] px-5 py-4 text-start transition-all hover:border-[#B6885E]/28"
               >
                 <div className="flex items-start gap-3">
-                  <Bell className="mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]/60" />
+                  <Bell className="mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]/80" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[#F5E6D8]">
                       {t(content.title)}
                     </p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-[#B79B85]/65">
+                    <p className="mt-0.5 text-xs leading-relaxed text-[#B79B85]/85">
                       {t(content.body)}
                     </p>
                     {notif.note && (
-                      <p className="mt-0.5 text-xs italic text-[#B79B85]/45">
+                      <p className="mt-0.5 text-xs italic text-[#B79B85]/65">
                         {notif.note}
                       </p>
                     )}
-                    <p className="mt-1.5 text-xs text-[#B79B85]/40">
-                      <span className="font-mono text-[#B6885E]/50">
+                    <p className="mt-1.5 text-xs text-[#B79B85]/60">
+                      <span className="font-mono text-[#B6885E]/70">
                         {notif.orderCode}
                       </span>
                       {" · "}

@@ -64,7 +64,7 @@ export function AddressSection({
           <h2 className="mb-1 font-serif text-lg font-bold text-[#F5E6D8]">
             {t({ en: "Saved Addresses", ar: "العناوين المحفوظة" })}
           </h2>
-          <p className="mb-4 text-[11px] text-[#D6B79A]/45">
+          <p className="mb-4 text-[11px] text-[#D6B79A]/65">
             {t({
               en: "Pick a saved address to fill the form below.",
               ar: "اختر عنواناً محفوظاً لتعبئة النموذج أدناه.",
@@ -100,10 +100,10 @@ export function AddressSection({
                     )}
                   </div>
                   {locline && (
-                    <p className="mt-0.5 truncate text-[11px] text-[#D6B79A]/50">{locline}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-[#D6B79A]/70">{locline}</p>
                   )}
                   {a.street && (
-                    <p className="truncate text-[11px] text-[#D6B79A]/40">{a.street}</p>
+                    <p className="truncate text-[11px] text-[#D6B79A]/60">{a.street}</p>
                   )}
                 </button>
               );

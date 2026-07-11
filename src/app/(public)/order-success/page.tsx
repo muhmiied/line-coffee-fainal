@@ -122,7 +122,7 @@ function OrderSuccessContent() {
             </div>
 
             <div className="mb-8 text-center">
-              <p className="mb-2 text-sm text-[#D6B79A]/60">
+              <p className="mb-2 text-sm text-[#D6B79A]/80">
                 {orderCode
                   ? t({ en: "Your order number", ar: "رقم طلبك" })
                   : t({ en: "Your order was received", ar: "تم استلام طلبك" })}
@@ -132,7 +132,7 @@ function OrderSuccessContent() {
                   {orderCode}
                 </p>
               )}
-              <p className="mt-3 text-sm leading-relaxed text-[#D6B79A]/60">
+              <p className="mt-3 text-sm leading-relaxed text-[#D6B79A]/80">
                 {t({
                   en: "Our team will contact you shortly to confirm your delivery details.",
                   ar: "سيتواصل فريقنا معك قريباً لتأكيد تفاصيل التوصيل.",
@@ -149,15 +149,15 @@ function OrderSuccessContent() {
                 </h2>
                 <dl className="space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-4">
-                    <dt className="text-[#D6B79A]/60">{t({ en: "Items", ar: "عدد القطع" })}</dt>
+                    <dt className="text-[#D6B79A]/80">{t({ en: "Items", ar: "عدد القطع" })}</dt>
                     <dd className="arabic-number font-semibold text-[#F5E6D8]">{result.item_count}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <dt className="text-[#D6B79A]/60">{t({ en: "Payment method", ar: "طريقة الدفع" })}</dt>
+                    <dt className="text-[#D6B79A]/80">{t({ en: "Payment method", ar: "طريقة الدفع" })}</dt>
                     <dd className="font-semibold text-[#F5E6D8]">{paymentMethod}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <dt className="text-[#D6B79A]/60">{t({ en: "Payment status", ar: "حالة الدفع" })}</dt>
+                    <dt className="text-[#D6B79A]/80">{t({ en: "Payment status", ar: "حالة الدفع" })}</dt>
                     <dd className="font-semibold text-[#D6A373]">{paymentStatus}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-4 border-t border-[#B6885E]/12 pt-3">
@@ -170,14 +170,14 @@ function OrderSuccessContent() {
               </div>
             ) : (
               <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5 text-center">
-                <p className="text-sm leading-6 text-[#D6B79A]/55">
+                <p className="text-sm leading-6 text-[#D6B79A]/75">
                   {t({
                     en: "The receipt details are available in the browser session that placed the order.",
                     ar: "تفاصيل الإيصال متاحة في جلسة المتصفح التي تم تقديم الطلب منها.",
                   })}
                 </p>
                 {orderId && (
-                  <p className="mt-2 break-all text-xs text-[#D6B79A]/40" dir="ltr">
+                  <p className="mt-2 break-all text-xs text-[#D6B79A]/60" dir="ltr">
                     {orderId}
                   </p>
                 )}
@@ -232,7 +232,7 @@ function OrderSuccessContent() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#D6A373]/70">
               {t({ en: "Line Coffee Promise", ar: "وعد لاين كوفي" })}
             </p>
-            <p className="mt-2 text-sm text-[#D6B79A]/60">
+            <p className="mt-2 text-sm text-[#D6B79A]/80">
               {t({
                 en: "Roasted within 72 hours of your order. Your coffee arrives at its most expressive.",
                 ar: "محمصة خلال 72 ساعة من طلبك. تصل قهوتك في أعلى مستويات نضارتها.",

@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
             <Mail className="h-7 w-7 text-[#B6885E]" />
           </div>
           <p className="mb-1 text-sm text-[#F5E6D8]/80">{email}</p>
-          <p className="mb-6 text-xs text-[#B79B85]/55">
+          <p className="mb-6 text-xs text-[#B79B85]/75">
             {t({
               en: "Didn't receive it? Check your spam folder.",
               ar: "لم تستلمه؟ تحقق من مجلد البريد غير الهام.",
@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
           </button>
         </div>
 
-        <p className="mt-6 text-center text-sm text-[#B79B85]/60">
+        <p className="mt-6 text-center text-sm text-[#B79B85]/80">
           <Link
             href="/auth/login"
             className="inline-flex items-center gap-1.5 text-[#B6885E]/80 transition-colors hover:text-[#D6A373]"
@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 transition-colors focus:border-[#B6885E]/40 focus:outline-none"
+            className="w-full rounded-xl border border-[#B6885E]/22 bg-[#120D09]/70 px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/38 outline-none transition-all focus:border-[#D6A373]/50 focus:ring-2 focus:ring-[#D6A373]/18"
           />
         </div>
 

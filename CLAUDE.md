@@ -184,6 +184,85 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-11] — Phase 2C: Public visual corrections + Hero CTA cleanup (visual-only, NO logic/migration)
+
+**Goal (owner):** post–Phase-2B manual-review fixes — Home category-card hover clipping, icon-language consistency, Products sidebar selected-category polish, off-home pages closer to the Codex Home palette, luminous big headings, and correct/valid Hero CTAs per slide. Visual/token/copy only — no business logic, no Supabase/DB/migration, no checkout/pricing/promo/delivery/inventory/Telegram/WhatsApp/auth/admin change, no Codex Home look undone, no commit/push.
+
+**1. Home category hover clipping (`globals.css`):** the shared `.category-marquee, .social-marquee, .best-sellers-marquee` container clips with `overflow: hidden` (needed for the horizontal loop + edge mask) and had no vertical room, so a card's `:hover` lift (`translateY(-5px)`) + warm glow was eaten from the top. Added `padding-block: 1.6rem`; the edge mask is a 90deg (horizontal) gradient, so the padded band stays fully visible top/bottom. Hover lift preserved, clipping gone. No card-layout change.
+
+**2. Icon consistency (`globals.css` + `contact/page.tsx`):** enriched the shared token-driven `.pub-icon-circle` to match the footer's warm 3D language — brighter icon color (`--pub-white-coffee`), a glyph `drop-shadow`, and a deeper inset — so off-home card/contact icons read with the same depth as the footer icons. Converted the Contact success-state icon to `.pub-icon-circle`. WhatsApp stays the warm-brand `WhatsAppIcon` (not green). Home feature icons left untouched (reference).
+
+**3. Products sidebar selected-category polish (`globals.css`):** gave `.products-cat-active` the same "polish language" as the Make Your studio buttons — crisp warm border + top sheen + inset highlight — kept in gold (no orange/red), same `rounded-xl` curve. The Make Your Espresso/Flavor buttons stay visually special.
+
+**4 + 5. Off-home palette + luminous headings (`globals.css` + pages):** added a reusable, token-driven `.pub-display` luminous/glass heading (warm White-Coffee→Cream→Vanilla gradient text via `background-clip:text` with a solid `@supports` fallback + a restrained warm glow/depth shadow — no neon/blur) and applied it to the big off-home headings: About (We Are Line Coffee, Slow Roast, A Decade of Craft, Start Exploring), Contact (Get in Touch, Prefer WhatsApp?, Common Questions), Blog (All Things Coffee), Products (Our Products), Product detail (hero product name). Lightened the dimmest brown body text (About journey `/60→/72`, Blog card excerpt `/60→/72`). Home `SectionHeading` (incl. "Shop by Category") intentionally left as the Codex reference.
+
+**6. Hero CTAs per slide (`visual-content.ts`):** Slide 1 unchanged (Shop Coffee → `/products` · Our Story → `/about`). Slide 2 (roastery image) → **Make Your Espresso** `/make-your-espresso` + **Explore Espresso Blends** `/products?category=espresso-blends`, with coherent title/subtitle. Slide 3 → **Make Your Flavor** `/make-your-flavor` + **Explore Flavor Coffee** `/products?category=flavor-coffee`; its image was switched to the flavor asset so the slide matches its flavor CTAs. Every Hero CTA now points to a valid live route (no deprecated target). No Hero layout change.
+
+**7. Deprecated Make-Your route:** searched — **none exists**. Only `/make-your-espresso` and `/make-your-flavor` are present (both live); `EspressoBlendStudio.tsx` is the current live component. No deprecated blend-builder route/page/link anywhere, so nothing was deleted; all public Make-Your links resolve to valid pages.
+
+**8. Tokens centralized:** all new color/effect values were added as/through the `--pub-*` layer + `.pub-*` classes in `globals.css`; no scattered one-off colors. Public website only; admin dashboard untouched.
+
+**Files:** `src/app/globals.css`, `src/lib/mock-data/visual-content.ts`, `src/app/(public)/about/page.tsx`, `src/app/(public)/contact/page.tsx`, `src/app/(public)/blog/page.tsx`, `src/app/(public)/products/page.tsx`, `src/app/(public)/products/[slug]/page.tsx`, `CLAUDE.md`.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npx eslint` on all changed TS/TSX → 0 errors/0 warnings · `npm run build` → success (all public + admin routes) · live-dev route smokes (`/`, `/products`, `/products?category=espresso-blends`, `/products?category=flavor-coffee`, `/about`, `/contact`, `/blog`, `/make-your-espresso`, `/make-your-flavor`) → all HTTP 200 · confirmed the built CSS contains `.pub-display` / `padding-block:1.6rem` / the enriched `.products-cat-active`, the built JS contains the new Hero CTA strings, and served HTML renders `pub-display` (contact ×3, products ×1) + `pub-icon-circle`. Full screenshot QA needs the owner's browser (the preview tool cannot attach to the external dev server on :3000).
+
+**Confirm:** visual/token/copy only · no business logic/data/route change · no Supabase/DB/migration · no admin/dashboard change · Codex Home look preserved · no commit/push.
+
+### [2026-07-09] — Phase 2B: Public Visual System — centralize tokens + align off-home with Codex Home (visual-only, NO logic/migration)
+
+**Goal (owner):** bring every OFF-home public page up to the Codex-polished Home look, and introduce a **centralized public token system** so colors/effects change from one place later. No business logic/data/route/migration change, no admin redesign, no removal of the Codex Home look, no new deps, no commit/push. Home (`.line-home-coffee-palette`) is the reference and was left **untouched**.
+
+**Centralized tokens (`src/app/globals.css` → `:root`):** added a `--pub-*` layer that mirrors the reference coffee palette (espresso→white-coffee + `--pub-highlight` #FFDCC2 kept as accent-only) plus semantic tokens for backgrounds, heading/body/muted/faint text, accents, dark ink (text on light buttons), borders, glows, shadows, icons, and motion/shape (`--pub-ease`/`--pub-dur`/`--pub-radius*`). These drive the new `.pub-*` classes and the off-home shared classes, so most public colors are now editable from one block. Home keeps its own Codex vars (same palette values) — deliberately not rewritten to avoid any risk to the reference look.
+
+**Reusable public classes (globals.css):** `.pub-heading` / `.pub-text` / `.pub-muted` / `.pub-faint` (warm, readable on dark); `.pub-icon-circle` (warm 3D icon shell + hover lift); `.pub-card` (floating warm card — glow bound to the surface via `border-radius: inherit`, hover lift); `.pub-badge` + token-driven base for `.line-product-badge` / `.line-journal-tag` (premium 3D warm tag that now **matches Home everywhere**, with `[data-variant]` tints). `.line-price-chip` base depth. Branded `.line-loader` (spinning gold arc + pulsing bean).
+
+**Scoped, admin-safe enhancements:** added a `.line-public` hook on the `(public)` route-group layout (a `display:block` wrapper, no box styling of its own; pages control their own layout). `.line-public .premium-button` gets a warm token gradient, an inner **sheen sweep on hover**, warm glow, lift, and dark ink text — **without touching the admin dashboard's shared `.premium-button`** (admin is outside `.line-public`; Home keeps its higher-specificity palette rule). `.line-public .luxury-panel` gets a radius-correct box-shadow **hover light** (no positioned overlay, so the products sidebar `sticky` is preserved).
+
+**Inputs/forms:** `.line-input` refined to tokens — dark coffee-glass face, **warm inset shadow (3D)**, brighter-but-secondary placeholder, warm focus glow ring; native `<select>` option lists already darkened (Phase 2).
+
+**Header:** brighter nav text (`.nav-glass .nav-link` → 0.95; non-scrolled inline → White-Coffee/0.92) and brighter, consistent header icons (`.header-icon-button`). Language pill + logged-in avatar/initials button kept as the polished Home system.
+
+**Icons:** new shared `src/components/icons/SocialIcons.tsx` (Instagram/Facebook/TikTok/YouTube, `currentColor`) — the footer now imports these instead of duplicating inline SVGs; contact info cards use `.pub-icon-circle`; the WhatsApp glyph (Phase 2) stays recognizable in warm brand tone.
+
+**Home social gallery redesign (`SocialGallerySection.tsx`):** replaced the single-Instagram-button marquee with a premium **bento grid** (featured tile + 1×1s, existing assets only) plus **both Instagram and Facebook** action pills wired to real `getPublicSettings().social` links (launch-default fallbacks, no invented API). Responsive + RTL-safe.
+
+**Entrance animation:** added a subtle, GPU-composited **warm ambient light drift** behind the Home hero (`.hero-ambient`, transform/opacity only, frozen by the existing `prefers-reduced-motion` rule) on top of the existing staggered hero copy reveal. Checkout/auth forms deliberately not animated.
+
+**Loading screen:** `LoadingScreen.tsx` rebuilt as a branded warm-coffee loader (dark field + ambient glow + spinning gold arc + pulsing bean) instead of a generic spinner.
+
+**Files:** `src/app/globals.css`, `src/app/(public)/layout.tsx`, `src/components/ui/LoadingScreen.tsx`, `src/components/product/ProductCard.tsx`, `src/features/website/home/sections/SocialGallerySection.tsx`, `src/features/website/home/sections/HeroSection.tsx`, `src/components/layout/public/PublicHeader.tsx`, `src/components/layout/public/PublicFooter.tsx`, `src/app/(public)/contact/page.tsx`, `src/app/(public)/products/page.tsx`, `CLAUDE.md`; added `src/components/icons/SocialIcons.tsx`.
+
+**Left unchanged:** Home sections (reference standard — only the requested social-gallery + a decorative hero ambient added); admin dashboard (base `.premium-button` face untouched; enhancements scoped to `.line-public`; none of `.line-input`/`.line-product-badge`/`.line-price-chip`/`.luxury-panel`/`.pub-*` used under `src/app/admin` or `src/components/admin`); all business logic/data/routes.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npx eslint` on all changed TS/TSX → 0 errors/0 warnings · live dev-server route smokes (`/`, `/products`, `/products/category/*`, `/products/[slug]`, `/contact`, `/about`, `/blog`, `/blog/[slug]`, `/cart`, `/checkout`, `/order-success`, `/auth/*`, `/make-your-espresso`, `/make-your-flavor`) → all **HTTP 200**; confirmed the served `app/layout.css` contains the new tokens/classes (`--pub-espresso`, `--pub-white-coffee`, `.pub-card`, `.pub-icon-circle`, `.line-public .premium-button`, `.line-product-badge`, `.line-loader`, `.hero-ambient`). `npm run build` intentionally **skipped** — the owner's `next dev --webpack` holds `:3000` with a shared `.next` (documented ChunkLoadError/file-lock risk); the live-dev smokes recompiled every route through the same webpack pipeline. Full visual/RTL screenshot QA needs the owner's browser (the preview tool cannot attach to the external dev server on :3000).
+
+**Confirm:** visual-only · centralized tokens in globals.css · no business-logic/data/route change · no admin change · no migration · no new dependency · no commit/push.
+
+### [2026-07-09] — Phase 2: Public Website Visual System Polish (visual-only, NO logic/migration)
+
+**Goal (owner):** raise the public site's visual system (contrast, buttons, cards, tags, dropdowns, footer, forms) to match the polished homepage — premium, warm, readable — with **no** business-logic change (checkout/orders/pricing/promos/delivery/inventory/Telegram/WhatsApp handoff/auth logic/migrations/routes all untouched), no admin change, no redesign, no new deps, no commit/push. The homepage is already the gold standard via `.line-home-coffee-palette`; this brings the OFF-home pages up using shared classes/tokens.
+
+**Shared system (`src/app/globals.css`):**
+- **Buttons:** added a default pill radius via `:where(.premium-button, .premium-button-outline, .studio-espresso-btn, .studio-flavor-btn)` (0 specificity, so any explicit `rounded-xl`/`rounded-full` still wins) — this fixes the **sharp-rectangle auth/account buttons** without touching admin (admin buttons all specify `rounded-lg`). Polished `.premium-button-outline` → dark coffee glass, warm border, **light readable cream text**, hover glow + `:active`. **Base `.premium-button` face kept byte-for-byte original** (it is shared with admin, so its gradient/color were deliberately NOT changed).
+- **Forms:** `.line-input` gains a subtle warm gradient face + a stronger warm **focus glow ring** + dimmer placeholder; added dark `.line-input option` / `.line-select option` styling so native dropdown popups read as dark coffee glass.
+- **Tags/chips:** added base soft-3D depth to `:where(.line-product-badge)` + `:where(.line-price-chip)` for off-home catalog/detail/category cards (`:where()` keeps the richer home-palette rules winning on `/`).
+
+**Footer (`PublicFooter.tsx`) + Contact (`contact/page.tsx`):**
+- New shared **`src/components/icons/WhatsAppIcon.tsx`** — a recognizable WhatsApp glyph drawn with `currentColor`, so it renders in the warm brand tone (gold/cream) instead of default bright green. Wired into footer socials + footer contact row + contact WhatsApp card + "Prefer WhatsApp?" strip (replacing the generic lucide `MessageCircle`).
+- **Duplicate phone fixed:** support-phone no longer falls back to the WhatsApp number, and the Phone row/card is hidden when it normalizes to the same number as WhatsApp — so the same number never shows twice. WhatsApp + email remain clearly shown.
+
+**Auth (`AuthCard.tsx` + login/signup/forgot-password/reset-password):** inputs upgraded from the sharp `rounded-lg bg-[#1B140F]` field to premium `rounded-xl` warm-glass with a gold focus ring; submit/link buttons are now pills via the shared default; brightened AuthCard subtitle + "Back to Line Coffee" for readability.
+
+**Contrast:** bumped the dimmest captions on the checkout **Order Summary** (`OrderSummary.tsx`, e.g. `/32`→`/55`, `/42`→`/60`, `/58`→`/72`). Home + footer text were already handled by their existing `!important` palette rules.
+
+**Left intentionally unchanged:** all home sections (already the standard); the entire admin dashboard (verified none of `.line-input`/`.line-product-badge`/`.line-price-chip`/`.premium-button-outline` is used under `src/app/admin` or `src/components/admin`, and the base `.premium-button` face + pill-radius default don't alter admin's `rounded-lg` buttons); the header logged-in/user + language buttons (already the polished pill/glow system); native category-sort/address `<select>`s (rely on `color-scheme: dark` for dark popups); all business logic/data/routes.
+
+**Files:** added `src/components/icons/WhatsAppIcon.tsx`; modified `src/app/globals.css`, `src/components/layout/public/PublicFooter.tsx`, `src/app/(public)/contact/page.tsx`, `src/components/layout/auth/AuthCard.tsx`, `src/app/(public)/auth/{login,signup,forgot-password,reset-password}/page.tsx`, `src/features/website/checkout/OrderSummary.tsx`, `CLAUDE.md`.
+
+**Validation:** `npx tsc --noEmit` → 0 errors · `npx eslint` on all changed TS/TSX → 0 errors/0 warnings · live dev-server route smokes (`/`, `/products`, `/contact`, `/checkout`, `/auth/login`, `/auth/signup`, `/auth/forgot-password`, `/cart`) → all **HTTP 200** · confirmed the served `app/layout.css` now contains the new tokens (`:where(.premium-button`, `#130e09` dark option bg, `#ecd6bf` outline text). `npm run build` intentionally skipped — the owner's `next dev` holds `:3000` with a shared `.next` (documented ChunkLoadError/file-lock risk); verified instead via live route smokes, per project convention. Full visual/RTL screenshot QA needs the owner's browser (the preview tool couldn't attach to the external dev server on :3000).
+
+**Confirm:** visual-only · no business-logic/data/route change · no admin change · no migration · no new dependency · no commit/push.
+
 ### [2026-07-09] — Hardening + Cleanup Pass: auth wiring, security, checkout split, dedup, perf (code-only, NO migration)
 
 **Goal (owner's 4-phase list):** fix 22 correctness/security/quality issues, remove dead code/empty folders, refactor, and improve performance — with no public redesign, no DB migration, no service-role, no data change, no remote push.

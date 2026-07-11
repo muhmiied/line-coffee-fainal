@@ -277,7 +277,7 @@ function BaseSelector({
         <h2 className="font-serif text-lg font-bold text-[#F5E6D8]">
           {t({ en: "Choose Your Base", ar: "اختر قاعدتك" })}
         </h2>
-        <p className="mt-0.5 text-sm text-[#D6B79A]/68">
+        <p className="mt-0.5 text-sm text-[#D6B79A]/85">
           {t({ en: "One base only — you can switch anytime.", ar: "قاعدة واحدة فقط — يمكنك التغيير في أي وقت." })}
         </p>
       </div>
@@ -308,7 +308,7 @@ function BaseSelector({
               <span className="arabic-number mt-1 text-[11px] font-bold text-[#D6A373]">
                 {base.pricePerKg} {t({ en: "EGP/kg", ar: "ج.م/كجم" })}
               </span>
-              <span className="mt-1 text-[10px] leading-[1.4] text-[#D6B79A]/55">
+              <span className="mt-1 text-[10px] leading-[1.4] text-[#D6B79A]/75">
                 {t(base.hint)}
               </span>
             </button>
@@ -333,7 +333,7 @@ function GuidePanel({ onApply }: { onApply: (preset: FlavorPreset) => void }) {
             {t({ en: "Mix Inspirations", ar: "وحي الخلطات" })}
           </h2>
         </div>
-        <p className="mt-0.5 text-xs text-[#D6B79A]/62">
+        <p className="mt-0.5 text-xs text-[#D6B79A]/82">
           {t({
             en: "Apply a ready-made mix and adjust it your way.",
             ar: "طبّق خلطة جاهزة وعدّلها على ذوقك.",
@@ -352,7 +352,7 @@ function GuidePanel({ onApply }: { onApply: (preset: FlavorPreset) => void }) {
             <span className="font-serif text-xs font-bold text-[#F5E6D8] group-hover:text-[#D6A373]">
               {t(preset.name)}
             </span>
-            <span className="mt-0.5 text-[10px] leading-tight text-[#D6A373]/60">
+            <span className="mt-0.5 text-[10px] leading-tight text-[#D6A373]/80">
               {t(preset.mood)}
             </span>
           </button>
@@ -389,7 +389,7 @@ function FlavorLibrary({
           <h2 className="font-serif text-2xl font-bold text-[#F5E6D8]">
             {t({ en: "Flavor Library", ar: "مكتبة النكهات" })}
           </h2>
-          <p className="mt-0.5 text-sm text-[#D6B79A]/62">
+          <p className="mt-0.5 text-sm text-[#D6B79A]/82">
             {t({ en: "Pick 1–4 flavors to build your mix.", ar: "اختر من 1 إلى 4 نكهات لتكوين خلطتك." })}
           </p>
         </div>
@@ -476,7 +476,7 @@ function FlavorLibrary({
 
                 {/* Price */}
                 <div className="mt-auto flex items-center justify-between gap-3 pt-3 text-xs">
-                  <span className="text-[#D6B79A]/52">{t({ en: "Add-on", ar: "إضافة" })}</span>
+                  <span className="text-[#D6B79A]/72">{t({ en: "Add-on", ar: "إضافة" })}</span>
                   <span className="arabic-number font-bold text-[#D6A373]">
                     +{flavor.addOnPerKg} {t({ en: "EGP/kg", ar: "ج.م/كجم" })}
                   </span>
@@ -608,7 +608,7 @@ function LiveFlavorCart({
           <button
             type="button"
             onClick={onReset}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#B6885E]/16 py-2.5 text-xs font-semibold text-[#D6B79A]/50 transition-all hover:border-red-500/22 hover:text-red-400"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#B6885E]/16 py-2.5 text-xs font-semibold text-[#D6B79A]/70 transition-all hover:border-red-500/22 hover:text-red-400"
           >
             <Trash2 className="h-3.5 w-3.5" />
             {t({ en: "Reset studio", ar: "إعادة ضبط الاستوديو" })}
@@ -632,7 +632,7 @@ function LiveFlavorCart({
                 <span className="arabic-number text-xs font-bold text-[#D6A373]">{selectedBase.pricePerKg} {t({ en: "EGP/kg", ar: "ج.م/كجم" })}</span>
               </div>
             ) : (
-              <p className="rounded-xl border border-dashed border-[#B6885E]/24 px-4 py-2.5 text-center text-xs text-[#D6B79A]/55">
+              <p className="rounded-xl border border-dashed border-[#B6885E]/24 px-4 py-2.5 text-center text-xs text-[#D6B79A]/75">
                 {t({ en: "No base selected", ar: "لم تختر قاعدة بعد" })}
               </p>
             )}
@@ -644,7 +644,7 @@ function LiveFlavorCart({
               {t({ en: "Flavors", ar: "النكهات" })}
             </p>
             {selectedFlavors.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-[#B6885E]/24 px-4 py-3 text-center text-xs text-[#D6B79A]/58">
+              <p className="rounded-xl border border-dashed border-[#B6885E]/24 px-4 py-3 text-center text-xs text-[#D6B79A]/78">
                 {t({ en: "Select flavors to start your mix.", ar: "اختر النكهات لبدء خلطتك." })}
               </p>
             ) : (
@@ -679,7 +679,7 @@ function LiveFlavorCart({
               </div>
               <p className="arabic-number shrink-0 text-3xl font-bold text-[#D6A373]">
                 {mixHealth.score}
-                <span className="text-sm text-[#D6B79A]/55">/100</span>
+                <span className="text-sm text-[#D6B79A]/75">/100</span>
               </p>
             </div>
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#0B0806]/70">
@@ -691,7 +691,7 @@ function LiveFlavorCart({
                 style={{ width: `${mixHealth.score}%` }}
               />
             </div>
-            <p className="mt-2 text-xs leading-5 text-[#D6B79A]/68">
+            <p className="mt-2 text-xs leading-5 text-[#D6B79A]/85">
               {t(mixHealth.detail)}
             </p>
           </div>
@@ -747,7 +747,7 @@ function MetricBar({ label, value }: { label: string; value: number }) {
   const width = `${Math.max(0, Math.min(100, (value / 5) * 100))}%`;
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-medium text-[#D6B79A]/62">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-medium text-[#D6B79A]/82">
         <span className="truncate">{label}</span>
         <span className="arabic-number shrink-0 text-[#D6A373]">{value}/5</span>
       </div>

@@ -45,7 +45,7 @@ export default function BlogPostPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
-        <p className="text-lg text-[#D6B79A]/50">
+        <p className="text-lg text-[#D6B79A]/70">
           {t({ en: "Loading article...", ar: "جارٍ تحميل المقال..." })}
         </p>
       </div>
@@ -55,7 +55,7 @@ export default function BlogPostPage() {
   if (loadError) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
-        <p className="text-lg text-[#D6B79A]/50">
+        <p className="text-lg text-[#D6B79A]/70">
           {t({
             en: "Article could not be loaded. Please try again.",
             ar: "تعذر تحميل المقال. يرجى المحاولة مرة أخرى.",
@@ -74,7 +74,7 @@ export default function BlogPostPage() {
   if (!post) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
-        <p className="text-lg text-[#D6B79A]/50">
+        <p className="text-lg text-[#D6B79A]/70">
           {t({ en: "Article not found.", ar: "المقال غير موجود." })}
         </p>
         <Link
@@ -112,7 +112,7 @@ export default function BlogPostPage() {
           {/* Breadcrumb */}
           <nav
             aria-label={t({ en: "Breadcrumb", ar: "مسار التنقل" })}
-            className="mb-8 flex flex-wrap items-center gap-1.5 text-xs text-[#D6B79A]/42"
+            className="mb-8 flex flex-wrap items-center gap-1.5 text-xs text-[#D6B79A]/62"
           >
             <Link href="/" className="transition-colors hover:text-[#D6A373]">
               {t({ en: "Home", ar: "الرئيسية" })}
@@ -122,7 +122,7 @@ export default function BlogPostPage() {
               {t({ en: "Blog", ar: "المدونة" })}
             </Link>
             <span aria-hidden="true">/</span>
-            <span className="line-clamp-1 text-[#D6B79A]/65">
+            <span className="line-clamp-1 text-[#D6B79A]/85">
               {t(post.title)}
             </span>
           </nav>
@@ -133,11 +133,11 @@ export default function BlogPostPage() {
               <Tag className="h-2.5 w-2.5" />
               {t(post.category)}
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-[#D6B79A]/42">
+            <span className="flex items-center gap-1.5 text-xs text-[#D6B79A]/62">
               <Calendar className="h-3 w-3" />
               {formatDate(post.date, language)}
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-[#D6B79A]/42">
+            <span className="flex items-center gap-1.5 text-xs text-[#D6B79A]/62">
               <Clock className="h-3 w-3" />
               {t(post.readTime)}
             </span>
@@ -226,7 +226,7 @@ export default function BlogPostPage() {
                     <h3 className="line-clamp-2 text-[1.05rem] font-bold text-[#F5E6D8] transition-colors group-hover:text-[#D6A373]">
                       {t(rp.title)}
                     </h3>
-                    <p className="mt-2 line-clamp-2 text-[0.8rem] leading-relaxed text-[#D6B79A]/55">
+                    <p className="mt-2 line-clamp-2 text-[0.8rem] leading-relaxed text-[#D6B79A]/75">
                       {t(rp.excerpt)}
                     </p>
                   </div>
@@ -249,7 +249,7 @@ export default function BlogPostPage() {
               ar: "مستعد لتذوق ما قرأت عنه؟",
             })}
           </h2>
-          <p className="mb-8 text-sm leading-relaxed text-[#D6B79A]/65">
+          <p className="mb-8 text-sm leading-relaxed text-[#D6B79A]/85">
             {t({
               en: "Explore our full range of single-origin coffees and signature blends.",
               ar: "استكشف مجموعتنا الكاملة من قهوات المصدر الواحد والخلطات المميزة.",

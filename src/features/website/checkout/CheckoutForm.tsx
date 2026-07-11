@@ -637,11 +637,11 @@ export function CheckoutForm() {
   if (items.length === 0 && !submitting) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
-        <ShoppingBag className="mb-4 h-12 w-12 text-[#D6A373]/50" />
+        <ShoppingBag className="mb-4 h-12 w-12 text-[#D6A373]/70" />
         <p className="mb-2 font-serif text-xl font-bold text-[#F5E6D8]">
           {t({ en: "Your cart is empty", ar: "سلتك فارغة" })}
         </p>
-        <p className="mb-6 text-sm text-[#D6B79A]/55">
+        <p className="mb-6 text-sm text-[#D6B79A]/75">
           {t({ en: "Add items to your cart before checking out.", ar: "أضف منتجات إلى سلتك قبل إتمام الطلب." })}
         </p>
         <Link

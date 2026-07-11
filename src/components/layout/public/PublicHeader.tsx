@@ -132,10 +132,10 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
       ) : preview.length === 0 ? (
         <div className="px-4 py-8 text-center">
           <Bell className="mx-auto mb-2 h-7 w-7 text-[#B6885E]/20" />
-          <p className="text-sm text-[#D6B79A]/55">
+          <p className="text-sm text-[#D6B79A]/75">
             {t({ en: "No notifications yet.", ar: "لا توجد إشعارات بعد." })}
           </p>
-          <p className="mt-1 text-xs text-[#B79B85]/40">
+          <p className="mt-1 text-xs text-[#B79B85]/60">
             {t({ en: "Order updates will appear here.", ar: "ستظهر هنا تحديثات طلباتك." })}
           </p>
         </div>
@@ -158,9 +158,9 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B6885E]/70" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-[#F5E6D8]">{t(content.title)}</p>
-                  <p className="truncate text-xs text-[#B79B85]/60">{t(content.body)}</p>
-                  <p className="mt-0.5 text-[10px] text-[#B79B85]/40">
-                    <span className="font-mono text-[#B6885E]/50">{notif.orderCode}</span>
+                  <p className="truncate text-xs text-[#B79B85]/80">{t(content.body)}</p>
+                  <p className="mt-0.5 text-[10px] text-[#B79B85]/60">
+                    <span className="font-mono text-[#B6885E]/70">{notif.orderCode}</span>
                     {" · "}{timeStr}
                   </p>
                 </div>
@@ -238,7 +238,7 @@ function UserMenu({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-[#F5E6D8]">{displayName}</p>
-                <p className="truncate text-xs text-[#B79B85]/60">{displayEmail}</p>
+                <p className="truncate text-xs text-[#B79B85]/80">{displayEmail}</p>
                 {showAdmin && (
                   <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
                     {formatAdminRole(admin.role)}
@@ -282,7 +282,7 @@ function UserMenu({
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-3 text-sm text-[#B79B85]/55 transition-colors hover:text-red-400/80"
+              className="flex w-full items-center gap-3 text-sm text-[#B79B85]/75 transition-colors hover:text-red-400/80"
             >
               <LogOut className="h-4 w-4 shrink-0" />
               {t({ en: "Sign out", ar: "تسجيل الخروج" })}
@@ -312,7 +312,7 @@ function UserMenu({
             </Link>
           </div>
           <div className="border-t border-[#B6885E]/10 px-4 py-3">
-            <p className="text-xs text-[#B79B85]/45">
+            <p className="text-xs text-[#B79B85]/65">
               {t({ en: "Sign in to view orders, wishlist & more.", ar: "سجّل دخولك لعرض طلباتك وقائمة المحفوظات." })}
             </p>
           </div>
@@ -396,7 +396,7 @@ function MobileMenu({
               </div>
               <div>
                 <p className="text-sm font-semibold text-[#F5E6D8]">{displayName}</p>
-                <p className="text-xs text-[#B79B85]/55">{displayEmail}</p>
+                <p className="text-xs text-[#B79B85]/75">{displayEmail}</p>
                 {showAdmin && (
                   <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
                     {formatAdminRole(admin.role)}
@@ -409,7 +409,7 @@ function MobileMenu({
 
         {/* Nav links */}
         <div className="px-3 py-4">
-          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[#B6885E]/60">
+          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[#B6885E]/80">
             {t({ en: "Navigate", ar: "التصفح" })}
           </p>
           {navLinks.map((link) => {
@@ -432,7 +432,7 @@ function MobileMenu({
 
         {/* Account links */}
         <div className="border-t border-[#B6885E]/10 px-3 py-4">
-          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[#B6885E]/60">
+          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[#B6885E]/80">
             {t({ en: "Account", ar: "الحساب" })}
           </p>
           {isLoggedIn ? (
@@ -461,7 +461,7 @@ function MobileMenu({
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-[#B79B85]/50 transition-colors hover:text-red-400/70"
+                className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-[#B79B85]/70 transition-colors hover:text-red-400/70"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}
@@ -568,7 +568,7 @@ function CommercePopover({
           wishlistIds.length === 0 ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
-              <p className="text-sm text-[#D6B79A]/55">
+              <p className="text-sm text-[#D6B79A]/75">
                 {t({ en: "No saved items yet.", ar: "لا توجد منتجات محفوظة بعد." })}
               </p>
               <Link
@@ -582,21 +582,21 @@ function CommercePopover({
           ) : wishlistState === "idle" || wishlistState === "loading" ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
-              <p className="text-sm text-[#D6B79A]/55">
+              <p className="text-sm text-[#D6B79A]/75">
                 {t({ en: "Loading saved products.", ar: "جاري تحميل المنتجات المحفوظة." })}
               </p>
             </div>
           ) : wishlistState === "error" ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
-              <p className="text-sm text-[#D6B79A]/55">
+              <p className="text-sm text-[#D6B79A]/75">
                 {t({ en: "Saved products could not be loaded.", ar: "تعذر تحميل المنتجات المحفوظة." })}
               </p>
             </div>
           ) : visibleWishlistProducts.length === 0 ? (
             <div className="py-8 text-center">
               <Heart className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
-              <p className="text-sm text-[#D6B79A]/55">
+              <p className="text-sm text-[#D6B79A]/75">
                 {t({ en: "No saved items yet.", ar: "لا توجد منتجات محفوظة بعد." })}
               </p>
               <Link
@@ -643,7 +643,7 @@ function CommercePopover({
                         type="button"
                         onClick={() => removeWish(product.slug)}
                         aria-label={t({ en: "Remove", ar: "إزالة" })}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#B79B85]/40 transition-colors hover:text-red-400/70"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#B79B85]/60 transition-colors hover:text-red-400/70"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -676,7 +676,7 @@ function CommercePopover({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-[#F5E6D8]/88">{t(item.name)}</p>
-                    <p className="truncate text-[11px] text-[#D6B79A]/55">{t(item.detail)}</p>
+                    <p className="truncate text-[11px] text-[#D6B79A]/75">{t(item.detail)}</p>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
                         <button
@@ -743,7 +743,7 @@ function CommercePopover({
                 <button
                   type="button"
                   onClick={clearCart}
-                  className="text-xs text-[#B79B85]/40 transition-colors hover:text-red-400/60"
+                  className="text-xs text-[#B79B85]/60 transition-colors hover:text-red-400/60"
                 >
                   {t({ en: "Clear cart", ar: "إفراغ السلة" })}
                 </button>
@@ -756,7 +756,7 @@ function CommercePopover({
         {!isWishlist && !hasCartItems && (
           <div className="py-8 text-center">
             <ShoppingBag className="mx-auto mb-3 h-10 w-10 text-[#B6885E]/20" />
-            <p className="text-sm text-[#D6B79A]/55">
+            <p className="text-sm text-[#D6B79A]/75">
               {t({ en: "Your cart is empty.", ar: "سلتك فارغة." })}
             </p>
             <Link
@@ -795,7 +795,6 @@ export function PublicHeader() {
   const [accountProfile,       setAccountProfile]       = useState<{ userId: string; name: string } | null>(null);
 
   const authUserId = user?.id;
-  const isMakeYourEspressoPage = pathname === "/make-your-espresso";
   const closedNotice =
     storefront && !storefront.storeOpen
       ? storefront.closedNotice.trim() ||
@@ -971,20 +970,13 @@ export function PublicHeader() {
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 isolate overflow-visible text-white transition-all duration-500",
+          "line-public-header fixed inset-x-0 top-0 z-50 isolate overflow-visible text-white transition-all duration-500",
           isScrolled ? "nav-glass" : "",
         )}
         dir={dir}
       >
         {/* Announcement bar */}
-        <div
-          className={cn(
-            "relative z-20 min-h-[38px] overflow-hidden border-b px-10 py-2.5 text-center text-sm text-[#F5E6D8] backdrop-blur-2xl",
-            isMakeYourEspressoPage && !isScrolled
-              ? "border-[#B6885E]/10 bg-[rgba(11,8,6,0.06)] shadow-none"
-              : "border-[#B6885E]/18 bg-[#120D09]/58 shadow-[0_8px_26px_rgba(0,0,0,0.18)]",
-          )}
-        >
+        <div className="relative z-20 min-h-[38px] overflow-hidden border-b border-[#B6885E]/18 bg-[#120D09]/58 px-10 py-2.5 text-center text-sm text-[#F5E6D8] shadow-[0_8px_26px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
           <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 animate-line-sweep bg-gradient-to-r from-transparent via-[#FFDCC2]/12 to-transparent" />
           <div
             aria-live="polite"
@@ -1016,12 +1008,7 @@ export function PublicHeader() {
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#B6885E]/30 to-transparent" />
           </>
         ) : (
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-0 bg-gradient-to-b to-transparent",
-              isMakeYourEspressoPage ? "from-black/5 via-black/[0.015]" : "from-black/18 via-black/5",
-            )}
-          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/18 via-black/5 to-transparent" />
         )}
 
         <div className="relative z-10 mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
@@ -1055,7 +1042,7 @@ export function PublicHeader() {
                     href={link.href}
                     className={cn(
                       "nav-link group/nav relative px-1 py-2 text-[15px] font-medium tracking-wide",
-                      isActive ? "nav-link-active text-[#FFF0E4]" : "text-[#D6B79A]/85 hover:text-[#F5E6D8]",
+                      isActive ? "nav-link-active text-[#FFF0E4]" : "text-[#E3D2B8]/92 hover:text-[#F5E6D8]",
                     )}
                   >
                     <span className="nav-sweep">{t(link.label)}</span>

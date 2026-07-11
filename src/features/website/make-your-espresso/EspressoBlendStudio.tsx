@@ -489,7 +489,7 @@ function GuidePanel({
                 {t({ en: "Guide Me", ar: "رشح لي" })}
               </h2>
             </div>
-            <p className="max-w-2xl text-sm leading-6 text-[#D6B79A]/68">
+            <p className="max-w-2xl text-sm leading-6 text-[#D6B79A]/85">
               {t({
                 en: "Pick a taste direction and constraints. The suggested custom blend updates instantly.",
                 ar: "اختر اتجاه الطعم والقيود، وستتحدث التوليفة المقترحة فورًا.",
@@ -590,7 +590,7 @@ function GuidePanel({
               </div>
             ))}
           </div>
-          <div className="mt-4 border-t border-[#B6885E]/12 pt-3 text-xs text-[#D6B79A]/68">
+          <div className="mt-4 border-t border-[#B6885E]/12 pt-3 text-xs text-[#D6B79A]/85">
             <span>{t({ en: "Estimated", ar: "تقديري" })}: </span>
             <span className="arabic-number font-bold text-[#D6A373]">{roundMoney(suggestedPrice)} {t({ en: "EGP/kg", ar: "ج.م/كجم" })}</span>
           </div>
@@ -665,7 +665,7 @@ function SmartBlendConsole({
                 ? t({ en: "Smart Blend Active", ar: "التوليفة الذكية مفعّلة" })
                 : t({ en: "Manual Blend", ar: "توليفة يدوية" })}
             </p>
-            <p className="mt-1 text-sm leading-6 text-[#D6B79A]/68">
+            <p className="mt-1 text-sm leading-6 text-[#D6B79A]/85">
               {blendMode === "smart"
                 ? t({
                     en: "Adjust the character and ratios will move intelligently.",
@@ -763,7 +763,7 @@ function BeanLibrary({
       <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="font-serif text-2xl font-bold text-[#F5E6D8]">{title}</h2>
-          <p className="mt-1 text-sm text-[#D6B79A]/62">{description}</p>
+          <p className="mt-1 text-sm text-[#D6B79A]/82">{description}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-fit rounded-full border border-[#B6885E]/16 bg-[#120D09]/54 px-3 py-1 text-xs text-[#D6A373]">
@@ -835,7 +835,7 @@ function BeanLibrary({
                     className="mt-2 flex w-fit items-center gap-2 rounded-xl border border-[#D6A373]/22 bg-[#0B0806]/44 px-2.5 py-1.5 text-xs text-[#D6A373]"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <span className="text-[#D6B79A]/62">{t({ en: "Ratio", ar: "النسبة" })}</span>
+                    <span className="text-[#D6B79A]/82">{t({ en: "Ratio", ar: "النسبة" })}</span>
                     <input
                       type="number"
                       min={0}
@@ -860,7 +860,7 @@ function BeanLibrary({
 
                 <div className="mt-auto pt-3">
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <span className="text-[#D6B79A]/58">{t({ en: "Sale", ar: "السعر" })}</span>
+                    <span className="text-[#D6B79A]/78">{t({ en: "Sale", ar: "السعر" })}</span>
                     <span className="arabic-number font-bold text-[#D6A373]">{bean.salePrice} {t({ en: "EGP/kg", ar: "ج.م/كجم" })}</span>
                   </div>
 
@@ -1022,7 +1022,7 @@ function LiveBlendCart({
           <button
             type="button"
             onClick={onReset}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-[#B6885E]/16 py-2.5 text-xs font-semibold text-[#D6B79A]/50 transition-all hover:border-red-500/22 hover:text-red-400"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-[#B6885E]/16 py-2.5 text-xs font-semibold text-[#D6B79A]/70 transition-all hover:border-red-500/22 hover:text-red-400"
           >
             <Trash2 className="h-3.5 w-3.5" />
             {t({ en: "Reset studio", ar: "إعادة ضبط الاستوديو" })}
@@ -1061,7 +1061,7 @@ function LiveBlendCart({
 
           {/* Beans list */}
           {selectedBeans.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-[#B6885E]/24 px-4 py-5 text-center text-sm text-[#D6B79A]/58">
+            <p className="rounded-xl border border-dashed border-[#B6885E]/24 px-4 py-5 text-center text-sm text-[#D6B79A]/78">
               {t({ en: "Select beans to start your blend.", ar: "اختر الحبوب لبدء التوليفة." })}
             </p>
           ) : (
@@ -1082,7 +1082,7 @@ function LiveBlendCart({
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#F5E6D8]/88">{t(bean.name)}</p>
-                        <p className="text-[10px] text-[#D6B79A]/48">{t(getFamilyLabel(bean.family))}</p>
+                        <p className="text-[10px] text-[#D6B79A]/68">{t(getFamilyLabel(bean.family))}</p>
                       </div>
                       {blendMode === "manual" ? (
                         <label className="flex shrink-0 items-center gap-1">
@@ -1145,7 +1145,7 @@ function LiveBlendCart({
               </div>
               <p className="arabic-number shrink-0 text-3xl font-bold text-[#D6A373]">
                 {blendHealth.score}
-                <span className="text-sm text-[#D6B79A]/55">/100</span>
+                <span className="text-sm text-[#D6B79A]/75">/100</span>
               </p>
             </div>
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#0B0806]/70">
@@ -1157,7 +1157,7 @@ function LiveBlendCart({
                 style={{ width: `${blendHealth.score}%` }}
               />
             </div>
-            <p className="mt-2 text-xs leading-5 text-[#D6B79A]/68">
+            <p className="mt-2 text-xs leading-5 text-[#D6B79A]/85">
               {t(blendHealth.detail)}
             </p>
           </div>
@@ -1215,7 +1215,7 @@ function MetricBar({
   return (
     <div>
       <div className={cn(
-        "mb-1 flex items-center justify-between gap-2 font-medium text-[#D6B79A]/62",
+        "mb-1 flex items-center justify-between gap-2 font-medium text-[#D6B79A]/82",
         compact ? "text-[10px]" : "text-[11px]",
       )}>
         <span className="truncate">{label}</span>

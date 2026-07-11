@@ -68,7 +68,7 @@ export default function WishlistPage() {
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Your wishlist is empty", ar: "قائمة المحفوظات فارغة" })}
           </p>
-          <p className="mb-6 text-xs text-[#B79B85]/50">
+          <p className="mb-6 text-xs text-[#B79B85]/70">
             {t({ en: "Tap the heart icon on any product to save it here.", ar: "اضغط أيقونة القلب على أي منتج لحفظه هنا." })}
           </p>
           <Link href="/products" className="premium-button inline-block px-8 py-2.5 text-sm">
@@ -88,7 +88,7 @@ export default function WishlistPage() {
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Saved products could not be loaded", ar: "تعذر تحميل المنتجات المحفوظة" })}
           </p>
-          <p className="text-xs text-[#B79B85]/50">
+          <p className="text-xs text-[#B79B85]/70">
             {t({ en: "Please try again in a moment.", ar: "يرجى المحاولة مرة أخرى بعد قليل." })}
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function WishlistPage() {
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Your wishlist is empty", ar: "قائمة المحفوظات فارغة" })}
           </p>
-          <p className="mb-6 text-xs text-[#B79B85]/50">
+          <p className="mb-6 text-xs text-[#B79B85]/70">
             {t({ en: "Tap the heart icon on any product to save it here.", ar: "اضغط أيقونة القلب على أي منتج لحفظه هنا." })}
           </p>
           <Link href="/products" className="premium-button inline-block px-8 py-2.5 text-sm">
@@ -118,7 +118,7 @@ export default function WishlistPage() {
                 <button
                   type="button"
                   onClick={() => remove(product.slug)}
-                  className="absolute end-3 top-3 rounded-full p-1.5 text-[#B79B85]/40 transition-colors hover:text-red-400/70"
+                  className="absolute end-3 top-3 rounded-full p-1.5 text-[#B79B85]/60 transition-colors hover:text-red-400/70"
                   aria-label="Remove from wishlist"
                 >
                   <Trash2 className="h-4 w-4" />

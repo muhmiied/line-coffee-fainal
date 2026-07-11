@@ -67,7 +67,7 @@ export default function LoginPage() {
   };
 
   const inputClass =
-    "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 transition-colors focus:border-[#B6885E]/40 focus:outline-none";
+    "w-full rounded-xl border border-[#B6885E]/22 bg-[#120D09]/70 px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/38 outline-none transition-all focus:border-[#D6A373]/50 focus:ring-2 focus:ring-[#D6A373]/18";
 
   return (
     <AuthCard
@@ -107,7 +107,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/50 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
+              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
               aria-label={showPass ? "Hide password" : "Show password"}
             >
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -143,11 +143,11 @@ export default function LoginPage() {
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-[#B6885E]/12" />
-        <span className="text-xs text-[#B79B85]/40">{t({ en: "or", ar: "أو" })}</span>
+        <span className="text-xs text-[#B79B85]/60">{t({ en: "or", ar: "أو" })}</span>
         <div className="h-px flex-1 bg-[#B6885E]/12" />
       </div>
 
-      <p className="text-center text-sm text-[#B79B85]/60">
+      <p className="text-center text-sm text-[#B79B85]/80">
         {t({ en: "Don't have an account?", ar: "ليس لديك حساب؟" })}{" "}
         <Link
           href="/auth/signup"

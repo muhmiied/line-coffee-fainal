@@ -3,7 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ComponentType } from "react";
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  TikTokIcon,
+  YouTubeIcon,
+} from "@/components/icons/SocialIcons";
 import {
   DEFAULT_ADMIN_SETTINGS,
   formatPublicPhone,
@@ -15,38 +22,6 @@ import {
   toWhatsAppHref,
 } from "@/lib/admin/admin-settings";
 import { useLanguage, type LocalizedValue } from "@/lib/context/language";
-
-function IconInstagram({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-    </svg>
-  );
-}
-
-function IconFacebook({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-    </svg>
-  );
-}
-
-function IconTikTok({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/>
-    </svg>
-  );
-}
-
-function IconYouTube({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 00.5 6.2 31 31 0 000 12a31 31 0 00.5 5.8 3 3 0 002.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 002.1-2.1A31 31 0 0024 12a31 31 0 00-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/>
-    </svg>
-  );
-}
 
 const footerLinks = {
   categories: [
@@ -94,28 +69,31 @@ export function PublicFooter() {
     settings.contact.whatsappNumber,
     process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",
   );
-  const supportPhone = resolvePublicPhone(
-    settings.contact.supportPhone,
-    whatsappNumber ?? "",
-  );
-  const phoneDisplay = supportPhone ? formatPublicPhone(supportPhone) : null;
+  // Only surface a Phone row when a real, distinct support phone is configured —
+  // no WhatsApp fallback, so the same number never shows twice (once as a call,
+  // once as WhatsApp).
+  const supportPhone = resolvePublicPhone(settings.contact.supportPhone);
   const whatsappDisplay = whatsappNumber ? formatPublicPhone(whatsappNumber) : null;
-  const phoneHref = supportPhone ? toPhoneHref(supportPhone) : null;
+  const supportPhoneDisplay = supportPhone ? formatPublicPhone(supportPhone) : null;
   const emailHref = toEmailHref(settings.contact.supportEmail);
   const whatsappHref = toWhatsAppHref(
     whatsappNumber ?? "",
     settings.social.whatsapp,
   );
+  const phoneIsDistinct =
+    Boolean(supportPhone) && supportPhoneDisplay !== whatsappDisplay;
+  const phoneDisplay = phoneIsDistinct ? supportPhoneDisplay : null;
+  const phoneHref = phoneIsDistinct && supportPhone ? toPhoneHref(supportPhone) : null;
   const socialCandidates: Array<{
     href: string | null;
     label: string;
     Icon: ComponentType<{ className?: string }>;
   }> = [
-    { href: toPublicHttpUrl(settings.social.instagram), label: "Instagram", Icon: IconInstagram },
-    { href: toPublicHttpUrl(settings.social.facebook), label: "Facebook", Icon: IconFacebook },
-    { href: toPublicHttpUrl(settings.social.tiktok), label: "TikTok", Icon: IconTikTok },
-    { href: toPublicHttpUrl(settings.social.youtube), label: "YouTube", Icon: IconYouTube },
-    { href: whatsappHref, label: "WhatsApp", Icon: MessageCircle },
+    { href: toPublicHttpUrl(settings.social.instagram), label: "Instagram", Icon: InstagramIcon },
+    { href: toPublicHttpUrl(settings.social.facebook), label: "Facebook", Icon: FacebookIcon },
+    { href: toPublicHttpUrl(settings.social.tiktok), label: "TikTok", Icon: TikTokIcon },
+    { href: toPublicHttpUrl(settings.social.youtube), label: "YouTube", Icon: YouTubeIcon },
+    { href: whatsappHref, label: "WhatsApp", Icon: WhatsAppIcon },
   ];
   const socials = socialCandidates.filter(
     (item): item is typeof item & { href: string } => item.href !== null,
@@ -193,7 +171,7 @@ export function PublicFooter() {
                 {settings.contact.businessAddress.trim() && (
                 <li className="flex items-start gap-2.5">
                   <MapPin className="line-footer-contact-icon mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]" />
-                  <span className="text-sm text-[#B79B85]/65">
+                  <span className="text-sm text-[#B79B85]/85">
                     {settings.contact.businessAddress}
                   </span>
                 </li>
@@ -201,7 +179,7 @@ export function PublicFooter() {
                 {phoneHref && phoneDisplay && (
                 <li className="flex items-center gap-2.5">
                   <Phone className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
-                  <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={phoneHref}>
+                  <a className="text-sm text-[#B79B85]/85 transition-colors hover:text-[#D6A373]" href={phoneHref}>
                     {phoneDisplay}
                   </a>
                 </li>
@@ -209,16 +187,16 @@ export function PublicFooter() {
                 {emailHref && (
                 <li className="flex items-center gap-2.5">
                   <Mail className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
-                  <a className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]" href={emailHref}>
+                  <a className="text-sm text-[#B79B85]/85 transition-colors hover:text-[#D6A373]" href={emailHref}>
                     {settings.contact.supportEmail}
                   </a>
                 </li>
                 )}
                 {whatsappHref && (
                   <li className="flex items-center gap-2.5">
-                    <MessageCircle className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
+                    <WhatsAppIcon className="line-footer-contact-icon h-4 w-4 shrink-0 text-[#B6885E]" />
                     <a
-                      className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]"
+                      className="text-sm text-[#B79B85]/85 transition-colors hover:text-[#D6A373]"
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -228,7 +206,7 @@ export function PublicFooter() {
                   </li>
                 )}
                 {!hasContact && (
-                  <li className="text-sm text-[#B79B85]/65">
+                  <li className="text-sm text-[#B79B85]/85">
                     {t({
                       en: "Contact details are not available yet.",
                       ar: "بيانات التواصل غير متاحة حالياً.",
@@ -241,7 +219,7 @@ export function PublicFooter() {
         </div>
 
         <div className="border-t border-[#B6885E]/10">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-[#B79B85]/45 md:flex-row">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-[#B79B85]/65 md:flex-row">
             <p>
               &copy; {new Date().getFullYear()} {settings.brand.storeName}.{" "}
               {t({ en: "All rights reserved.", ar: "جميع الحقوق محفوظة." })}
@@ -279,7 +257,7 @@ function FooterColumn({
           <li key={link.href}>
             <Link
               href={link.href}
-              className="text-sm text-[#B79B85]/65 transition-colors hover:text-[#D6A373]"
+              className="text-sm text-[#B79B85]/85 transition-colors hover:text-[#D6A373]"
             >
               {t(link.label)}
             </Link>

@@ -91,7 +91,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-[#F5E6D8]">{displayName}</p>
                 {displayEmail ? (
-                  <p className="truncate text-xs text-[#B79B85]/60">{displayEmail}</p>
+                  <p className="truncate text-xs text-[#B79B85]/80">{displayEmail}</p>
                 ) : null}
               </div>
             </div>
@@ -122,7 +122,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm text-[#B79B85]/55 transition-colors hover:text-red-400/70"
+                className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm text-[#B79B85]/75 transition-colors hover:text-red-400/70"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}

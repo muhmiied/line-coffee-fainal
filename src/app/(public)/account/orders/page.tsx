@@ -57,7 +57,7 @@ export default function OrdersPage() {
         </div>
       ) : orders.length === 0 ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
-          <p className="mb-4 text-sm text-[#B79B85]/60">
+          <p className="mb-4 text-sm text-[#B79B85]/80">
             {t({ en: "No orders yet.", ar: "لا توجد طلبات بعد." })}
           </p>
           <Link
@@ -95,7 +95,7 @@ export default function OrdersPage() {
                       {t(statusLabel)}
                     </span>
                   </div>
-                  <p className="text-xs text-[#B79B85]/55">
+                  <p className="text-xs text-[#B79B85]/75">
                     {formatDate(order.placedAt, language)} ·{" "}
                     {order.itemCount}{" "}
                     {t({
@@ -114,7 +114,7 @@ export default function OrdersPage() {
 
                 <ChevronRight
                   className={cn(
-                    "h-4 w-4 shrink-0 text-[#B79B85]/40 transition-transform group-hover:text-[#B6885E]",
+                    "h-4 w-4 shrink-0 text-[#B79B85]/60 transition-transform group-hover:text-[#B6885E]",
                     isRtl ? "rotate-180" : "",
                   )}
                 />

@@ -84,7 +84,7 @@ export default function ResetPasswordPage() {
   };
 
   const inputClass =
-    "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 transition-colors focus:border-[#B6885E]/40 focus:outline-none";
+    "w-full rounded-xl border border-[#B6885E]/22 bg-[#120D09]/70 px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/38 outline-none transition-all focus:border-[#D6A373]/50 focus:ring-2 focus:ring-[#D6A373]/18";
 
   if (phase === "checking") {
     return (
@@ -172,7 +172,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/50 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
+              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
               aria-label="Toggle visibility"
             >
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -203,7 +203,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => setShowConf((v) => !v)}
-              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/50 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
+              className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
               aria-label="Toggle visibility"
             >
               {showConf ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

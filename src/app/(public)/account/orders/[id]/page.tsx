@@ -103,7 +103,7 @@ export default function OrderDetailPage({
     return (
       <AccountShell title={{ en: "Order not found", ar: "الطلب غير موجود" }}>
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
-          <p className="mb-4 text-sm text-[#B79B85]/60">
+          <p className="mb-4 text-sm text-[#B79B85]/80">
             {t({
               en: "We could not find this order.",
               ar: "لم نتمكن من العثور على هذا الطلب.",
@@ -134,7 +134,7 @@ export default function OrderDetailPage({
       {/* Back */}
       <Link
         href="/account/orders"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-[#B79B85]/60 transition-colors hover:text-[#B6885E]"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-[#B79B85]/80 transition-colors hover:text-[#B6885E]"
       >
         <BackArrow className="h-3.5 w-3.5" />
         {t({ en: "All orders", ar: "جميع الطلبات" })}
@@ -149,7 +149,7 @@ export default function OrderDetailPage({
               <p className="font-mono text-lg font-bold text-[#F5E6D8]">
                 {order.code}
               </p>
-              <p className="mt-0.5 text-xs text-[#B79B85]/55">
+              <p className="mt-0.5 text-xs text-[#B79B85]/75">
                 {formatDate(order.placedAt, language)}
               </p>
             </div>
@@ -211,7 +211,7 @@ export default function OrderDetailPage({
                     <p
                       className={cn(
                         "text-center text-xs leading-tight",
-                        done ? "text-[#D6B79A]" : "text-[#B79B85]/40",
+                        done ? "text-[#D6B79A]" : "text-[#B79B85]/60",
                       )}
                     >
                       {t(step.label)}
@@ -230,7 +230,7 @@ export default function OrderDetailPage({
           </p>
           <div className="divide-y divide-[#B6885E]/08">
             {order.items.length === 0 ? (
-              <p className="py-3 text-sm text-[#B79B85]/40">
+              <p className="py-3 text-sm text-[#B79B85]/60">
                 {t({ en: "No items.", ar: "لا توجد منتجات." })}
               </p>
             ) : (
@@ -243,7 +243,7 @@ export default function OrderDetailPage({
                     <p className="text-sm font-medium text-[#F5E6D8]">
                       {language === "ar" ? item.nameAr : item.nameEn}
                     </p>
-                    <p className="text-xs text-[#B79B85]/55">
+                    <p className="text-xs text-[#B79B85]/75">
                       {language === "ar"
                         ? (item.detailAr ?? item.detailEn ?? "")
                         : (item.detailEn ?? "")}
@@ -291,7 +291,7 @@ export default function OrderDetailPage({
                 {order.total} {t({ en: "EGP", ar: "ج.م" })}
               </span>
             </div>
-            <div className="flex items-center justify-between pt-1 text-xs text-[#B79B85]/55">
+            <div className="flex items-center justify-between pt-1 text-xs text-[#B79B85]/75">
               <span>{t({ en: "Payment", ar: "الدفع" })}</span>
               <span>{t(paymentLbl)}</span>
             </div>
@@ -328,9 +328,9 @@ export default function OrderDetailPage({
                       )}
                     </p>
                     {ev.note && (
-                      <p className="text-xs text-[#B79B85]/55">{ev.note}</p>
+                      <p className="text-xs text-[#B79B85]/75">{ev.note}</p>
                     )}
-                    <p className="text-xs text-[#B79B85]/40">
+                    <p className="text-xs text-[#B79B85]/60">
                       {formatDate(ev.changedAt, language)}
                     </p>
                   </div>

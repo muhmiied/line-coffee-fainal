@@ -286,6 +286,7 @@ function HeroOverlay() {
     <>
       <div className="absolute inset-0 bg-black/44" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_28%,rgba(0,0,0,0.32)_100%)]" />
+      <div className="hero-ambient" aria-hidden="true" />
       <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#0B0806] via-[#0B0806]/40 to-transparent" />
       <div className="hero-side-gradient absolute inset-0" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_65%,rgba(182,136,94,0.14)_0%,transparent_70%)]" />
