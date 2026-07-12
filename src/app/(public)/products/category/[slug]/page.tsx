@@ -417,7 +417,7 @@ export default function ProductCategoryPage() {
               ))}
             </div>
 
-            <label className="relative flex items-center gap-2 rounded-xl border border-[#B6885E]/16 bg-[#0B0806]/42 px-3 py-2 text-sm text-[#D6B79A]/70">
+            <label className="relative flex items-center gap-2 rounded-xl border border-[#D6A373]/26 bg-[#0B0806]/42 px-3 py-2 text-sm text-[#D6B79A]/70 shadow-[0_0_12px_rgba(182,136,94,0.08)] transition-colors hover:border-[#D6A373]/40">
               <Filter className="h-4 w-4 text-[#D6A373]" />
               <select
                 value={sortValue}

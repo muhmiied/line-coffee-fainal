@@ -34,7 +34,8 @@ export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | nul
     <div
       className="rounded-2xl relative overflow-hidden"
       style={{
-        border: "1px solid rgba(182,136,94,0.16)",
+        border: "1px solid var(--admin-border-strong)",
+        boxShadow: "var(--admin-inset), var(--admin-shadow-lift)",
         minHeight: 180,
       }}
     >
@@ -65,19 +66,19 @@ export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | nul
         {/* Left: greeting + stats */}
         <div>
           <h1
-            className="text-xl sm:text-[22px] font-semibold mb-1.5"
-            style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
+            className="text-2xl sm:text-[26px] font-semibold mb-1.5"
+            style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}
           >
             <span data-admin-no-translate>{greetingLine}</span>
           </h1>
-          <p className="text-[13px] mb-4" style={{ color: "var(--cream-dim)" }}>
+          <p className="text-[13.5px] mb-4 admin-muted">
             {t("Here's what's happening with Line Coffee today.")}
           </p>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <StatPill value={newOrders}      label={t("new orders")}       dotColor="var(--gold)" />
-            <StatPill value={lowStockCount}  label={t("low stock alerts")} dotColor="#ef4444" />
-            <StatPill value={pendingReviews} label={t("pending reviews")}  dotColor="#a78bfa" />
+            <StatPill value={newOrders}      label={t("new orders")}       dotColor="var(--admin-hazelnut)" />
+            <StatPill value={lowStockCount}  label={t("low stock alerts")} dotColor="#e39a8c" />
+            <StatPill value={pendingReviews} label={t("pending reviews")}  dotColor="#9db3cf" />
           </div>
         </div>
 
@@ -85,11 +86,11 @@ export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | nul
         <div className="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
           <span
             className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--gold)", opacity: 0.75 }}
+            style={{ color: "var(--admin-hazelnut)" }}
           >
             {t("Today")}
           </span>
-          <span className="text-sm font-medium" style={{ color: "var(--cream)" }}>
+          <span className="text-sm font-medium" style={{ color: "var(--admin-white-coffee)" }}>
             {formatDate(new Date(), {
               weekday: "long",
               day: "numeric",
@@ -113,12 +114,12 @@ function StatPill({
   dotColor: string;
 }) {
   return (
-    <span dir="ltr" className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--cream-dim)" }}>
+    <span dir="ltr" className="flex items-center gap-2 text-[12.5px] admin-muted">
       <span
         className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ background: dotColor }}
+        style={{ background: dotColor, boxShadow: `0 0 8px ${dotColor}70` }}
       />
-      <bdi dir="ltr" className="font-semibold tabular-nums" style={{ color: "var(--cream)" }}>
+      <bdi dir="ltr" className="font-semibold tabular-nums" style={{ color: "var(--admin-white-coffee)" }}>
         {value}
       </bdi>
       <span>{label}</span>

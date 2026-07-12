@@ -168,7 +168,7 @@ export default async function RootLayout({
         <LanguageProvider initialLanguage={initialLanguage}>
           <CartProvider>
             <PublicHeader />
-            <main className="flex-1 w-full pt-[6.4rem] sm:pt-[7.2rem] md:pt-[8.9rem]">
+            <main className="flex-1 w-full pt-[6.4rem] sm:pt-[7.2rem] md:pt-[7.9rem]">
               {children}
             </main>
             <PublicFooter />

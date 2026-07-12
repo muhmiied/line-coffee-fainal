@@ -45,10 +45,10 @@ function formatDate(value: string) {
 }
 
 function paymentTone(status: string) {
-  if (status === "paid") return "#4ade80";
-  if (status === "failed") return "#f87171";
+  if (status === "paid") return "#8fcf9a";
+  if (status === "failed") return "#e39a8c";
   if (status === "refunded") return "#c4b5a7";
-  return "#fbbf24";
+  return "#e3b673";
 }
 
 function KpiCard({
@@ -70,19 +70,21 @@ function KpiCard({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl border p-3 text-left transition-all"
+      className="admin-card text-left !p-3"
       style={{
-        borderColor: active ? color : "rgba(182,136,94,0.12)",
-        background: `${color}0D`,
+        borderColor: active ? `${color}80` : undefined,
+        boxShadow: active
+          ? `var(--admin-inset), var(--admin-shadow), 0 0 0 1px ${color}40, 0 0 18px ${color}25`
+          : undefined,
       }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#D6B79A]/45">
+        <span className="admin-label !text-[9px]">
           {label}
         </span>
         <Icon className="h-3.5 w-3.5" style={{ color }} />
       </div>
-      <span className="text-2xl font-extrabold" style={{ color }}>
+      <span className="text-2xl font-extrabold tabular-nums" style={{ color }}>
         {value}
       </span>
     </button>
@@ -99,33 +101,34 @@ function OrderRow({
   const paymentColor = paymentTone(order.paymentStatus);
   return (
     <>
-      <div className="hidden grid-cols-[110px_1.35fr_1fr_60px_105px_120px_100px_105px_90px] items-center gap-3 border-b border-[#B6885E]/[0.06] px-4 py-3 text-xs last:border-b-0 lg:grid">
-        <span className="font-mono font-bold text-[#D6A373]">{order.code}</span>
+      <div className="hidden grid-cols-[110px_1.35fr_1fr_60px_105px_120px_100px_105px_90px] items-center gap-3 px-4 py-3 text-xs transition-colors hover:bg-[rgb(227_210_184_/_0.035)] lg:grid" style={{ borderBottom: "1px solid var(--admin-border)" }}>
+        <span className="font-mono font-bold" style={{ color: "var(--admin-hazelnut)" }}>{order.code}</span>
         <div className="min-w-0">
-          <p className="truncate font-medium text-[#F5E6D8]/85">{order.customerName}</p>
-          <p className="truncate text-[10px] text-[#D6B79A]/38">{order.customerEmail || "Guest checkout"}</p>
+          <p className="truncate font-medium admin-text">{order.customerName}</p>
+          <p className="truncate text-[10px] admin-faint">{order.customerEmail || "Guest checkout"}</p>
         </div>
-        <span className="truncate font-mono text-[11px] text-[#D6B79A]/55">
+        <span className="truncate font-mono text-[11px] admin-faint">
           {order.customerPhone || "—"}
         </span>
-        <span className="text-[#D6B79A]/60">{order.itemCount}</span>
-        <span className="font-semibold text-[#F5E6D8]/82">
+        <span className="admin-muted">{order.itemCount}</span>
+        <span className="font-semibold admin-text">
           {order.total.toLocaleString()} EGP
         </span>
         <div>
           <p className="truncate text-[11px] font-semibold" style={{ color: paymentColor }}>
             {ADMIN_PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
           </p>
-          <p className="text-[10px] text-[#D6B79A]/40">
+          <p className="text-[10px] admin-faint">
             {ADMIN_PAYMENT_STATUS_LABELS[order.paymentStatus] ?? order.paymentStatus}
           </p>
         </div>
         <OrderStatusBadge status={order.status} />
-        <span className="text-[10.5px] text-[#D6B79A]/42">{formatDate(order.placedAt)}</span>
+        <span className="text-[10.5px] admin-faint">{formatDate(order.placedAt)}</span>
         <button
           type="button"
           onClick={() => onOpen(order.id)}
-          className="flex items-center justify-center gap-1 rounded-lg border border-[#B6885E]/18 bg-[#D6A373]/8 px-2 py-1.5 font-semibold text-[#D6A373]"
+          className="admin-btn admin-btn-sm flex items-center justify-center gap-1"
+          style={{ color: "var(--admin-hazelnut)" }}
         >
           Manage <ChevronRight className="h-3 w-3" />
         </button>
@@ -134,18 +137,19 @@ function OrderRow({
       <button
         type="button"
         onClick={() => onOpen(order.id)}
-        className="w-full border-b border-[#B6885E]/[0.06] px-4 py-3 text-left last:border-b-0 lg:hidden"
+        className="w-full px-4 py-3 text-left transition-colors hover:bg-[rgb(227_210_184_/_0.035)] lg:hidden"
+        style={{ borderBottom: "1px solid var(--admin-border)" }}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-sm font-bold text-[#D6A373]">{order.code}</p>
-            <p className="mt-1 text-sm font-medium text-[#F5E6D8]/85">{order.customerName}</p>
+            <p className="font-mono text-sm font-bold" style={{ color: "var(--admin-hazelnut)" }}>{order.code}</p>
+            <p className="mt-1 text-sm font-medium admin-text">{order.customerName}</p>
           </div>
           <OrderStatusBadge status={order.status} />
         </div>
-        <div className="mt-3 flex items-center justify-between text-xs text-[#D6B79A]/48">
+        <div className="mt-3 flex items-center justify-between text-xs admin-faint">
           <span>{order.itemCount} items · {formatDate(order.placedAt)}</span>
-          <span className="font-semibold text-[#F5E6D8]/80">
+          <span className="font-semibold admin-text">
             {order.total.toLocaleString()} EGP
           </span>
         </div>
@@ -236,20 +240,20 @@ export default function OrdersPage() {
   }
 
   const kpis = [
-    { filter: "all" as const, label: "Total Orders", Icon: Package, color: "#D6A373" },
-    { filter: "pending" as const, label: "Pending", Icon: Clock, color: "#fbbf24" },
-    { filter: "preparing" as const, label: "Preparing", Icon: Package, color: "#60a5fa" },
-    { filter: "shipped" as const, label: "Shipped", Icon: Truck, color: "#a78bfa" },
-    { filter: "delivered" as const, label: "Delivered", Icon: CheckCircle2, color: "#4ade80" },
-    { filter: "cancelled" as const, label: "Cancelled", Icon: AlertTriangle, color: "#f87171" },
+    { filter: "all" as const, label: "Total Orders", Icon: Package, color: "var(--admin-hazelnut)" },
+    { filter: "pending" as const, label: "Pending", Icon: Clock, color: "#e3b673" },
+    { filter: "preparing" as const, label: "Preparing", Icon: Package, color: "#8fb0d9" },
+    { filter: "shipped" as const, label: "Shipped", Icon: Truck, color: "#b79bd9" },
+    { filter: "delivered" as const, label: "Delivered", Icon: CheckCircle2, color: "#8fcf9a" },
+    { filter: "cancelled" as const, label: "Cancelled", Icon: AlertTriangle, color: "#e39a8c" },
   ];
 
   return (
     <>
       <div className="space-y-5">
         <header>
-          <h1 className="font-serif text-xl font-bold text-[#F5E6D8]">Orders</h1>
-          <p className="mt-1 text-sm text-[#D6B79A]/52">
+          <h1 className="admin-page-title">Orders</h1>
+          <p className="admin-page-subtitle">
             {orders.length} real Supabase orders
           </p>
         </header>
@@ -269,13 +273,13 @@ export default function OrdersPage() {
         </div>
 
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#D6B79A]/35" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 admin-faint" />
           <input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by order code, customer, email, or phone…"
-            className="w-full rounded-xl border border-[#B6885E]/12 bg-white/[0.025] py-2.5 pl-9 pr-4 text-sm text-[#F5E6D8] outline-none placeholder:text-[#D6B79A]/28 focus:border-[#D6A373]/30"
+            className="admin-input w-full !py-2.5 !pl-9 !pr-4 !rounded-xl !text-sm"
           />
         </div>
 
@@ -285,16 +289,7 @@ export default function OrdersPage() {
               key={status}
               type="button"
               onClick={() => setActiveStatus(status)}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
-              style={{
-                color: activeStatus === status ? "#D6A373" : "rgba(214,183,154,.55)",
-                borderColor:
-                  activeStatus === status
-                    ? "rgba(214,163,115,.3)"
-                    : "rgba(182,136,94,.1)",
-                background:
-                  activeStatus === status ? "rgba(214,163,115,.08)" : "transparent",
-              }}
+              className={`admin-chip${activeStatus === status ? " admin-chip-active" : ""}`}
             >
               {status === "all" ? "All" : ADMIN_ORDER_STATUS_LABELS[status]}{" "}
               <span className="ml-1 opacity-60">{counts[status]}</span>
@@ -302,21 +297,22 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        <section className="overflow-hidden rounded-xl border border-[#B6885E]/10">
-          <div className="hidden grid-cols-[110px_1.35fr_1fr_60px_105px_120px_100px_105px_90px] gap-3 border-b border-[#B6885E]/10 bg-[#D6A373]/[0.025] px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#D6B79A]/42 lg:grid">
+        <section className="admin-table-wrap">
+          <div className="hidden grid-cols-[110px_1.35fr_1fr_60px_105px_120px_100px_105px_90px] gap-3 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider admin-faint lg:grid" style={{ borderBottom: "1px solid var(--admin-border)", background: "rgb(227 210 184 / 0.035)" }}>
             <span>Order</span><span>Customer</span><span>Phone</span><span>Items</span>
             <span>Total</span><span>Payment</span><span>Status</span><span>Date</span><span>Action</span>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-[#D6B79A]/50">
+            <div className="flex items-center justify-center gap-2 py-16 text-sm admin-muted">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading orders…
             </div>
           ) : loadError ? (
-            <div className="px-5 py-12 text-center text-sm text-red-300">{loadError}</div>
+            <div className="px-5 py-12 text-center text-sm" style={{ color: "#e39a8c" }}>{loadError}</div>
           ) : filtered.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-[#D6B79A]/40">
-              No real orders match these filters.
+            <div className="admin-empty-state !border-0 !rounded-none">
+              <span className="admin-empty-icon"><Package size={22} /></span>
+              <p className="text-sm admin-muted">No real orders match these filters.</p>
             </div>
           ) : (
             filtered.map((order) => (

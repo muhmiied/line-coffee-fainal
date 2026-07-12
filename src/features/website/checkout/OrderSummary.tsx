@@ -6,6 +6,7 @@ import type { CartItem } from "@/lib/context/cart";
 import type { PromoValidationResult } from "@/lib/types/marketing";
 import { PromoSection } from "./PromoSection";
 import type { DeliveryZonePreview, FormData, TranslateFn } from "./types";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 type OrderSummaryProps = {
   t: TranslateFn;
@@ -136,7 +137,7 @@ export function OrderSummary({
           aria-live="polite"
           className="mt-5 rounded-xl border border-red-400/25 bg-red-400/8 px-4 py-3 text-sm leading-6 text-red-200"
         >
-          {submitError}
+          <MixedNumeric text={submitError} />
         </div>
       )}
 

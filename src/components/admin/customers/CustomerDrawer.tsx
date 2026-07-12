@@ -54,67 +54,67 @@ const ORDER_TYPE_LABEL: Record<string, string> = {
 
 function SectionTitle({ children }: { children: string }) {
   return (
-    <p style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--gold)", opacity: 0.55, marginBottom: 10 }}>
+    <p style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--admin-hazelnut)", opacity: 0.55, marginBottom: 10 }}>
       {children}
     </p>
   );
 }
 
 function Hr() {
-  return <div style={{ height: 1, background: "rgba(182,136,94,0.08)", margin: "16px 0" }} />;
+  return <div style={{ height: 1, background: "var(--admin-border)", margin: "16px 0" }} />;
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-      <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.45, width: 120, flexShrink: 0, paddingTop: 1 }}>{label}</span>
-      <span style={{ fontSize: 12.5, color: "var(--cream)", flex: 1 }}>{value}</span>
+      <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.45, width: 120, flexShrink: 0, paddingTop: 1 }}>{label}</span>
+      <span style={{ fontSize: 12.5, color: "var(--admin-white-coffee)", flex: 1 }}>{value}</span>
     </div>
   );
 }
 
 const TYPE_BADGE: Record<string, { bg: string; color: string; label: string }> = {
-  registered: { bg: "rgba(96,165,250,0.12)",  color: "#60a5fa", label: "Registered" },
-  guest:      { bg: "rgba(251,191,36,0.12)",  color: "#fbbf24", label: "Guest" },
+  registered: { bg: "rgba(96,165,250,0.12)",  color: "#8fb0d9", label: "Registered" },
+  guest:      { bg: "rgba(251,191,36,0.12)",  color: "#e3b673", label: "Guest" },
 };
 
 const ACCOUNT_STATUS_BADGE: Record<string, { bg: string; color: string; label: string }> = {
-  active:   { bg: "rgba(74,222,128,0.12)",  color: "#4ade80", label: "Active" },
-  inactive: { bg: "rgba(156,163,175,0.12)", color: "#9ca3af", label: "Inactive" },
-  blocked:  { bg: "rgba(248,113,113,0.12)", color: "#f87171", label: "Blocked" },
+  active:   { bg: "rgba(74,222,128,0.12)",  color: "#8fcf9a", label: "Active" },
+  inactive: { bg: "rgba(156,163,175,0.12)", color: "#c9b8a3", label: "Inactive" },
+  blocked:  { bg: "rgba(248,113,113,0.12)", color: "#e39a8c", label: "Blocked" },
 };
 
 const LIFECYCLE_BADGE: Record<string, { bg: string; color: string; label: string }> = {
-  active:   { bg: "rgba(74,222,128,0.12)",   color: "#4ade80", label: "Active" },
-  inactive: { bg: "rgba(248,113,113,0.12)",  color: "#f87171", label: "Inactive" },
-  new:      { bg: "rgba(251,191,36,0.12)",   color: "#fbbf24", label: "New" },
+  active:   { bg: "rgba(74,222,128,0.12)",   color: "#8fcf9a", label: "Active" },
+  inactive: { bg: "rgba(248,113,113,0.12)",  color: "#e39a8c", label: "Inactive" },
+  new:      { bg: "rgba(251,191,36,0.12)",   color: "#e3b673", label: "New" },
 };
 
 const SEGMENT_STYLE: Record<CustomerSegment, { color: string; bg: string; label: string }> = {
-  vip:                  { color: "var(--gold)",  bg: "rgba(182,136,94,0.12)", label: "VIP" },
-  repeat:               { color: "#4ade80",       bg: "rgba(74,222,128,0.10)", label: "Repeat" },
-  new:                  { color: "#fbbf24",       bg: "rgba(251,191,36,0.10)", label: "New" },
-  inactive:             { color: "#f87171",       bg: "rgba(248,113,113,0.10)", label: "Inactive" },
+  vip:                  { color: "var(--admin-hazelnut)",  bg: "var(--admin-border)", label: "VIP" },
+  repeat:               { color: "#8fcf9a",       bg: "rgba(74,222,128,0.10)", label: "Repeat" },
+  new:                  { color: "#e3b673",       bg: "rgba(251,191,36,0.10)", label: "New" },
+  inactive:             { color: "#e39a8c",       bg: "rgba(248,113,113,0.10)", label: "Inactive" },
   "at-risk":            { color: "#fb923c",       bg: "rgba(251,146,60,0.10)", label: "At Risk" },
   "wholesale-potential":{ color: "#c084fc",       bg: "rgba(192,132,252,0.10)", label: "Wholesale" },
 };
 
 const ORDER_STATUS_COLOR: Record<string, string> = {
-  pending:   "#fbbf24",
-  preparing: "#60a5fa",
-  shipped:   "#a78bfa",
-  delivered: "#4ade80",
-  cancelled: "#f87171",
-  returned:  "#9ca3af",
+  pending:   "#e3b673",
+  preparing: "#8fb0d9",
+  shipped:   "#b79bd9",
+  delivered: "#8fcf9a",
+  cancelled: "#e39a8c",
+  returned:  "#c9b8a3",
 };
 
 const ACTIVITY_DOT: Record<string, string> = {
-  pending:   "#fbbf24",
-  preparing: "#60a5fa",
-  shipped:   "#a78bfa",
-  delivered: "#4ade80",
-  cancelled: "#f87171",
-  returned:  "#9ca3af",
+  pending:   "#e3b673",
+  preparing: "#8fb0d9",
+  shipped:   "#b79bd9",
+  delivered: "#8fcf9a",
+  cancelled: "#e39a8c",
+  returned:  "#c9b8a3",
 };
 
 const PREDEFINED_TAGS = [
@@ -250,23 +250,22 @@ export default function CustomerDrawer({
     ? detail.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "—";
   const avatarBg = detail?.type === "registered"
-    ? (segs.includes("vip") ? "linear-gradient(135deg,#a8744e,#d6a373)" : "linear-gradient(135deg,#3b82f6,#60a5fa)")
-    : (segs.includes("vip") ? "linear-gradient(135deg,#a8744e,#d6a373)" : "linear-gradient(135deg,#d97706,#fbbf24)");
+    ? (segs.includes("vip") ? "linear-gradient(135deg,#a8744e,var(--admin-hazelnut))" : "linear-gradient(135deg,#8fb0d9,#8fb0d9)")
+    : (segs.includes("vip") ? "linear-gradient(135deg,#a8744e,var(--admin-hazelnut))" : "linear-gradient(135deg,#d97706,#e3b673)");
 
   const waHref = detail ? `https://wa.me/${detail.whatsapp.replace(/\D/g, "")}` : "#";
 
   return (
     <>
       {isOpen && (
-        <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.60)", zIndex: 101 }} />
+        <div onClick={onClose} className="admin-modal-overlay" style={{ position: "fixed", inset: 0, zIndex: 101 }} />
       )}
 
       <div
+        className="admin-drawer-surface"
         style={{
           position: "fixed", top: 0, right: 0, height: "100vh",
           width: "clamp(360px,48vw,680px)",
-          background: "var(--coffee-dark)",
-          borderLeft: "1px solid rgba(182,136,94,0.12)",
           zIndex: 102,
           display: "flex", flexDirection: "column",
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
@@ -274,7 +273,7 @@ export default function CustomerDrawer({
         }}
       >
         {/* ── Sticky Header ────────────────────────────────────────────────────── */}
-        <div style={{ padding: "18px 20px 0", borderBottom: "1px solid rgba(182,136,94,0.10)", flexShrink: 0 }}>
+        <div className="admin-drawer-header" style={{ padding: "18px 20px 0", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
             <div style={{
               width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
@@ -286,10 +285,10 @@ export default function CustomerDrawer({
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 5 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "var(--admin-white-coffee)", fontFamily: "var(--font-playfair)" }}>
                   {detail?.name ?? (loading ? "Loading…" : "—")}
                 </span>
-                {duplicateOf && <AlertTriangle size={13} style={{ color: "#fbbf24", flexShrink: 0 }} />}
+                {duplicateOf && <AlertTriangle size={13} style={{ color: "#e3b673", flexShrink: 0 }} />}
               </div>
 
               {detail && (
@@ -311,14 +310,14 @@ export default function CustomerDrawer({
               {detail && (
                 <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--gold)" }}>
-                      {fmt(detail.totalSpent)} <span style={{ fontSize: 10, fontWeight: 400, color: "var(--cream-dim)", opacity: 0.5 }}>EGP</span>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--admin-hazelnut)" }}>
+                      {fmt(detail.totalSpent)} <span style={{ fontSize: 10, fontWeight: 400, color: "var(--admin-muted)", opacity: 0.5 }}>EGP</span>
                     </p>
-                    <p style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.4 }}>Total spent</p>
+                    <p style={{ fontSize: 9.5, color: "var(--admin-muted)", opacity: 0.4 }}>Total spent</p>
                   </div>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>{detail.ordersCount}</p>
-                    <p style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.4 }}>Orders</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--admin-white-coffee)" }}>{detail.ordersCount}</p>
+                    <p style={{ fontSize: 9.5, color: "var(--admin-muted)", opacity: 0.4 }}>Orders</p>
                   </div>
                 </div>
               )}
@@ -329,7 +328,7 @@ export default function CustomerDrawer({
                 type="button"
                 onClick={() => void reload()}
                 title="Refresh"
-                style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--cream-dim)" }}
+                className="admin-btn admin-btn-sm !w-8 !h-8 !p-0"
               >
                 <RefreshCw size={14} className={loading ? "animate-spin" : undefined} />
               </button>
@@ -337,21 +336,22 @@ export default function CustomerDrawer({
                 <a
                   href={waHref}
                   target="_blank" rel="noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(37,211,102,0.12)", color: "#25d366", fontSize: 12, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(37,211,102,0.20)" }}
+                  className="admin-btn admin-btn-sm flex items-center gap-1.5 !px-3 !text-xs"
+                  style={{ color: "#25d366" }}
                 >
                   <MessageCircle size={13} /> WA
                 </a>
               )}
-              <button type="button" onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--cream-dim)" }}>
+              <button type="button" onClick={onClose} className="admin-btn admin-btn-sm !w-8 !h-8 !p-0">
                 <X size={16} />
               </button>
             </div>
           </div>
 
           {duplicateOf && (
-            <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.20)", borderRadius: 8, padding: "8px 12px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-              <AlertTriangle size={13} style={{ color: "#fbbf24", flexShrink: 0 }} />
-              <span style={{ fontSize: 11.5, color: "#fbbf24" }}>
+            <div style={{ background: "rgba(227,182,115,0.08)", border: "1px solid rgba(227,182,115,0.24)", borderRadius: 8, padding: "8px 12px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={13} style={{ color: "#e3b673", flexShrink: 0 }} />
+              <span style={{ fontSize: 11.5, color: "#e3b673" }}>
                 Possible duplicate — shares a phone number with <strong>{duplicateOf.name}</strong>.
               </span>
             </div>
@@ -367,9 +367,9 @@ export default function CustomerDrawer({
                   display: "flex", alignItems: "center", gap: 5,
                   padding: "10px 13px",
                   fontSize: 11.5, fontWeight: 600,
-                  color: tab === t.key ? "var(--gold)" : "var(--cream-dim)",
+                  color: tab === t.key ? "var(--admin-hazelnut)" : "var(--admin-muted)",
                   background: "none", border: "none",
-                  borderBottom: tab === t.key ? "2px solid var(--gold)" : "2px solid transparent",
+                  borderBottom: tab === t.key ? "2px solid var(--admin-hazelnut)" : "2px solid transparent",
                   cursor: "pointer", whiteSpace: "nowrap", opacity: tab === t.key ? 1 : 0.55,
                   transition: "all 200ms",
                 }}
@@ -383,16 +383,16 @@ export default function CustomerDrawer({
         {/* ── Scrollable body ───────────────────────────────────────────────────── */}
         <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
           {loading && !detail && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 8, color: "var(--cream-dim)", opacity: 0.5 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 8, color: "var(--admin-muted)", opacity: 0.5 }}>
               <Loader2 size={16} className="animate-spin" /> Loading customer…
             </div>
           )}
 
           {!loading && loadError && !detail && (
             <div style={{ textAlign: "center", padding: "48px 20px" }}>
-              <AlertTriangle size={28} style={{ color: "#f87171", opacity: 0.5, margin: "0 auto 10px" }} />
-              <p style={{ fontSize: 13, color: "#f87171" }}>{loadError}</p>
-              <button type="button" onClick={() => void reload()} style={{ marginTop: 12, fontSize: 12, color: "var(--gold)", background: "none", border: "none", cursor: "pointer" }}>
+              <AlertTriangle size={28} style={{ color: "#e39a8c", opacity: 0.5, margin: "0 auto 10px" }} />
+              <p style={{ fontSize: 13, color: "#e39a8c" }}>{loadError}</p>
+              <button type="button" onClick={() => void reload()} style={{ marginTop: 12, fontSize: 12, color: "var(--admin-hazelnut)", background: "none", border: "none", cursor: "pointer" }}>
                 Try again
               </button>
             </div>
@@ -406,10 +406,10 @@ export default function CustomerDrawer({
                   <SectionTitle>Contact</SectionTitle>
                   <InfoRow label="Phone" value={
                     detail.phone
-                      ? <a href={`tel:${detail.phone}`} style={{ color: "var(--cream)", display: "flex", alignItems: "center", gap: 5 }}>
-                          <Phone size={11} style={{ color: "var(--gold)", opacity: 0.7 }} /> {detail.phone}
+                      ? <a href={`tel:${detail.phone}`} style={{ color: "var(--admin-white-coffee)", display: "flex", alignItems: "center", gap: 5 }}>
+                          <Phone size={11} style={{ color: "var(--admin-hazelnut)", opacity: 0.7 }} /> {detail.phone}
                         </a>
-                      : <span style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Not provided</span>
+                      : <span style={{ color: "var(--admin-muted)", opacity: 0.4 }}>Not provided</span>
                   } />
                   <InfoRow label="WhatsApp" value={
                     <a href={waHref} target="_blank" rel="noreferrer" style={{ color: "#25d366", display: "flex", alignItems: "center", gap: 5 }}>
@@ -418,10 +418,10 @@ export default function CustomerDrawer({
                   } />
                   <InfoRow label="Email" value={
                     detail.email
-                      ? <a href={`mailto:${detail.email}`} style={{ color: "var(--cream)", display: "flex", alignItems: "center", gap: 5 }}>
-                          <Mail size={11} style={{ color: "var(--gold)", opacity: 0.7 }} /> {detail.email}
+                      ? <a href={`mailto:${detail.email}`} style={{ color: "var(--admin-white-coffee)", display: "flex", alignItems: "center", gap: 5 }}>
+                          <Mail size={11} style={{ color: "var(--admin-hazelnut)", opacity: 0.7 }} /> {detail.email}
                         </a>
-                      : <span style={{ color: "var(--cream-dim)", opacity: 0.4 }}>Not provided</span>
+                      : <span style={{ color: "var(--admin-muted)", opacity: 0.4 }}>Not provided</span>
                   } />
 
                   <Hr />
@@ -441,24 +441,24 @@ export default function CustomerDrawer({
                   <InfoRow label="Last Order" value={
                     detail.lastOrderDate
                       ? `${formatDate(detail.lastOrderDate)} (${relativeDays(detail.daysSinceLastOrder)})`
-                      : <span style={{ color: "var(--cream-dim)", opacity: 0.4 }}>No orders yet</span>
+                      : <span style={{ color: "var(--admin-muted)", opacity: 0.4 }}>No orders yet</span>
                   } />
                   <InfoRow label="Marketing" value={
                     detail.marketingOptIn
-                      ? <span style={{ color: "#4ade80", display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={11} /> Opted in</span>
-                      : <span style={{ color: "#9ca3af" }}>Not opted in</span>
+                      ? <span style={{ color: "#8fcf9a", display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={11} /> Opted in</span>
+                      : <span style={{ color: "#c9b8a3" }}>Not opted in</span>
                   } />
 
                   {suggestion && (
                     <>
                       <Hr />
                       <SectionTitle>Suggested Action</SectionTitle>
-                      <div style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.15)", borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ background: "var(--admin-border)", border: "1px solid var(--admin-border-strong)", borderRadius: 10, padding: "12px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Star size={13} style={{ color: "var(--gold)", flexShrink: 0 }} />
-                          <span style={{ fontSize: 12.5, color: "var(--gold)", fontWeight: 600 }}>{suggestion}</span>
+                          <Star size={13} style={{ color: "var(--admin-hazelnut)", flexShrink: 0 }} />
+                          <span style={{ fontSize: 12.5, color: "var(--admin-hazelnut)", fontWeight: 600 }}>{suggestion}</span>
                         </div>
-                        <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, marginTop: 4 }}>
+                        <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.5, marginTop: 4 }}>
                           Campaign creation available in the Marketing module
                         </p>
                       </div>
@@ -473,9 +473,9 @@ export default function CustomerDrawer({
                   <SectionTitle>Saved Addresses</SectionTitle>
                   {detail.addresses.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <MapPin size={28} style={{ color: "var(--cream-dim)", opacity: 0.2, margin: "0 auto 10px" }} />
-                      <p style={{ fontSize: 13, color: "var(--cream-dim)", opacity: 0.4 }}>No saved addresses</p>
-                      <p style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.3, marginTop: 4 }}>
+                      <MapPin size={28} style={{ color: "var(--admin-muted)", opacity: 0.2, margin: "0 auto 10px" }} />
+                      <p style={{ fontSize: 13, color: "var(--admin-muted)", opacity: 0.4 }}>No saved addresses</p>
+                      <p style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.3, marginTop: 4 }}>
                         {detail.type === "guest" ? "Guest customer — address captured at checkout only" : "No addresses on file"}
                       </p>
                     </div>
@@ -484,30 +484,30 @@ export default function CustomerDrawer({
                       {detail.addresses.map((addr) => {
                         const fullText = [addr.building, addr.street, addr.area, addr.city, addr.governorate].filter(Boolean).join(", ");
                         return (
-                          <div key={addr.id} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${addr.isDefault ? "rgba(182,136,94,0.22)" : "rgba(182,136,94,0.08)"}`, borderRadius: 10, padding: "14px 16px", borderLeft: addr.isDefault ? "3px solid var(--gold)" : undefined }}>
+                          <div key={addr.id} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${addr.isDefault ? "var(--admin-border-strong)" : "var(--admin-border)"}`, borderRadius: 10, padding: "14px 16px", borderLeft: addr.isDefault ? "3px solid var(--admin-hazelnut)" : undefined }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--cream)" }}>{addr.label}</span>
-                                {addr.isDefault && <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 6px", borderRadius: 10, background: "rgba(182,136,94,0.15)", color: "var(--gold)" }}>Default</span>}
+                                <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--admin-white-coffee)" }}>{addr.label}</span>
+                                {addr.isDefault && <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 6px", borderRadius: 10, background: "var(--admin-border-strong)", color: "var(--admin-hazelnut)" }}>Default</span>}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleCopyAddress(fullText)}
-                                style={{ background: "none", border: "none", cursor: "pointer", color: copied === fullText ? "#4ade80" : "var(--cream-dim)", opacity: 0.4, display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: copied === fullText ? "#8fcf9a" : "var(--admin-muted)", opacity: 0.4, display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}
                                 title="Copy address"
                               >
                                 {copied === fullText ? <CheckCircle size={12} /> : <Copy size={12} />}
                               </button>
                             </div>
-                            <div style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.65, lineHeight: 1.7 }}>
+                            <div style={{ fontSize: 12, color: "var(--admin-muted)", opacity: 0.65, lineHeight: 1.7 }}>
                               {addr.building && <div>{addr.building}</div>}
                               <div>{addr.street}</div>
                               {(addr.floor || addr.apartment) && (
                                 <div>{[addr.floor && `Floor ${addr.floor}`, addr.apartment && `Apt ${addr.apartment}`].filter(Boolean).join(" · ")}</div>
                               )}
                               {addr.area && <div>{addr.area}</div>}
-                              <div style={{ fontWeight: 500, color: "var(--cream)", opacity: 0.8 }}>{addr.city}, {addr.governorate}</div>
-                              {addr.landmark && <div style={{ color: "var(--cream-dim)", opacity: 0.4, fontStyle: "italic", fontSize: 11 }}>{addr.landmark}</div>}
+                              <div style={{ fontWeight: 500, color: "var(--admin-white-coffee)", opacity: 0.8 }}>{addr.city}, {addr.governorate}</div>
+                              {addr.landmark && <div style={{ color: "var(--admin-muted)", opacity: 0.4, fontStyle: "italic", fontSize: 11 }}>{addr.landmark}</div>}
                             </div>
                           </div>
                         );
@@ -523,22 +523,22 @@ export default function CustomerDrawer({
                   <SectionTitle>Order History</SectionTitle>
                   {detail.orders.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <Package size={28} style={{ color: "var(--cream-dim)", opacity: 0.2, margin: "0 auto 10px" }} />
-                      <p style={{ fontSize: 13, color: "var(--cream-dim)", opacity: 0.4 }}>No orders on record</p>
+                      <Package size={28} style={{ color: "var(--admin-muted)", opacity: 0.2, margin: "0 auto 10px" }} />
+                      <p style={{ fontSize: 13, color: "var(--admin-muted)", opacity: 0.4 }}>No orders on record</p>
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {detail.orders.map((order) => {
-                        const statusColor = ORDER_STATUS_COLOR[order.status] ?? "#9ca3af";
+                        const statusColor = ORDER_STATUS_COLOR[order.status] ?? "#c9b8a3";
                         const waMsg = encodeURIComponent(`مرحبًا، بنتواصل مع حضرتك بخصوص طلب Line Coffee رقم ${order.code}.`);
                         const orderWaHref = `${waHref}?text=${waMsg}`;
                         return (
-                          <div key={order.id} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.08)", borderRadius: 10, padding: "12px 14px" }}>
+                          <div key={order.id} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--admin-border)", borderRadius: 10, padding: "12px 14px" }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--gold)", fontFamily: "monospace" }}>{order.code}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--admin-hazelnut)", fontFamily: "monospace" }}>{order.code}</span>
                                 {order.type !== "standard" && (
-                                  <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: "rgba(255,255,255,0.05)", color: "#a78bfa" }}>
+                                  <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: "rgba(255,255,255,0.05)", color: "#b79bd9" }}>
                                     {ORDER_TYPE_LABEL[order.type] ?? order.type}
                                   </span>
                                 )}
@@ -548,11 +548,11 @@ export default function CustomerDrawer({
                               </span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                              <div style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.5 }}>
+                              <div style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.5 }}>
                                 {formatDate(order.placedAt)} · {order.itemCount} item{order.itemCount !== 1 ? "s" : ""}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--gold)" }}>{fmt(order.total)} EGP</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--admin-hazelnut)" }}>{fmt(order.total)} EGP</span>
                                 <a
                                   href={orderWaHref}
                                   target="_blank" rel="noreferrer"
@@ -567,7 +567,7 @@ export default function CustomerDrawer({
                         );
                       })}
                       {detail.ordersTruncated && (
-                        <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.35, textAlign: "center", marginTop: 4 }}>
+                        <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.35, textAlign: "center", marginTop: 4 }}>
                           Showing the most recent orders only.
                         </p>
                       )}
@@ -582,14 +582,14 @@ export default function CustomerDrawer({
                   <SectionTitle>Lifetime Value Summary</SectionTitle>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                     {[
-                      { label: "Total Spent",    value: `${fmt(detail.totalSpent)} EGP`, color: "var(--gold)" },
-                      { label: "Orders",         value: detail.ordersCount, color: "var(--cream)" },
-                      { label: "Total Paid",     value: `${fmt(detail.totalPaid)} EGP`, color: "var(--cream)" },
-                      { label: "Total Refunded", value: `${fmt(detail.totalRefunded)} EGP`, color: detail.totalRefunded > 0 ? "#f87171" : "var(--cream)" },
+                      { label: "Total Spent",    value: `${fmt(detail.totalSpent)} EGP`, color: "var(--admin-hazelnut)" },
+                      { label: "Orders",         value: detail.ordersCount, color: "var(--admin-white-coffee)" },
+                      { label: "Total Paid",     value: `${fmt(detail.totalPaid)} EGP`, color: "var(--admin-white-coffee)" },
+                      { label: "Total Refunded", value: `${fmt(detail.totalRefunded)} EGP`, color: detail.totalRefunded > 0 ? "#e39a8c" : "var(--admin-white-coffee)" },
                     ].map((s) => (
-                      <div key={s.label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.08)", borderRadius: 8, padding: "10px 12px" }}>
+                      <div key={s.label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--admin-border)", borderRadius: 8, padding: "10px 12px" }}>
                         <p style={{ fontSize: 13.5, fontWeight: 700, color: s.color }}>{s.value}</p>
-                        <p style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.4, marginTop: 2 }}>{s.label}</p>
+                        <p style={{ fontSize: 9.5, color: "var(--admin-muted)", opacity: 0.4, marginTop: 2 }}>{s.label}</p>
                       </div>
                     ))}
                   </div>
@@ -602,7 +602,7 @@ export default function CustomerDrawer({
                         {segs.map((s) => (
                           <div key={s} style={{ background: SEGMENT_STYLE[s].bg, border: `1px solid ${SEGMENT_STYLE[s].color}22`, borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
                             <span style={{ fontSize: 11.5, fontWeight: 700, color: SEGMENT_STYLE[s].color, minWidth: 80 }}>{SEGMENT_STYLE[s].label}</span>
-                            <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.65 }}>{getCustomerSegmentReason(s, detail)}</span>
+                            <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.65 }}>{getCustomerSegmentReason(s, detail)}</span>
                           </div>
                         ))}
                       </div>
@@ -613,15 +613,15 @@ export default function CustomerDrawer({
                   <SectionTitle>Marketing Readiness</SectionTitle>
                   <InfoRow label="Opt-in" value={
                     detail.marketingOptIn
-                      ? <span style={{ color: "#4ade80" }}>Opted in</span>
-                      : <span style={{ color: "#9ca3af" }}>Not opted in</span>
+                      ? <span style={{ color: "#8fcf9a" }}>Opted in</span>
+                      : <span style={{ color: "#c9b8a3" }}>Not opted in</span>
                   } />
                   {suggestion && (
-                    <div style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.15)", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
-                      <p style={{ fontSize: 11.5, fontWeight: 600, color: "var(--gold)" }}>{suggestion}</p>
+                    <div style={{ background: "var(--admin-border)", border: "1px solid var(--admin-border-strong)", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
+                      <p style={{ fontSize: 11.5, fontWeight: 600, color: "var(--admin-hazelnut)" }}>{suggestion}</p>
                     </div>
                   )}
-                  <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 14, fontStyle: "italic" }}>
+                  <p style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.35, marginTop: 14, fontStyle: "italic" }}>
                     Bulk targeting and campaign creation are handled in the Marketing module.
                   </p>
                 </div>
@@ -632,20 +632,20 @@ export default function CustomerDrawer({
                 <div>
                   <SectionTitle>Active Tags</SectionTitle>
                   {tagsError && (
-                    <p style={{ fontSize: 11.5, color: "#f87171", marginBottom: 10 }}>{tagsError}</p>
+                    <p style={{ fontSize: 11.5, color: "#e39a8c", marginBottom: 10 }}>{tagsError}</p>
                   )}
                   {detail.tags.length === 0 ? (
-                    <p style={{ fontSize: 12.5, color: "var(--cream-dim)", opacity: 0.4, marginBottom: 16 }}>No tags — add one below</p>
+                    <p style={{ fontSize: 12.5, color: "var(--admin-muted)", opacity: 0.4, marginBottom: 16 }}>No tags — add one below</p>
                   ) : (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
                       {detail.tags.map((t) => (
-                        <span key={t} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.20)", color: "var(--gold)", fontSize: 11.5, fontWeight: 600, opacity: tagsSaving ? 0.5 : 1 }}>
+                        <span key={t} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, background: "var(--admin-border)", border: "1px solid var(--admin-border-strong)", color: "var(--admin-hazelnut)", fontSize: 11.5, fontWeight: 600, opacity: tagsSaving ? 0.5 : 1 }}>
                           {t}
                           <button
                             type="button"
                             onClick={() => handleRemoveTag(t)}
                             disabled={tagsSaving}
-                            style={{ background: "none", border: "none", cursor: tagsSaving ? "default" : "pointer", color: "var(--gold)", opacity: 0.6, padding: 0, display: "flex", alignItems: "center", lineHeight: 1 }}
+                            style={{ background: "none", border: "none", cursor: tagsSaving ? "default" : "pointer", color: "var(--admin-hazelnut)", opacity: 0.6, padding: 0, display: "flex", alignItems: "center", lineHeight: 1 }}
                           >
                             <X size={10} />
                           </button>
@@ -663,13 +663,13 @@ export default function CustomerDrawer({
                         type="button"
                         onClick={() => handleAddTag(t)}
                         disabled={tagsSaving}
-                        style={{ padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream-dim)", fontSize: 11.5, cursor: tagsSaving ? "default" : "pointer", fontWeight: 500, transition: "all 150ms" }}
+                        style={{ padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.04)", border: "1px solid var(--admin-border)", color: "var(--admin-muted)", fontSize: 11.5, cursor: tagsSaving ? "default" : "pointer", fontWeight: 500, transition: "all 150ms" }}
                       >
                         + {t}
                       </button>
                     ))}
                     {PREDEFINED_TAGS.every((t) => detail.tags.includes(t)) && (
-                      <p style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.35 }}>All predefined tags active</p>
+                      <p style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.35 }}>All predefined tags active</p>
                     )}
                   </div>
 
@@ -684,11 +684,11 @@ export default function CustomerDrawer({
                     disabled={tagsSaving}
                     style={{
                       width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
-                      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)",
-                      color: "var(--cream)", outline: "none",
+                      background: "rgba(255,255,255,0.04)", border: "1px solid var(--admin-border)",
+                      color: "var(--admin-white-coffee)", outline: "none",
                     }}
                   />
-                  <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 6 }}>
+                  <p style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.35, marginTop: 6 }}>
                     {'Tags do not override computed segments. Exception: "Wholesale Potential" tag activates that segment. Saved directly to the customer record.'}
                   </p>
                 </div>
@@ -700,15 +700,15 @@ export default function CustomerDrawer({
                   <SectionTitle>Activity Timeline</SectionTitle>
                   {detail.activity.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <Clock size={28} style={{ color: "var(--cream-dim)", opacity: 0.2, margin: "0 auto 10px" }} />
-                      <p style={{ fontSize: 13, color: "var(--cream-dim)", opacity: 0.4 }}>No activity recorded yet</p>
+                      <Clock size={28} style={{ color: "var(--admin-muted)", opacity: 0.2, margin: "0 auto 10px" }} />
+                      <p style={{ fontSize: 13, color: "var(--admin-muted)", opacity: 0.4 }}>No activity recorded yet</p>
                     </div>
                   ) : (
                     <div style={{ position: "relative" }}>
                       {detail.activity.map((act, i) => {
                         const dotColor = act.kind === "account-created"
-                          ? "#4ade80"
-                          : ACTIVITY_DOT[act.status ?? ""] ?? "#9ca3af";
+                          ? "#8fcf9a"
+                          : ACTIVITY_DOT[act.status ?? ""] ?? "#c9b8a3";
                         const title = act.kind === "account-created"
                           ? "Account Created"
                           : `Order ${act.status ? ADMIN_ORDER_STATUS_LABELS[act.status] : act.status}`;
@@ -720,17 +720,17 @@ export default function CustomerDrawer({
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
                               <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, marginTop: 4, flexShrink: 0 }} />
                               {i < detail.activity.length - 1 && (
-                                <div style={{ width: 1, flex: 1, background: "rgba(182,136,94,0.10)", marginTop: 4, minHeight: 16 }} />
+                                <div style={{ width: 1, flex: 1, background: "var(--admin-border)", marginTop: 4, minHeight: 16 }} />
                               )}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                                <p style={{ fontSize: 12.5, fontWeight: 600, color: "var(--cream)" }}>{title}</p>
-                                <span style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, flexShrink: 0 }}>{formatDate(act.occurredAt)}</span>
+                                <p style={{ fontSize: 12.5, fontWeight: 600, color: "var(--admin-white-coffee)" }}>{title}</p>
+                                <span style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.4, flexShrink: 0 }}>{formatDate(act.occurredAt)}</span>
                               </div>
-                              <p style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.55, marginTop: 2 }}>{description}</p>
+                              <p style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.55, marginTop: 2 }}>{description}</p>
                               {act.orderCode && (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 4, padding: "2px 7px", borderRadius: 6, background: "rgba(182,136,94,0.08)", color: "var(--gold)", fontSize: 10.5, fontFamily: "monospace" }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 4, padding: "2px 7px", borderRadius: 6, background: "var(--admin-border)", color: "var(--admin-hazelnut)", fontSize: 10.5, fontFamily: "monospace" }}>
                                   <ChevronRight size={9} /> {act.orderCode}
                                 </span>
                               )}

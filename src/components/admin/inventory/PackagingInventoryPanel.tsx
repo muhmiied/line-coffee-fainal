@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Boxes,
   Check,
-  ChevronDown,
   Edit2,
   History,
   PackagePlus,
@@ -42,13 +41,7 @@ type PackagingInventorySummary = {
   outCount: number;
 };
 
-const fieldClass = "w-full rounded-lg px-3 py-2.5 text-sm";
-const fieldStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(182,136,94,0.15)",
-  color: "var(--cream)",
-  outline: "none",
-};
+const fieldClass = "admin-input !text-sm";
 
 function getPackagingStatus(item: PackagingItem): StockStatus {
   if (item.availableQuantity === 0) return "Out";
@@ -57,9 +50,9 @@ function getPackagingStatus(item: PackagingItem): StockStatus {
 }
 
 function statusColor(status: StockStatus) {
-  if (status === "Out") return "#f87171";
-  if (status === "Low") return "#fbbf24";
-  return "#4ade80";
+  if (status === "Out") return "#e39a8c";
+  if (status === "Low") return "#e3b673";
+  return "#8fcf9a";
 }
 
 function StatusBadge({ status }: { status: StockStatus }) {
@@ -111,7 +104,7 @@ function Field({
     <label className="block">
       <span
         className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest"
-        style={{ color: "var(--cream-dim)" }}
+        style={{ color: "var(--admin-muted)" }}
       >
         {label}
       </span>
@@ -189,30 +182,25 @@ function AdjustmentModal({
       <button
         type="button"
         aria-label="Close packaging stock dialog"
-        className="fixed inset-0 z-[300]"
-        style={{ background: "rgba(0,0,0,0.65)" }}
+        className="admin-modal-overlay fixed inset-0 z-[300]"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="packaging-adjust-title"
-        className="fixed left-1/2 top-1/2 z-[301] w-[90vw] max-w-[440px] rounded-2xl"
-        style={{
-          background: "var(--coffee-surface)",
-          border: "1px solid rgba(182,136,94,0.15)",
-          transform: "translate(-50%,-50%)",
-        }}
+        className="admin-modal-surface fixed left-1/2 top-1/2 z-[301] w-[90vw] max-w-[440px] rounded-2xl"
+        style={{ transform: "translate(-50%,-50%)" }}
       >
         <div
           className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
+          style={{ borderBottom: "1px solid var(--admin-border)" }}
         >
           <div>
             <h2
               id="packaging-adjust-title"
               className="text-sm font-semibold"
-              style={{ color: "var(--cream)" }}
+              style={{ color: "var(--admin-white-coffee)" }}
             >
               {state.mode === "restock"
                 ? "Restock packaging"
@@ -220,13 +208,13 @@ function AdjustmentModal({
             </h2>
             <p
               className="mt-0.5 text-[11px]"
-              style={{ color: "var(--cream-dim)" }}
+              style={{ color: "var(--admin-muted)" }}
             >
               {state.item.name} · {state.item.availableQuantity} units current
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close">
-            <X size={16} style={{ color: "var(--cream-dim)" }} />
+          <button type="button" onClick={onClose} aria-label="Close" className="admin-btn admin-btn-sm !p-1.5">
+            <X size={16} />
           </button>
         </div>
 
@@ -235,7 +223,7 @@ function AdjustmentModal({
             <div className="grid grid-cols-2 gap-2">
               {(["increase", "decrease"] as const).map((value) => {
                 const selected = direction === value;
-                const color = value === "increase" ? "#4ade80" : "#f87171";
+                const color = value === "increase" ? "#8fcf9a" : "#e39a8c";
                 return (
                   <button
                     key={value}
@@ -248,9 +236,9 @@ function AdjustmentModal({
                         ? `${color}18`
                         : "rgba(255,255,255,0.03)",
                       border: `1px solid ${
-                        selected ? `${color}44` : "rgba(182,136,94,0.08)"
+                        selected ? `${color}44` : "var(--admin-border)"
                       }`,
-                      color: selected ? color : "var(--cream-dim)",
+                      color: selected ? color : "var(--admin-muted)",
                     }}
                   >
                     {value}
@@ -267,9 +255,7 @@ function AdjustmentModal({
               step="1"
               value={quantity}
               onChange={(event) => setQuantity(event.target.value)}
-              className={fieldClass}
-              style={fieldStyle}
-            />
+              className={fieldClass}            />
           </Field>
 
           {direction === "increase" && (
@@ -280,9 +266,7 @@ function AdjustmentModal({
                 step="0.01"
                 value={unitCost}
                 onChange={(event) => setUnitCost(event.target.value)}
-                className={fieldClass}
-                style={fieldStyle}
-              />
+                className={fieldClass}              />
             </Field>
           )}
 
@@ -297,13 +281,11 @@ function AdjustmentModal({
                   ? "Supplier or invoice reference"
                   : "Count correction, damage, loss, or other reason"
               }
-              className={`${fieldClass} resize-none`}
-              style={fieldStyle}
-            />
+              className={`${fieldClass} resize-none`}            />
           </Field>
 
           {exceedsStock && (
-            <p className="text-xs" style={{ color: "#f87171" }}>
+            <p className="text-xs" style={{ color: "#e39a8c" }}>
               You cannot remove more than the current packaging stock.
             </p>
           )}
@@ -313,7 +295,7 @@ function AdjustmentModal({
               className="rounded-lg px-3 py-2 text-xs"
               style={{
                 background: "rgba(248,113,113,0.08)",
-                color: "#f87171",
+                color: "#e39a8c",
               }}
             >
               {error}
@@ -323,13 +305,12 @@ function AdjustmentModal({
 
         <div
           className="flex items-center justify-end gap-3 px-5 py-4"
-          style={{ borderTop: "1px solid rgba(182,136,94,0.08)" }}
+          style={{ borderTop: "1px solid var(--admin-border)" }}
         >
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm"
-            style={{ color: "var(--cream-dim)" }}
+            className="admin-btn !px-4 !py-2 !text-sm"
           >
             Cancel
           </button>
@@ -337,12 +318,7 @@ function AdjustmentModal({
             type="button"
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold"
-            style={{
-              background: "rgba(182,136,94,0.18)",
-              color: "var(--gold)",
-              opacity: !canSave || saving ? 0.45 : 1,
-            }}
+            className="admin-btn admin-btn-primary flex items-center gap-2 !px-5 !py-2 !text-sm"
           >
             {saving ? (
               <RefreshCw size={13} className="animate-spin" />
@@ -440,34 +416,29 @@ function ItemModal({
       <button
         type="button"
         aria-label="Close packaging item dialog"
-        className="fixed inset-0 z-[300]"
-        style={{ background: "rgba(0,0,0,0.65)" }}
+        className="admin-modal-overlay fixed inset-0 z-[300]"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="packaging-item-title"
-        className="fixed left-1/2 top-1/2 z-[301] max-h-[90vh] w-[92vw] max-w-[520px] overflow-y-auto rounded-2xl"
-        style={{
-          background: "var(--coffee-surface)",
-          border: "1px solid rgba(182,136,94,0.15)",
-          transform: "translate(-50%,-50%)",
-        }}
+        className="admin-modal-surface fixed left-1/2 top-1/2 z-[301] max-h-[90vh] w-[92vw] max-w-[520px] overflow-y-auto rounded-2xl"
+        style={{ transform: "translate(-50%,-50%)" }}
       >
         <div
           className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
+          style={{ borderBottom: "1px solid var(--admin-border)" }}
         >
           <h2
             id="packaging-item-title"
             className="text-sm font-semibold"
-            style={{ color: "var(--cream)" }}
+            style={{ color: "var(--admin-white-coffee)" }}
           >
             {existing ? `Edit ${existing.name}` : "Add packaging item"}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Close">
-            <X size={16} style={{ color: "var(--cream-dim)" }} />
+          <button type="button" onClick={onClose} aria-label="Close" className="admin-btn admin-btn-sm !p-1.5">
+            <X size={16} />
           </button>
         </div>
 
@@ -478,9 +449,7 @@ function ItemModal({
                 value={name}
                 maxLength={160}
                 onChange={(event) => setName(event.target.value)}
-                className={fieldClass}
-                style={fieldStyle}
-              />
+                className={fieldClass}              />
             </Field>
           </div>
           <Field label="Operational key">
@@ -493,12 +462,12 @@ function ItemModal({
               }
               placeholder="bag_250g"
               className={fieldClass}
-              style={{ ...fieldStyle, opacity: existing ? 0.6 : 1 }}
+              style={{ opacity: existing ? 0.6 : 1 }}
             />
             {existing && (
               <span
                 className="mt-1 block text-[10px]"
-                style={{ color: "var(--cream-dim)" }}
+                style={{ color: "var(--admin-muted)" }}
               >
                 Fixed after creation to protect checkout mappings.
               </span>
@@ -509,31 +478,21 @@ function ItemModal({
               value={sku}
               maxLength={80}
               onChange={(event) => setSku(event.target.value)}
-              className={fieldClass}
-              style={fieldStyle}
-            />
+              className={fieldClass}            />
           </Field>
           <Field label="Type">
-            <div className="relative">
-              <select
-                value={kind}
-                onChange={(event) =>
-                  setKind(event.target.value as PackagingKind)
-                }
-                className={`${fieldClass} appearance-none pr-8`}
-                style={{ ...fieldStyle, colorScheme: "dark" }}
-              >
-                <option value="bag">Bag</option>
-                <option value="jar">Jar</option>
-                <option value="canister">Canister</option>
-                <option value="other">Other</option>
-              </select>
-              <ChevronDown
-                size={12}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
-                style={{ color: "var(--cream-dim)" }}
-              />
-            </div>
+            <select
+              value={kind}
+              onChange={(event) =>
+                setKind(event.target.value as PackagingKind)
+              }
+              className="admin-select !text-sm"
+            >
+              <option value="bag">Bag</option>
+              <option value="jar">Jar</option>
+              <option value="canister">Canister</option>
+              <option value="other">Other</option>
+            </select>
           </Field>
           <Field label="Size / capacity (grams)">
             <input
@@ -543,9 +502,7 @@ function ItemModal({
               value={capacity}
               onChange={(event) => setCapacity(event.target.value)}
               placeholder="250"
-              className={fieldClass}
-              style={fieldStyle}
-            />
+              className={fieldClass}            />
           </Field>
           <Field label="Low stock threshold">
             <input
@@ -554,9 +511,7 @@ function ItemModal({
               step="1"
               value={threshold}
               onChange={(event) => setThreshold(event.target.value)}
-              className={fieldClass}
-              style={fieldStyle}
-            />
+              className={fieldClass}            />
           </Field>
           <Field label="Default unit cost (EGP)">
             <input
@@ -565,9 +520,7 @@ function ItemModal({
               step="0.01"
               value={cost}
               onChange={(event) => setCost(event.target.value)}
-              className={fieldClass}
-              style={fieldStyle}
-            />
+              className={fieldClass}            />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Notes (optional)">
@@ -576,19 +529,10 @@ function ItemModal({
                 maxLength={2000}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                className={`${fieldClass} resize-none`}
-                style={fieldStyle}
-              />
+                className={`${fieldClass} resize-none`}              />
             </Field>
           </div>
-          <label
-            className="flex items-center justify-between rounded-lg px-3 py-2.5 sm:col-span-2"
-            style={{
-              background: "rgba(182,136,94,0.05)",
-              border: "1px solid rgba(182,136,94,0.10)",
-              color: "var(--cream)",
-            }}
-          >
+          <label className="admin-surface !shadow-none flex items-center justify-between px-3 py-2.5 sm:col-span-2 admin-text">
             <span className="text-sm">Active packaging item</span>
             <input
               type="checkbox"
@@ -599,7 +543,7 @@ function ItemModal({
           </label>
 
           {!keyValid && operationalKey.length > 0 && (
-            <p className="text-xs sm:col-span-2" style={{ color: "#fbbf24" }}>
+            <p className="text-xs sm:col-span-2" style={{ color: "#e3b673" }}>
               Use 2–64 lowercase letters, numbers, and underscores.
             </p>
           )}
@@ -609,7 +553,7 @@ function ItemModal({
               className="rounded-lg px-3 py-2 text-xs sm:col-span-2"
               style={{
                 background: "rgba(248,113,113,0.08)",
-                color: "#f87171",
+                color: "#e39a8c",
               }}
             >
               {error}
@@ -619,13 +563,12 @@ function ItemModal({
 
         <div
           className="flex items-center justify-end gap-3 px-5 py-4"
-          style={{ borderTop: "1px solid rgba(182,136,94,0.08)" }}
+          style={{ borderTop: "1px solid var(--admin-border)" }}
         >
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm"
-            style={{ color: "var(--cream-dim)" }}
+            className="admin-btn !px-4 !py-2 !text-sm"
           >
             Cancel
           </button>
@@ -633,12 +576,7 @@ function ItemModal({
             type="button"
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold"
-            style={{
-              background: "rgba(182,136,94,0.18)",
-              color: "var(--gold)",
-              opacity: !canSave || saving ? 0.45 : 1,
-            }}
+            className="admin-btn admin-btn-primary flex items-center gap-2 !px-5 !py-2 !text-sm"
           >
             {saving ? (
               <RefreshCw size={13} className="animate-spin" />
@@ -727,23 +665,14 @@ export default function PackagingInventoryPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div
-        className="rounded-xl px-4 py-3"
-        style={{
-          background: "rgba(96,165,250,0.05)",
-          border: "1px solid rgba(96,165,250,0.12)",
-        }}
-      >
+      <div className="rounded-xl px-4 py-3" style={{ background: "rgba(143,176,217,0.06)", border: "1px solid rgba(143,176,217,0.20)" }}>
         <div className="flex items-start gap-3">
-          <Boxes size={17} className="mt-0.5 shrink-0" style={{ color: "#93c5fd" }} />
+          <Boxes size={17} className="mt-0.5 shrink-0" style={{ color: "#8fb0d9" }} />
           <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--cream)" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--admin-heading)" }}>
               Packaging inventory is counted in units
             </p>
-            <p
-              className="mt-1 text-[11px] leading-relaxed"
-              style={{ color: "var(--cream-dim)" }}
-            >
+            <p className="mt-1 text-[11px] leading-relaxed admin-muted">
               This stock is separate from coffee inventory measured in KG.
               Packaging is consumed independently at checkout; shortage remains
               an operational alert and does not block an order.
@@ -754,22 +683,16 @@ export default function PackagingInventoryPanel() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          ["Active items", summary.itemCount, "var(--gold)"],
-          ["Units available", summary.totalUnits.toLocaleString(), "#93c5fd"],
-          ["Low stock", summary.lowCount, "#fbbf24"],
-          ["Out of stock", summary.outCount, "#f87171"],
+          ["Active items", summary.itemCount, "var(--admin-hazelnut)"],
+          ["Units available", summary.totalUnits.toLocaleString(), "#8fb0d9"],
+          ["Low stock", summary.lowCount, "#e3b673"],
+          ["Out of stock", summary.outCount, "#e39a8c"],
         ].map(([label, value, color]) => (
-          <div key={String(label)} className="admin-kpi-card p-4">
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: "var(--cream-dim)" }}
-            >
+          <div key={String(label)} className="admin-kpi-card">
+            <p className="admin-label">
               {label}
             </p>
-            <p
-              className="mt-2 text-xl font-bold tabular-nums"
-              style={{ color: String(color) }}
-            >
+            <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: String(color) }}>
               {value}
             </p>
           </div>
@@ -778,41 +701,19 @@ export default function PackagingInventoryPanel() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--cream)" }}>
+          <h2 className="admin-card-title">
             Packaging stock
           </h2>
-          <p className="mt-0.5 text-[11px]" style={{ color: "var(--cream-dim)" }}>
+          <p className="mt-0.5 text-[11px] admin-faint">
             Live count-based stock and low-stock thresholds
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void loadData(true)}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(182,136,94,0.10)",
-              color: "var(--cream-dim)",
-            }}
-          >
-            <RefreshCw
-              size={12}
-              className={refreshing ? "animate-spin" : undefined}
-            />
+          <button type="button" onClick={() => void loadData(true)} disabled={refreshing} className="admin-btn flex items-center gap-1.5 !px-3 !py-2 !text-xs">
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : undefined} />
             Refresh
           </button>
-          <button
-            type="button"
-            onClick={() => setEditing("new")}
-            className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold"
-            style={{
-              background: "rgba(182,136,94,0.14)",
-              border: "1px solid rgba(182,136,94,0.20)",
-              color: "var(--gold)",
-            }}
-          >
+          <button type="button" onClick={() => setEditing("new")} className="admin-btn admin-btn-primary flex items-center gap-1.5 !px-3.5 !py-2 !text-xs">
             <Plus size={13} />
             Add item
           </button>
@@ -820,32 +721,24 @@ export default function PackagingInventoryPanel() {
       </div>
 
       {success && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
-          style={{ background: "rgba(74,222,128,0.08)", color: "#4ade80" }}
-        >
+        <p role="status" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(143,207,154,0.10)", color: "#8fcf9a" }}>
           <Check size={13} />
           {success}
         </p>
       )}
       {error && (
-        <div
-          role="alert"
-          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs"
-          style={{ background: "rgba(248,113,113,0.08)", color: "#f87171" }}
-        >
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(227,154,140,0.10)", color: "#eeb4a8" }}>
           <span>{error}</span>
-          <button type="button" onClick={() => void loadData()}>
+          <button type="button" onClick={() => void loadData()} className="admin-link">
             Try again
           </button>
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+      <div className="admin-table-wrap overflow-x-auto">
+        <table className="admin-table w-full min-w-[820px]">
           <thead>
-            <tr style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}>
+            <tr>
               {[
                 "Item",
                 "Size / type",
@@ -854,11 +747,7 @@ export default function PackagingInventoryPanel() {
                 "Status",
                 "Actions",
               ].map((heading) => (
-                <th
-                  key={heading}
-                  className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: "var(--cream-dim)" }}
-                >
+                <th key={heading}>
                   {heading}
                 </th>
               ))}
@@ -867,11 +756,7 @@ export default function PackagingInventoryPanel() {
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-3 py-10 text-center text-sm"
-                  style={{ color: "var(--cream-dim)" }}
-                >
+                <td colSpan={6} className="!py-10 text-center text-sm admin-muted">
                   Loading packaging stock…
                 </td>
               </tr>
@@ -879,83 +764,54 @@ export default function PackagingInventoryPanel() {
               items.map((item) => {
                 const status = getPackagingStatus(item);
                 return (
-                  <tr
-                    key={item.id}
-                    className="transition-colors hover:bg-white/[0.02]"
-                    style={{
-                      borderBottom: "1px solid rgba(182,136,94,0.05)",
-                      opacity: item.active ? 1 : 0.55,
-                    }}
-                  >
-                    <td className="px-3 py-3">
-                      <p className="font-medium" style={{ color: "var(--cream)" }}>
+                  <tr key={item.id} style={{ opacity: item.active ? 1 : 0.55 }}>
+                    <td className="admin-td-strong">
+                      <p className="font-medium">
                         {item.name}
                       </p>
-                      <p
-                        className="mt-0.5 text-[10px]"
-                        style={{ color: "var(--cream-dim)" }}
-                      >
+                      <p className="mt-0.5 text-[10px] admin-faint">
                         {item.sku ?? item.operationalKey}
                         {!item.active && " · Inactive"}
                       </p>
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
                       <div className="flex items-center gap-1.5">
-                        <span
-                          className="rounded px-2 py-0.5 text-[10px] font-semibold"
-                          style={{
-                            background: "rgba(96,165,250,0.10)",
-                            color: "#93c5fd",
-                          }}
-                        >
+                        <span className="admin-badge" style={{ background: "rgba(143,176,217,0.12)", color: "#8fb0d9" }}>
                           {capacityLabel(item)}
                         </span>
-                        <span
-                          className="text-[11px]"
-                          style={{ color: "var(--cream-dim)" }}
-                        >
+                        <span className="text-[11px] admin-muted">
                           {kindLabel(item.packagingKind)}
                         </span>
                       </div>
                     </td>
-                    <td
-                      className="px-3 py-3 font-bold tabular-nums"
-                      style={{ color: statusColor(status) }}
-                    >
+                    <td className="admin-table-numeric font-bold" style={{ color: statusColor(status) }}>
                       {item.availableQuantity.toLocaleString()} units
                     </td>
-                    <td
-                      className="px-3 py-3 text-[11px] tabular-nums"
-                      style={{ color: "var(--cream-dim)" }}
-                    >
+                    <td className="admin-table-numeric text-[11px] admin-muted">
                       {item.lowStockThreshold.toLocaleString()} units
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
                       <StatusBadge status={status} />
                     </td>
-                    <td className="px-3 py-3">
+                    <td>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
-                          onClick={() =>
-                            setAdjustment({ item, mode: "restock" })
-                          }
+                          onClick={() => setAdjustment({ item, mode: "restock" })}
                           title="Restock packaging"
                           aria-label={`Restock ${item.name}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/[0.08]"
-                          style={{ color: "#4ade80" }}
+                          className="admin-btn admin-btn-sm !w-7 !h-7 !p-0"
+                          style={{ color: "#8fcf9a" }}
                         >
                           <PackagePlus size={13} />
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
-                            setAdjustment({ item, mode: "adjust" })
-                          }
+                          onClick={() => setAdjustment({ item, mode: "adjust" })}
                           title="Adjust packaging stock"
                           aria-label={`Adjust ${item.name}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/[0.08]"
-                          style={{ color: "#fbbf24" }}
+                          className="admin-btn admin-btn-sm !w-7 !h-7 !p-0"
+                          style={{ color: "#e3b673" }}
                         >
                           <RefreshCw size={12} />
                         </button>
@@ -964,8 +820,8 @@ export default function PackagingInventoryPanel() {
                           onClick={() => setEditing(item)}
                           title="Edit packaging item"
                           aria-label={`Edit ${item.name}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/[0.08]"
-                          style={{ color: "#93c5fd" }}
+                          className="admin-btn admin-btn-sm !w-7 !h-7 !p-0"
+                          style={{ color: "#8fb0d9" }}
                         >
                           <Edit2 size={12} />
                         </button>
@@ -978,12 +834,12 @@ export default function PackagingInventoryPanel() {
           </tbody>
         </table>
         {!loading && items.length === 0 && !error && (
-          <div className="py-12 text-center">
-            <Boxes size={24} className="mx-auto" style={{ color: "var(--gold)" }} />
-            <p className="mt-2 text-sm" style={{ color: "var(--cream)" }}>
+          <div className="admin-empty-state !border-0 !rounded-none">
+            <span className="admin-empty-icon"><Boxes size={22} /></span>
+            <p className="text-sm admin-text">
               No packaging items yet
             </p>
-            <p className="mt-1 text-xs" style={{ color: "var(--cream-dim)" }}>
+            <p className="text-xs admin-muted">
               Add the first item, then record its opening stock with Restock.
             </p>
           </div>
@@ -992,12 +848,12 @@ export default function PackagingInventoryPanel() {
 
       <section>
         <div className="mb-3 flex items-center gap-2">
-          <History size={14} style={{ color: "var(--gold)" }} />
+          <History size={14} style={{ color: "var(--admin-hazelnut)" }} />
           <div>
-            <h2 className="text-sm font-semibold" style={{ color: "var(--cream)" }}>
+            <h2 className="admin-card-title">
               Recent packaging movements
             </h2>
-            <p className="text-[10px]" style={{ color: "var(--cream-dim)" }}>
+            <p className="text-[10px] admin-faint">
               Restocks, manual adjustments, and order usage
             </p>
           </div>
@@ -1006,39 +862,23 @@ export default function PackagingInventoryPanel() {
           {recentMovements.map((movement) => {
             const incoming = movement.quantityDelta > 0;
             return (
-              <div
-                key={movement.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-3 py-2.5"
-                style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(182,136,94,0.07)",
-                }}
-              >
+              <div key={movement.id} className="admin-surface !shadow-none flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
                 <div className="min-w-[180px] flex-1">
-                  <p className="text-xs font-medium" style={{ color: "var(--cream)" }}>
+                  <p className="text-xs font-medium admin-text">
                     {itemNames.get(movement.packagingItemId) ??
                       "Packaging item"}
                   </p>
-                  <p
-                    className="mt-0.5 text-[10px]"
-                    style={{ color: "var(--cream-dim)" }}
-                  >
+                  <p className="mt-0.5 text-[10px] admin-faint">
                     {movementLabel(movement.movementType)} ·{" "}
                     {formatDate(movement.createdAt)}
                   </p>
                 </div>
-                <span
-                  className="text-xs font-bold tabular-nums"
-                  style={{ color: incoming ? "#4ade80" : "#f87171" }}
-                >
+                <span className="text-xs font-bold tabular-nums" style={{ color: incoming ? "#8fcf9a" : "#e39a8c" }}>
                   {incoming ? "+" : ""}
                   {movement.quantityDelta.toLocaleString()} units
                 </span>
                 {movement.note && (
-                  <span
-                    className="w-full text-[11px] italic"
-                    style={{ color: "var(--cream-dim)" }}
-                  >
+                  <span className="w-full text-[11px] italic admin-faint">
                     “{movement.note}”
                   </span>
                 )}
@@ -1046,15 +886,9 @@ export default function PackagingInventoryPanel() {
             );
           })}
           {!loading && recentMovements.length === 0 && (
-            <p
-              className="rounded-lg px-3 py-8 text-center text-sm"
-              style={{
-                background: "rgba(255,255,255,0.02)",
-                color: "var(--cream-dim)",
-              }}
-            >
-              No packaging movements recorded yet.
-            </p>
+            <div className="admin-empty-state">
+              <p className="text-sm admin-muted">No packaging movements recorded yet.</p>
+            </div>
           )}
         </div>
       </section>

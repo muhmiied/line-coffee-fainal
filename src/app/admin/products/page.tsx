@@ -49,16 +49,16 @@ function writeErrorMessage(error: unknown, fallback: string) {
 }
 
 const STATUS_STYLE: Record<ProductStatus, { bg: string; color: string }> = {
-  "In Stock": { bg: "rgba(74,222,128,0.12)", color: "#4ade80" },
-  "Low Stock": { bg: "rgba(251,191,36,0.12)", color: "#fbbf24" },
-  "Out of Stock": { bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
+  "In Stock": { bg: "rgba(74,222,128,0.12)", color: "#8fcf9a" },
+  "Low Stock": { bg: "rgba(251,191,36,0.12)", color: "#e3b673" },
+  "Out of Stock": { bg: "rgba(239,68,68,0.12)", color: "#e39a8c" },
 };
 
 const CATEGORY_STATUS_STYLE: Record<AdminCategoryStatus, { bg: string; color: string; label: string }> = {
-  visible:  { bg: "rgba(74,222,128,0.12)",   color: "#4ade80",  label: "Visible"  },
+  visible:  { bg: "rgba(74,222,128,0.12)",   color: "#8fcf9a",  label: "Visible"  },
   hidden:   { bg: "rgba(148,163,184,0.12)",  color: "#cbd5e1",  label: "Hidden"   },
-  draft:    { bg: "rgba(251,191,36,0.12)",   color: "#fbbf24",  label: "Draft"    },
-  archived: { bg: "rgba(239,68,68,0.12)",    color: "#f87171",  label: "Archived" },
+  draft:    { bg: "rgba(251,191,36,0.12)",   color: "#e3b673",  label: "Draft"    },
+  archived: { bg: "rgba(239,68,68,0.12)",    color: "#e39a8c",  label: "Archived" },
 };
 
 type ProductAdminTab        = "products" | "categories";
@@ -116,13 +116,13 @@ function SummaryCard({
   label: string; value: number | string; Icon: LucideIcon; color: string;
 }) {
   return (
-    <div className="admin-surface flex items-center gap-3" style={{ padding: "12px 14px" }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}1a`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color }}>
-        <Icon size={14} />
-      </div>
+    <div className="admin-kpi-card flex items-center gap-3">
+      <span className="admin-icon-chip !w-9 !h-9 !rounded-lg" style={{ color, background: `linear-gradient(150deg, ${color}2e, rgb(66 32 12 / 0.30))` }}>
+        <Icon size={15} />
+      </span>
       <div>
-        <p style={{ fontSize: 20, fontWeight: 700, color: "var(--cream)", lineHeight: 1.1 }}>{value}</p>
-        <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.5, marginTop: 1 }}>{label}</p>
+        <p className="admin-value-sm">{value}</p>
+        <p className="text-[10.5px] admin-faint mt-0.5">{label}</p>
       </div>
     </div>
   );
@@ -147,7 +147,7 @@ function IconAction({ title, children, onClick, disabled = false }: { title: str
       aria-label={title}
       onClick={onClick}
       disabled={disabled}
-      style={{ width: 30, height: 30, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", background: disabled ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.10)", color: disabled ? "rgba(245,232,209,0.22)" : "var(--cream-dim)", cursor: disabled ? "not-allowed" : "pointer", transition: "all 0.15s ease" }}
+      className="admin-btn admin-btn-sm !w-[30px] !h-[30px] !p-0"
     >
       {children}
     </button>
@@ -157,8 +157,8 @@ function IconAction({ title, children, onClick, disabled = false }: { title: str
 function SegmentedField<T extends string,>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string; disabled?: boolean }[]; onChange: (v: T) => void }) {
   return (
     <div>
-      <p style={{ fontSize: 11, fontWeight: 700, color: "var(--cream-dim)", opacity: 0.65, marginBottom: 8 }}>{label}</p>
-      <div className="flex flex-wrap gap-1.5 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(182,136,94,0.10)" }}>
+      <p className="admin-label mb-2">{label}</p>
+      <div className="admin-tabs rounded-xl p-1" style={{ background: "rgb(5 3 2 / 0.35)" }}>
         {options.map((opt) => {
           const active = value === opt.value;
           return (
@@ -167,8 +167,8 @@ function SegmentedField<T extends string,>({ label, value, options, onChange }: 
               type="button"
               disabled={opt.disabled}
               onClick={() => onChange(opt.value)}
-              className="rounded-lg px-3 py-1.5 text-[11.5px] font-semibold transition-all"
-              style={{ background: active ? "rgba(182,136,94,0.18)" : "transparent", border: active ? "1px solid rgba(182,136,94,0.28)" : "1px solid transparent", color: opt.disabled ? "rgba(245,232,209,0.25)" : active ? "var(--gold)" : "var(--cream-dim)", cursor: opt.disabled ? "not-allowed" : "pointer" }}
+              className={`admin-tab !px-3 !py-1.5 !text-[11.5px]${active ? " admin-tab-active" : ""}`}
+              style={opt.disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
             >
               {opt.label}
             </button>
@@ -181,7 +181,7 @@ function SegmentedField<T extends string,>({ label, value, options, onChange }: 
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <label style={{ display: "grid", gap: 7, fontSize: 11, fontWeight: 700, color: "var(--cream-dim)", opacity: 0.72 }}>
+    <label className="grid gap-1.5 admin-label !normal-case !tracking-normal !text-[11px]">
       {children}
     </label>
   );
@@ -206,16 +206,16 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
     <button
       type="button"
       onClick={onClick}
-      className="admin-surface text-left group"
-      style={{ display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", border: "1px solid rgba(182,136,94,0.10)", transition: "border-color 0.2s" }}
+      className="admin-card text-left group"
+      style={{ display: "flex", flexDirection: "column", padding: 0, overflow: "hidden" }}
     >
-      <div style={{ position: "relative", width: "100%", aspectRatio: "1", background: "rgba(182,136,94,0.04)", flexShrink: 0, overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", aspectRatio: "1", background: "var(--admin-border)", flexShrink: 0, overflow: "hidden" }}>
         <Image src={product.image} alt={product.name.en} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw" className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.04]" />
         <span style={{ position: "absolute", top: 8, left: 8, fontSize: 8.5, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: ss.bg, color: ss.color, letterSpacing: "0.03em" }}>
           {t(product.status)}
         </span>
         <div style={{ position: "absolute", top: 7, right: 7, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
-          {product.bestSeller && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(182,136,94,0.88)", color: "#0b0806" }}>BEST</span>}
+          {product.bestSeller && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "var(--admin-border-strong)", color: "#0b0806" }}>BEST</span>}
           {product.featured   && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(96,165,250,0.88)",  color: "#0b0806" }}>FEAT</span>}
           {product.catalogStatus === "archived" ? (
             <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 99, background: "rgba(248,113,113,0.9)", color: "#0b0806" }}>ARCHIVED</span>
@@ -231,16 +231,16 @@ function AdminProductCard({ product, onClick }: { product: AdminProduct; onClick
           className="truncate"
           dir={language === "ar" ? "rtl" : "ltr"}
           data-admin-no-translate
-          style={{ fontSize: 12, fontWeight: 600, fontFamily: language === "ar" ? "var(--font-tajawal)" : "var(--font-playfair)", color: "var(--cream)", lineHeight: 1.25 }}
+          style={{ fontSize: 12, fontWeight: 600, fontFamily: language === "ar" ? "var(--font-tajawal)" : "var(--font-playfair)", color: "var(--admin-white-coffee)", lineHeight: 1.25 }}
         >
           {localize(product.name)}
         </p>
         <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 5 }}>
-          {s250 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>250g {s250.salePrice}</span>}
-          {s500 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.09)", color: "var(--gold-light)" }}>500g {s500.salePrice}</span>}
-          {s1kg && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "rgba(182,136,94,0.05)", color: "var(--cream-dim)" }}>1kg {s1kg.salePrice}</span>}
+          {s250 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "var(--admin-border)", color: "var(--admin-vanilla)" }}>250g {s250.salePrice}</span>}
+          {s500 && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "var(--admin-border)", color: "var(--admin-vanilla)" }}>500g {s500.salePrice}</span>}
+          {s1kg && <span style={{ fontSize: 9.5, padding: "1.5px 6px", borderRadius: 5, background: "var(--admin-border)", color: "var(--admin-muted)" }}>1kg {s1kg.salePrice}</span>}
         </div>
-        <p style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.35, marginTop: 3 }}>
+        <p style={{ fontSize: 9.5, color: "var(--admin-muted)", opacity: 0.35, marginTop: 3 }}>
           {product.catalogStatus} - {product.showOnWebsite ? "on website" : "hidden"} - {product.sku}
         </p>
       </div>
@@ -283,7 +283,7 @@ function CategoryCard({
   return (
     <div
       className="admin-surface flex flex-col"
-      style={{ border: "1px solid rgba(182,136,94,0.12)", overflow: "hidden" }}
+      style={{ border: "1px solid var(--admin-border)", overflow: "hidden" }}
     >
       {/* Top accent line — green when on website, muted gold otherwise */}
       <div
@@ -291,7 +291,7 @@ function CategoryCard({
           height: 3,
           background: webActive
             ? "linear-gradient(90deg, rgba(74,222,128,0.55), transparent)"
-            : "linear-gradient(90deg, rgba(182,136,94,0.25), transparent)",
+            : "linear-gradient(90deg, var(--admin-border-strong), transparent)",
         }}
       />
 
@@ -301,7 +301,7 @@ function CategoryCard({
           <div className="min-w-0 flex-1">
             <p
               className="truncate"
-              style={{ fontSize: 13.5, fontWeight: 700, color: "var(--cream)", fontFamily: "var(--font-playfair)", lineHeight: 1.3 }}
+              style={{ fontSize: 13.5, fontWeight: 700, color: "var(--admin-white-coffee)", fontFamily: "var(--font-playfair)", lineHeight: 1.3 }}
             >
               <span data-admin-no-translate>
                 {language === "ar" ? category.nameAr || category.nameEn : category.nameEn || category.nameAr}
@@ -313,15 +313,15 @@ function CategoryCard({
 
         {/* Slug · product count · sort order */}
         <div className="flex items-center gap-2 flex-wrap mt-3">
-          <span style={{ fontSize: 10.5, color: "var(--gold-light)", fontFamily: "monospace" }}>
+          <span style={{ fontSize: 10.5, color: "var(--admin-vanilla)", fontFamily: "monospace" }}>
             {category.slug}
           </span>
-          <span style={{ fontSize: 10, color: "var(--cream-dim)", opacity: 0.28 }}>·</span>
-          <span style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.5 }}>
+          <span style={{ fontSize: 10, color: "var(--admin-muted)", opacity: 0.28 }}>·</span>
+          <span style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.5 }}>
             {category.productCount} {t("Products")}
           </span>
-          <span style={{ fontSize: 10, color: "var(--cream-dim)", opacity: 0.28 }}>·</span>
-          <span style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.42 }}>
+          <span style={{ fontSize: 10, color: "var(--admin-muted)", opacity: 0.28 }}>·</span>
+          <span style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.42 }}>
             Order #{category.sortOrder}
           </span>
         </div>
@@ -329,11 +329,11 @@ function CategoryCard({
         {/* Website visibility indicator */}
         <div className="mt-3">
           {webActive ? (
-            <span className="inline-flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 600, color: "#4ade80" }}>
+            <span className="inline-flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 600, color: "#8fcf9a" }}>
               <Eye size={11} /> Visible on website
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--cream-dim)", opacity: 0.36 }}>
+            <span className="inline-flex items-center gap-1.5" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--admin-muted)", opacity: 0.36 }}>
               <EyeOff size={11} />
               {isArchived ? "Archived — not on website" : "Hidden from website"}
             </span>
@@ -344,25 +344,15 @@ function CategoryCard({
       {/* Action footer */}
       <div
         className="flex items-center gap-1.5 flex-wrap"
-        style={{ padding: "10px 12px", borderTop: "1px solid rgba(182,136,94,0.08)", background: "rgba(0,0,0,0.12)" }}
+        style={{ padding: "10px 12px", borderTop: "1px solid var(--admin-border)", background: "rgb(5 3 2 / 0.18)" }}
       >
         {/* Edit */}
-        <button
-          type="button"
-          onClick={() => onEdit(category)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
-          style={{ background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)" }}
-        >
+        <button type="button" onClick={() => onEdit(category)} className="admin-btn admin-btn-sm">
           <Pencil size={10} /> Edit
         </button>
 
         {/* View Products */}
-        <button
-          type="button"
-          onClick={() => onViewProducts(category.slug)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
-          style={{ background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)" }}
-        >
+        <button type="button" onClick={() => onViewProducts(category.slug)} className="admin-btn admin-btn-sm">
           <Package size={10} /> View Products
         </button>
 
@@ -376,8 +366,7 @@ function CategoryCard({
             : isDraft   ? "Publish draft first to show on website"
             : ""
           }
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
-          style={{ background: "rgba(255,255,255,0.04)", color: canToggleWeb ? "var(--cream-dim)" : "rgba(245,232,209,0.22)", border: "1px solid rgba(182,136,94,0.10)", cursor: canToggleWeb ? "pointer" : "not-allowed" }}
+          className="admin-btn admin-btn-sm"
         >
           {webActive ? <EyeOff size={10} /> : <Eye size={10} />}
           {webActive ? "Hide" : "Show"}
@@ -452,42 +441,41 @@ function CategoryManagementTab({
     <div className="space-y-4">
       {/* Summary KPI row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard label="Total Categories" value={summary.total}       Icon={Tags}          color="var(--gold)" />
-        <SummaryCard label="On Website"        value={summary.onWebsite}  Icon={Globe2}        color="#4ade80"     />
-        <SummaryCard label="Hidden / Draft"    value={summary.hiddenDraft}Icon={AlertTriangle} color="#fbbf24"     />
-        <SummaryCard label="Archived"          value={summary.archived}   Icon={Archive}       color="#f87171"     />
+        <SummaryCard label="Total Categories" value={summary.total}       Icon={Tags}          color="var(--admin-hazelnut)" />
+        <SummaryCard label="On Website"        value={summary.onWebsite}  Icon={Globe2}        color="#8fcf9a"     />
+        <SummaryCard label="Hidden / Draft"    value={summary.hiddenDraft}Icon={AlertTriangle} color="#e3b673"     />
+        <SummaryCard label="Archived"          value={summary.archived}   Icon={Archive}       color="#e39a8c"     />
       </div>
 
       {/* Error flash */}
       {error && (
-        <div className="admin-surface flex items-center gap-2" style={{ padding: "10px 12px", borderColor: "rgba(239,68,68,0.28)" }}>
-          <AlertTriangle size={14} style={{ color: "#f87171" }} />
-          <p style={{ fontSize: 12, color: "#fca5a5" }}>{error}</p>
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.28)" }}>
+          <AlertTriangle size={14} style={{ color: "#e39a8c" }} />
+          <p className="text-[12px]" style={{ color: "#eeb4a8" }}>{error}</p>
         </div>
       )}
 
       {/* Notice flash */}
       {notice && !error && (
-        <div className="admin-surface flex items-center gap-2" style={{ padding: "10px 12px", borderColor: "rgba(74,222,128,0.20)" }}>
-          <Check size={14} style={{ color: "#4ade80" }} />
-          <p style={{ fontSize: 12, color: "var(--cream-dim)" }}>{notice}</p>
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(143,207,154,0.08)", border: "1px solid rgba(143,207,154,0.24)" }}>
+          <Check size={14} style={{ color: "#8fcf9a" }} />
+          <p className="text-[12px] admin-text">{notice}</p>
         </div>
       )}
 
       {/* Search + filter pills */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[190px]">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--cream-dim)", opacity: 0.35 }} />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none admin-faint" />
           <input
             type="text"
             placeholder="Search categories..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-[12.5px] outline-none"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream)" }}
+            className="admin-input w-full !pl-9 !pr-4 !py-2.5 !rounded-xl"
           />
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="admin-tabs">
           {CATEGORY_FILTERS.map((item) => {
             const active = filter === item.key;
             return (
@@ -495,8 +483,7 @@ function CategoryManagementTab({
                 key={item.key}
                 type="button"
                 onClick={() => onFilterChange(item.key)}
-                className="px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all"
-                style={{ background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
+                className={`admin-chip${active ? " admin-chip-active" : ""}`}
               >
                 {item.label}
               </button>
@@ -507,9 +494,9 @@ function CategoryManagementTab({
 
       {/* Empty state */}
       {filteredCategories.length === 0 && (
-        <div className="py-16 text-center" style={{ color: "var(--cream-dim)", opacity: 0.36 }}>
-          <Tags size={32} style={{ margin: "0 auto 12px" }} />
-          <p className="text-sm font-medium">No categories match this view</p>
+        <div className="admin-empty-state">
+          <span className="admin-empty-icon"><Tags size={26} /></span>
+          <p className="text-sm font-medium admin-muted">No categories match this view</p>
         </div>
       )}
 
@@ -614,12 +601,6 @@ function CategoryDrawer({
   const dirty = Object.keys(changedPayload).length > 0;
   const canSave = (editing ? dirty : true) && errors.length === 0 && !saving;
 
-  const inputStyle = {
-    background: "rgba(255,255,255,0.045)",
-    border:     "1px solid rgba(182,136,94,0.14)",
-    color:      "var(--cream)",
-  };
-
   const setNameEn = (value: string) => {
     setErrorMsg(null);
     setForm((prev) => ({
@@ -675,20 +656,16 @@ function CategoryDrawer({
         type="button"
         aria-label="Close category drawer"
         onClick={onClose}
-        className="absolute inset-0"
-        style={{ background: "rgba(6,4,3,0.72)", backdropFilter: "blur(8px)" }}
+        className="admin-modal-overlay absolute inset-0"
       />
-      <div
-        className="relative h-full w-full max-w-md overflow-y-auto"
-        style={{ background: "rgba(15,10,7,0.98)", borderLeft: "1px solid rgba(182,136,94,0.20)", boxShadow: "-24px 0 80px rgba(0,0,0,0.46)" }}
-      >
+      <div className="admin-drawer-surface relative h-full w-full max-w-md overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderBottom: "1px solid rgba(182,136,94,0.12)" }}>
+        <div className="admin-drawer-header sticky top-0 z-10 flex items-start justify-between gap-3 px-5 py-4">
           <div>
-            <p style={{ fontSize: 11, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p className="admin-label !text-[11px]" style={{ color: "var(--admin-hazelnut)" }}>
               {editing ? "Edit Category" : "Add Category"}
             </p>
-            <h3 style={{ marginTop: 4, fontSize: 19, fontWeight: 800, color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <h3 className="mt-1 text-[19px] font-bold" style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}>
               {editing ? existingCategory?.nameEn : "New product category"}
             </h3>
           </div>
@@ -697,7 +674,7 @@ function CategoryDrawer({
             title="Close drawer"
             aria-label="Close drawer"
             onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.10)", color: "var(--cream-dim)" }}
+            className="admin-btn admin-btn-sm !w-8 !h-8 !p-0"
           >
             <X size={15} />
           </button>
@@ -713,8 +690,7 @@ function CategoryDrawer({
                 type="text"
                 value={form.nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
-                className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none"
-                style={inputStyle}
+                className="admin-input"
               />
             </FieldLabel>
             <FieldLabel>
@@ -724,8 +700,7 @@ function CategoryDrawer({
                 value={form.nameAr}
                 onChange={(e) => setForm((prev) => ({ ...prev, nameAr: e.target.value }))}
                 dir="rtl"
-                className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none"
-                style={inputStyle}
+                className="admin-input"
               />
             </FieldLabel>
           </div>
@@ -740,11 +715,10 @@ function CategoryDrawer({
                 setSlugTouched(true);
                 setForm((prev) => ({ ...prev, slug: e.target.value.trim().toLowerCase() }));
               }}
-              className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none"
-              style={inputStyle}
+              className="admin-input"
             />
           </FieldLabel>
-          <p style={{ marginTop: -8, fontSize: 11, color: "var(--cream-dim)", opacity: 0.5 }}>
+          <p className="-mt-2 text-[11px] admin-faint">
             Auto-generated from English name. Lowercase letters, numbers, and hyphens only.
           </p>
 
@@ -768,8 +742,7 @@ function CategoryDrawer({
               value={form.descriptionEn}
               onChange={(e) => { setErrorMsg(null); setForm((prev) => ({ ...prev, descriptionEn: e.target.value })); }}
               rows={2}
-              className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none resize-y"
-              style={inputStyle}
+              className="admin-textarea"
             />
           </FieldLabel>
           <FieldLabel>
@@ -779,8 +752,7 @@ function CategoryDrawer({
               onChange={(e) => { setErrorMsg(null); setForm((prev) => ({ ...prev, descriptionAr: e.target.value })); }}
               dir="rtl"
               rows={2}
-              className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none resize-y"
-              style={inputStyle}
+              className="admin-textarea"
             />
           </FieldLabel>
 
@@ -791,8 +763,7 @@ function CategoryDrawer({
               type="number"
               value={form.sortOrder}
               onChange={(e) => { setErrorMsg(null); setForm((prev) => ({ ...prev, sortOrder: e.target.value })); }}
-              className="rounded-xl px-3 py-2.5 text-[12.5px] outline-none"
-              style={inputStyle}
+              className="admin-input"
             />
           </FieldLabel>
 
@@ -805,39 +776,39 @@ function CategoryDrawer({
               }
             }}
             disabled={form.status === "archived"}
-            className="flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-left w-full"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: form.status === "archived" ? "rgba(245,232,209,0.28)" : "var(--cream)" }}
+            className="admin-btn flex items-center justify-between gap-3 !rounded-xl !px-3 !py-3 text-left w-full"
+            style={{ color: form.status === "archived" ? "var(--admin-faint)" : "var(--admin-white-coffee)" }}
           >
             <span>
               <span className="block text-[12.5px] font-semibold">Visible on Website</span>
-              <span className="block text-[10.5px]" style={{ color: "var(--cream-dim)", opacity: 0.48 }}>
+              <span className="block text-[10.5px] admin-faint">
                 Show this category on the public website.
               </span>
             </span>
-            <span style={{ color: form.showOnWebsite && form.status !== "archived" ? "#4ade80" : "rgba(245,232,209,0.35)" }}>
+            <span style={{ color: form.showOnWebsite && form.status !== "archived" ? "#8fcf9a" : "rgba(245,232,209,0.35)" }}>
               {form.showOnWebsite && form.status !== "archived" ? <Eye size={17} /> : <EyeOff size={17} />}
             </span>
           </button>
 
           {/* Validation errors */}
           {errors.length > 0 && (
-            <div className="rounded-xl p-3" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}>
+            <div className="rounded-xl p-3" style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.24)" }}>
               {errors.map((err) => (
-                <p key={err} style={{ fontSize: 11.5, color: "#fca5a5" }}>{err}</p>
+                <p key={err} className="text-[11.5px]" style={{ color: "#eeb4a8" }}>{err}</p>
               ))}
             </div>
           )}
 
           {/* Save error */}
           {errorMsg && (
-            <div className="rounded-xl p-3" style={{ background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)" }}>
-              <p style={{ fontSize: 11.5, color: "#fca5a5" }}>{errorMsg}</p>
+            <div className="rounded-xl p-3" style={{ background: "rgba(227,154,140,0.10)", border: "1px solid rgba(227,154,140,0.28)" }}>
+              <p className="text-[11.5px]" style={{ color: "#eeb4a8" }}>{errorMsg}</p>
             </div>
           )}
 
           {/* Info note */}
-          <div className="rounded-xl p-3" style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.14)" }}>
-            <p style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.65 }}>
+          <div className="admin-surface !shadow-none p-3">
+            <p className="text-[11.5px] admin-muted">
               A category appears on the website only when its status is <strong>Visible</strong> and Visible on Website is enabled.
               Renaming the slug updates this category&rsquo;s product links automatically.
             </p>
@@ -845,24 +816,17 @@ function CategoryDrawer({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderTop: "1px solid rgba(182,136,94,0.12)" }}>
-          {saved && <span style={{ marginRight: "auto", fontSize: 12, color: "#4ade80", fontWeight: 600 }}>{editing ? "✓ Saved" : "✓ Created"}</span>}
-          {!saved && editing && dirty && !saving && <span style={{ marginRight: "auto", fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.5 }}>Unsaved changes</span>}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-lg px-4 py-2 text-[12.5px] font-semibold"
-            style={{ background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)", cursor: saving ? "not-allowed" : "pointer" }}
-          >
+        <div className="admin-drawer-footer sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4">
+          {saved && <span className="mr-auto text-[12px] font-semibold" style={{ color: "#8fcf9a" }}>{editing ? "✓ Saved" : "✓ Created"}</span>}
+          {!saved && editing && dirty && !saving && <span className="mr-auto text-[11.5px] admin-faint">Unsaved changes</span>}
+          <button type="button" onClick={onClose} disabled={saving} className="admin-btn !px-4 !py-2 !text-[12.5px]">
             Cancel
           </button>
           <button
             type="button"
             onClick={saveCategory}
             disabled={!canSave}
-            className="rounded-lg px-4 py-2 text-[12.5px] font-semibold"
-            style={{ background: canSave ? "rgba(182,136,94,0.18)" : "rgba(182,136,94,0.07)", color: canSave ? "var(--gold)" : "rgba(245,232,209,0.32)", border: "1px solid rgba(182,136,94,0.22)", cursor: canSave ? "pointer" : "not-allowed" }}
+            className="admin-btn admin-btn-primary !px-4 !py-2 !text-[12.5px]"
           >
             {saving ? (editing ? "Saving…" : "Creating…") : (editing ? "Save changes" : "Create category")}
           </button>
@@ -1110,11 +1074,11 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="admin-surface flex items-center gap-3" style={{ padding: "18px 20px" }}>
-        <Package size={18} style={{ color: "var(--gold)" }} />
+      <div className="admin-surface flex items-center gap-3 px-5 py-4.5">
+        <span className="admin-icon-chip !w-9 !h-9"><Package size={16} /></span>
         <div>
-          <p style={{ color: "var(--cream)", fontSize: 14, fontWeight: 700 }}>Loading admin catalog</p>
-          <p style={{ color: "var(--cream-dim)", opacity: 0.52, fontSize: 12 }}>
+          <p className="text-[14px] font-bold" style={{ color: "var(--admin-heading)" }}>Loading admin catalog</p>
+          <p className="text-[12px] admin-muted">
             Reading products, categories, and variants from Supabase.
           </p>
         </div>
@@ -1124,12 +1088,12 @@ export default function ProductsPage() {
 
   if (catalogError) {
     return (
-      <div className="admin-surface flex items-start gap-3" style={{ padding: "18px 20px", borderColor: "rgba(239,68,68,0.22)" }}>
-        <AlertTriangle size={18} style={{ color: "#f87171", marginTop: 2 }} />
+      <div className="flex items-start gap-3 rounded-2xl px-5 py-4.5" style={{ background: "rgba(227,154,140,0.06)", border: "1px solid rgba(227,154,140,0.28)" }}>
+        <AlertTriangle size={18} style={{ color: "#e39a8c", marginTop: 2 }} />
         <div>
-          <p style={{ color: "var(--cream)", fontSize: 14, fontWeight: 700 }}>Admin catalog read failed</p>
-          <p style={{ color: "#fca5a5", fontSize: 12, marginTop: 4 }}>{catalogError}</p>
-          <p style={{ color: "var(--cream-dim)", opacity: 0.55, fontSize: 12, marginTop: 8 }}>
+          <p className="text-[14px] font-bold" style={{ color: "var(--admin-heading)" }}>Admin catalog read failed</p>
+          <p className="mt-1 text-[12px]" style={{ color: "#eeb4a8" }}>{catalogError}</p>
+          <p className="mt-2 text-[12px] admin-muted">
             The admin screen is intentionally not falling back to mock data.
           </p>
         </div>
@@ -1143,12 +1107,12 @@ export default function ProductsPage() {
     <>
       <div className="space-y-5">
         {/* Page header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="admin-page-header">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <h1 className="admin-page-title">
               Products
             </h1>
-            <p className="text-[13px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
+            <p className="admin-page-subtitle">
               {activeTab === "products"
                 ? `${allProducts.length} products across ${categories.length} catalog filters`
                 : `${categories.length} categories — manage website visibility and sort order`}
@@ -1158,8 +1122,7 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() => setProductCreateOpen(true)}
-              className="inline-flex items-center gap-2"
-              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.30)" }}
+              className="admin-btn admin-btn-primary inline-flex items-center gap-2"
             >
               <Plus size={14} />
               Add Product
@@ -1168,8 +1131,7 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() => { setCategoryNotice(null); setCategoryError(null); setCategoryDrawer({ mode: "add" }); }}
-              className="inline-flex items-center gap-2"
-              style={{ padding: "8px 16px", borderRadius: 9, fontSize: 13, fontWeight: 700, background: "rgba(182,136,94,0.16)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.30)" }}
+              className="admin-btn admin-btn-primary inline-flex items-center gap-2"
             >
               <Plus size={14} />
               Add Category
@@ -1178,10 +1140,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Tab switcher */}
-        <div
-          className="flex items-center gap-1.5 p-1 rounded-xl w-fit max-w-full overflow-x-auto"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.10)" }}
-        >
+        <div className="admin-tabs rounded-xl p-1 w-fit max-w-full overflow-x-auto" style={{ background: "rgb(5 3 2 / 0.35)" }}>
           {([
             { key: "products"   as const, label: "Products",   value: allProducts.length, Icon: Package },
             { key: "categories" as const, label: "Categories", value: categories.length,  Icon: Tags    },
@@ -1192,12 +1151,14 @@ export default function ProductsPage() {
                 key={key}
                 type="button"
                 onClick={() => setActiveTab(key)}
-                className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12px] font-bold transition-all"
-                style={{ background: active ? "rgba(182,136,94,0.17)" : "transparent", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid transparent" }}
+                className={`admin-tab${active ? " admin-tab-active" : ""}`}
               >
                 <Icon size={13} />
                 {label}
-                <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(255,255,255,0.06)" }}>
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ background: active ? "rgb(5 3 2 / 0.18)" : "rgb(227 210 184 / 0.08)" }}
+                >
                   {value}
                 </span>
               </button>
@@ -1211,11 +1172,11 @@ export default function ProductsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {(
                 [
-                  { label: "Total Products", value: kpis.total,       Icon: Package,       color: "var(--gold)" },
-                  { label: "Active",          value: kpis.active,      Icon: Eye,           color: "#4ade80"     },
-                  { label: "Low Stock",       value: kpis.lowStock,    Icon: AlertTriangle, color: "#fbbf24"     },
-                  { label: "Out of Stock",    value: kpis.outOfStock,  Icon: TrendingDown,  color: "#ef4444"     },
-                  { label: "Best Sellers",    value: kpis.bestSellers, Icon: Star,          color: "#60a5fa"     },
+                  { label: "Total Products", value: kpis.total,       Icon: Package,       color: "var(--admin-hazelnut)" },
+                  { label: "Active",          value: kpis.active,      Icon: Eye,           color: "#8fcf9a"     },
+                  { label: "Low Stock",       value: kpis.lowStock,    Icon: AlertTriangle, color: "#e3b673"     },
+                  { label: "Out of Stock",    value: kpis.outOfStock,  Icon: TrendingDown,  color: "#e39a8c"     },
+                  { label: "Best Sellers",    value: kpis.bestSellers, Icon: Star,          color: "#8fb0d9"     },
                 ] as const
               ).map(({ label, value, Icon, color }) => (
                 <SummaryCard key={label} label={label} value={value} Icon={Icon} color={color} />
@@ -1224,18 +1185,17 @@ export default function ProductsPage() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--cream-dim)", opacity: 0.35 }} />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none admin-faint" />
                 <input
                   type="text"
                   placeholder="Search products..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl text-[12.5px] outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream)" }}
+                  className="admin-input w-full !pl-9 !pr-4 !py-2.5 !rounded-xl"
                 />
               </div>
               {/* Lifecycle status filter — All / Active / Draft / Archived */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="admin-tabs">
                 {PRODUCT_STATUS_FILTERS.map((item) => {
                   const active = statusFilter === item.key;
                   return (
@@ -1243,11 +1203,13 @@ export default function ProductsPage() {
                       key={item.key}
                       type="button"
                       onClick={() => setStatusFilter(item.key)}
-                      className="px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all flex items-center gap-1.5"
-                      style={{ background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
+                      className={`admin-chip${active ? " admin-chip-active" : ""}`}
                     >
                       {item.label}
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 99, background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.06)", color: active ? "var(--gold)" : "var(--cream-dim)" }}>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ background: active ? "rgb(5 3 2 / 0.18)" : "rgb(227 210 184 / 0.08)" }}
+                      >
                         {statusCounts[item.key]}
                       </span>
                     </button>
@@ -1256,15 +1218,17 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="admin-tabs">
               <button
                 type="button"
                 onClick={() => setCategory("all")}
-                className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium transition-all flex items-center gap-1.5"
-                style={{ background: category === "all" ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: category === "all" ? "var(--gold)" : "var(--cream-dim)", border: category === "all" ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
+                className={`admin-chip${category === "all" ? " admin-chip-active" : ""}`}
               >
                 All
-                <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 99, background: "rgba(182,136,94,0.15)", color: "var(--gold)" }}>
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: category === "all" ? "rgb(5 3 2 / 0.18)" : "rgb(227 210 184 / 0.08)" }}
+                >
                   {counts.all}
                 </span>
               </button>
@@ -1276,13 +1240,15 @@ export default function ProductsPage() {
                     key={cat.slug}
                     type="button"
                     onClick={() => setCategory(cat.slug)}
-                    className="px-3 py-1.5 rounded-lg text-[11.5px] font-medium transition-all flex items-center gap-1.5"
-                    style={{ background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.03)", color: active ? "var(--gold)" : "var(--cream-dim)", border: active ? "1px solid rgba(182,136,94,0.25)" : "1px solid rgba(182,136,94,0.08)" }}
+                    className={`admin-chip${active ? " admin-chip-active" : ""}`}
                   >
                     <span data-admin-no-translate>
                       {language === "ar" ? cat.nameAr || cat.nameEn : cat.nameEn || cat.nameAr}
                     </span>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 99, background: active ? "rgba(182,136,94,0.15)" : "rgba(255,255,255,0.06)", color: active ? "var(--gold)" : "var(--cream-dim)" }}>
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ background: active ? "rgb(5 3 2 / 0.18)" : "rgb(227 210 184 / 0.08)" }}
+                    >
                       {counts[cat.slug] ?? 0}
                     </span>
                   </button>
@@ -1291,15 +1257,15 @@ export default function ProductsPage() {
             </div>
 
             {search && (
-              <p style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.4 }}>
+              <p className="text-[12px] admin-faint">
                 {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &ldquo;{search}&rdquo;
               </p>
             )}
 
             {filtered.length === 0 && (
-              <div className="py-20 text-center" style={{ color: "var(--cream-dim)", opacity: 0.3 }}>
-                <Package size={32} style={{ margin: "0 auto 12px" }} />
-                <p className="text-sm font-medium">No products found</p>
+              <div className="admin-empty-state">
+                <span className="admin-empty-icon"><Package size={26} /></span>
+                <p className="text-sm font-medium admin-muted">No products found</p>
               </div>
             )}
 

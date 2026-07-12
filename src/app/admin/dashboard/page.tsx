@@ -16,10 +16,7 @@ import LatestOrders      from "@/components/admin/dashboard/LatestOrders";
 const SalesChart = dynamic(() => import("@/components/admin/dashboard/SalesChart"), {
   ssr: false,
   loading: () => (
-    <div
-      className="flex min-h-[290px] items-center justify-center rounded-2xl"
-      style={{ border: "1px solid var(--gold-border)", color: "var(--cream-dim)", opacity: 0.5 }}
-    >
+    <div className="admin-surface flex min-h-[290px] items-center justify-center admin-muted">
       <Loader2 size={16} className="animate-spin" />
     </div>
   ),
@@ -54,22 +51,23 @@ export default function AdminDashboardPage() {
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <div className="max-w-[1200px] mx-auto space-y-4 md:space-y-5">
+    <div className="max-w-[1200px] mx-auto space-y-5 md:space-y-6">
 
       {/* Welcome hero */}
       <WelcomeHero stats={data?.heroStats ?? null} />
 
       {error && (
-        <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
-          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.20)" }}>
-          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#f87171" }}>
+        <div
+          className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+          style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.28)" }}
+        >
+          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#e39a8c" }}>
             <AlertTriangle size={14} /> {error}
           </span>
           <button
             type="button"
             onClick={() => void load()}
-            className="flex items-center gap-1.5 text-[12px] font-medium"
-            style={{ color: "var(--gold)" }}
+            className="admin-link flex items-center gap-1.5 text-[12px]"
           >
             <RefreshCw size={12} /> Retry
           </button>
@@ -77,8 +75,7 @@ export default function AdminDashboardPage() {
       )}
 
       {loading && !data && (
-        <div className="flex items-center justify-center gap-2 py-16"
-          style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
+        <div className="flex items-center justify-center gap-2 py-16 admin-muted">
           <Loader2 size={16} className="animate-spin" /> Loading real dashboard data…
         </div>
       )}
@@ -86,14 +83,14 @@ export default function AdminDashboardPage() {
       {data && (
         <>
           {/* 4 interactive KPI toggle cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
             {data.kpis.map((stat) => (
               <KPICard key={stat.label} stat={stat} />
             ))}
           </div>
 
           {/* 5 static special cards — 5-col grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
             <InventoryCard summary={data.inventory} />
             <div className="col-span-2">
               <LowStockCard items={data.lowStockItems} />
@@ -103,7 +100,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Sales chart (2/3) + Quick actions (1/3) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
             <div className="lg:col-span-2 min-h-[290px]">
               <SalesChart data={data.salesTrend} />
             </div>
@@ -113,13 +110,13 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Latest orders (1/2) + Alerts center (1/2) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
             <LatestOrders orders={data.latestOrders} />
             <AlertsCenter alerts={data.alerts} />
           </div>
 
           {/* Best sellers (2/3) + Latest review (1/3) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
             <div className="lg:col-span-2">
               <BestSellersMonth products={data.bestSellers} />
             </div>

@@ -7,6 +7,7 @@ import {
   type DashboardPeriod,
 } from "@/lib/admin/admin-dashboard";
 import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 const PERIODS: { key: DashboardPeriod; label: string }[] = [
   { key: "today", label: "1D" },
@@ -37,12 +38,12 @@ function Sparkline({ data }: { data: number[] }) {
       <polyline
         points={pts}
         fill="none"
-        stroke="var(--gold)"
+        stroke="var(--admin-hazelnut)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={lastX} cy={lastY} r="2.2" fill="var(--gold)" />
+      <circle cx={lastX} cy={lastY} r="2.2" fill="var(--admin-hazelnut)" />
     </svg>
   );
 }
@@ -60,15 +61,14 @@ function OrdersStatusList({
       {items.map((item) => (
         <span
           key={item.label}
-          className="flex items-center gap-1.5 text-[11px]"
-          style={{ color: "var(--cream-dim)" }}
+          className="flex items-center gap-1.5 text-[11px] admin-muted"
         >
           <span
             className="w-1.5 h-1.5 rounded-full flex-shrink-0"
             style={{ background: item.color }}
           />
           <bdi dir="ltr" className="font-bold tabular-nums" style={{ color: item.color }}>{item.count}</bdi>
-          <span style={{ opacity: 0.65 }}>{t(item.label)}</span>
+          <span className="admin-faint">{t(item.label)}</span>
         </span>
       ))}
     </div>
@@ -86,20 +86,22 @@ function CustomerSplitBar({
   const newPct = totalCount > 0 ? Math.round((newCount / totalCount) * 100) : 0;
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex rounded-full overflow-hidden h-[4px]">
+      <div className="admin-progress-track flex h-[5px]">
         <div
-          style={{ width: `${newPct}%`, background: "#4ade80" }}
+          className="h-full"
+          style={{ width: `${newPct}%`, background: "linear-gradient(90deg, #6fb87e, #8fcf9a)" }}
         />
         <div
-          style={{ width: `${100 - newPct}%`, background: "var(--gold)", opacity: 0.45 }}
+          className="h-full"
+          style={{ width: `${100 - newPct}%`, background: "var(--admin-hazelnut)", opacity: 0.4 }}
         />
       </div>
-      <div className="flex justify-between text-[10px]" style={{ color: "var(--cream-dim)" }}>
+      <div className="flex justify-between text-[10px] admin-muted">
         <span>
-          <bdi dir="ltr" style={{ color: "#4ade80" }}>{newCount}</bdi> {t("new")}
+          <bdi dir="ltr" style={{ color: "#8fcf9a" }}>{newCount}</bdi> {t("new")}
         </span>
         <span>
-          <bdi dir="ltr" style={{ color: "var(--gold)" }}>{totalCount - newCount}</bdi> {t("returning")}
+          <bdi dir="ltr" style={{ color: "var(--admin-hazelnut)" }}>{totalCount - newCount}</bdi> {t("returning")}
         </span>
       </div>
     </div>
@@ -114,40 +116,41 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
   const current  = stat.values[period];
   const hasTrend = current.trend !== null;
   const isUp     = (current.trend ?? 0) >= 0;
-  const trendColor = hasTrend ? (isUp ? "#4ade80" : "#ef4444") : undefined;
+  const trendColor = hasTrend ? (isUp ? "#8fcf9a" : "#e39a8c") : undefined;
 
   const hasExtra = !!(stat.sparkline || stat.breakdown || stat.customerSplit);
 
   return (
-    <div className="admin-kpi-card flex flex-col gap-2.5 min-h-[145px]">
+    <div className="admin-kpi-card flex flex-col gap-2.5 min-h-[150px]">
 
       {/* Header: label + period toggle */}
       <div className="flex items-center justify-between gap-2">
-        <p
-          className="text-[11px] font-medium uppercase tracking-wider"
-          style={{ color: "var(--cream-dim)" }}
-        >
+        <p className="admin-label">
           {t(stat.label)}
         </p>
-        <div
-          className="flex items-center gap-px p-[3px] rounded-md flex-shrink-0"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-        >
-          {PERIODS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setPeriod(key)}
-              className="text-[10px] font-semibold w-6 h-5 rounded flex items-center justify-center transition-all duration-100"
-              style={{
-                color:      period === key ? "var(--gold)" : "var(--cream-dim)",
-                background: period === key ? "rgba(182,136,94,0.18)" : "transparent",
-                opacity:    period === key ? 1 : 0.55,
-              }}
-            >
-              {language === "ar" ? t(label) : label}
-            </button>
-          ))}
+        <div className="flex items-center gap-0.5 p-[3px] rounded-lg flex-shrink-0 admin-surface !shadow-none !border-0" style={{ background: "rgb(5 3 2 / 0.35)" }}>
+          {PERIODS.map(({ key, label }) => {
+            const active = period === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPeriod(key)}
+                className="text-[10px] font-bold w-6 h-5 rounded-md flex items-center justify-center transition-all duration-150"
+                style={
+                  active
+                    ? {
+                        color: "var(--admin-button-text)",
+                        background: "var(--admin-button)",
+                        boxShadow: "0 2px 6px rgb(5 3 2 / 0.4)",
+                      }
+                    : { color: "var(--admin-faint)" }
+                }
+              >
+                {language === "ar" ? t(label) : label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -158,15 +161,11 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
       >
         <bdi
           dir="ltr"
-          className="text-[26px] font-bold leading-none tabular-nums"
-          style={{ color: "var(--cream)" }}
+          className="admin-value !text-[28px] leading-none"
         >
-          {current.formatted}
+          <MixedNumeric text={current.formatted} />
         </bdi>
-        <span
-          className="text-[12px]"
-          style={{ color: "var(--cream-dim)" }}
-        >
+        <span className="text-[12px] admin-muted">
           {t(stat.unit)}
         </span>
       </div>
@@ -180,14 +179,11 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
               : <TrendingDown size={11} style={{ color: trendColor }} />
             }
             <bdi dir="ltr" className="text-[11px] font-semibold" style={{ color: trendColor }}>
-              {isUp ? "+" : ""}{current.trend?.toFixed(1)}%
+              <MixedNumeric text={`${isUp ? "+" : ""}${current.trend?.toFixed(1)}%`} />
             </bdi>
           </>
         )}
-        <span
-          className="text-[11px]"
-          style={{ color: "var(--cream-dim)", opacity: 0.55 }}
-        >
+        <span className="text-[11px] admin-faint">
           {t(current.trendLabel)}
         </span>
       </div>
@@ -196,7 +192,7 @@ export default function KPICard({ stat }: { stat: DashboardKpi }) {
       {hasExtra && (
         <div
           className="pt-2 mt-auto"
-          style={{ borderTop: "1px solid rgba(182,136,94,0.07)" }}
+          style={{ borderTop: "1px solid var(--admin-border)" }}
         >
           {stat.sparkline && <Sparkline data={stat.sparkline} />}
 

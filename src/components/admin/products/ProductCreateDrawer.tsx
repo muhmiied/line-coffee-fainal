@@ -75,21 +75,10 @@ interface ProductCreateDrawerProps {
   onCreate: (input: AdminProductCreateInput) => Promise<void>;
 }
 
-const inputStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.045)",
-  border: "1px solid rgba(182,136,94,0.14)",
-  color: "var(--cream)",
-  width: "100%",
-  borderRadius: 10,
-  padding: "9px 12px",
-  fontSize: 12.5,
-  outline: "none",
-};
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--cream-dim)", opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+    <label className="flex flex-col gap-1.5">
+      <span className="admin-label !text-[11px]">
         {label}
       </span>
       {children}
@@ -107,14 +96,13 @@ function Toggle({
       type="button"
       onClick={() => onChange(!value)}
       aria-pressed={value ? "true" : "false"}
-      className="w-full flex items-center justify-between gap-3 text-left"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", borderRadius: 10, padding: "10px 12px" }}
+      className="admin-btn w-full flex items-center justify-between gap-3 text-left !rounded-xl !px-3 !py-2.5"
     >
       <span>
-        <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--cream)" }}>{label}</span>
-        <span style={{ display: "block", fontSize: 11, color: "var(--cream-dim)", opacity: 0.45 }}>{hint}</span>
+        <span className="block text-[12.5px] font-semibold admin-text">{label}</span>
+        <span className="block text-[11px] admin-faint">{hint}</span>
       </span>
-      <span style={{ color: value ? "#4ade80" : "rgba(245,232,209,0.3)", flexShrink: 0 }}>
+      <span style={{ color: value ? "#8fcf9a" : "var(--admin-faint)", flexShrink: 0 }}>
         {value ? <Eye size={16} /> : <EyeOff size={16} />}
       </span>
     </button>
@@ -211,36 +199,36 @@ export default function ProductCreateDrawer({
         type="button"
         aria-label="Close create product drawer"
         onClick={onClose}
-        className="absolute inset-0"
-        style={{ background: isOpen ? "rgba(6,4,3,0.72)" : "transparent", backdropFilter: isOpen ? "blur(8px)" : "none", transition: "all 0.28s" }}
+        className="admin-modal-overlay absolute inset-0"
+        style={{ opacity: isOpen ? 1 : 0, transition: "opacity 0.28s" }}
       />
       <div
-        className="relative h-full overflow-y-auto"
-        style={{ width: "clamp(320px,44vw,520px)", background: "rgba(15,10,7,0.98)", borderLeft: "1px solid rgba(182,136,94,0.20)", boxShadow: "-24px 0 80px rgba(0,0,0,0.46)", transform: isOpen ? "translateX(0)" : "translateX(100%)", transition: "transform 0.32s cubic-bezier(0.22,1,0.36,1)" }}
+        className="admin-drawer-surface relative h-full overflow-y-auto"
+        style={{ width: "clamp(320px,44vw,520px)", transform: isOpen ? "translateX(0)" : "translateX(100%)", transition: "transform 0.32s cubic-bezier(0.22,1,0.36,1)" }}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderBottom: "1px solid rgba(182,136,94,0.12)" }}>
+        <div className="admin-drawer-header sticky top-0 z-10 flex items-start justify-between gap-3 px-5 py-4">
           <div>
-            <p style={{ fontSize: 10.5, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em" }}>New Product</p>
-            <h3 style={{ marginTop: 3, fontSize: 18, fontWeight: 800, color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>Add a product</h3>
+            <p className="admin-label !text-[10.5px]" style={{ color: "var(--admin-hazelnut)" }}>New Product</p>
+            <h3 className="mt-1 text-[18px] font-bold" style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}>Add a product</h3>
           </div>
-          <button type="button" aria-label="Close drawer" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.10)", color: "var(--cream-dim)", flexShrink: 0 }}>
+          <button type="button" aria-label="Close drawer" onClick={onClose} className="admin-btn admin-btn-sm !w-8 !h-8 !p-0 flex-shrink-0">
             <X size={14} />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ padding: "20px 20px 120px" }} className="space-y-4">
+        <div className="space-y-4" style={{ padding: "20px 20px 120px" }}>
           {/* Category */}
           <Field label="Category *">
             <select
               value={state.categoryId}
               onChange={(e) => patch({ categoryId: e.target.value })}
-              style={{ ...inputStyle, cursor: "pointer", colorScheme: "dark" }}
+              className="admin-select"
             >
               {categories.length === 0 && <option value="">No categories available</option>}
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id} style={{ background: "#0f0a07" }}>
+                <option key={cat.id} value={cat.id}>
                   {language === "ar" ? cat.nameAr || cat.nameEn : cat.nameEn || cat.nameAr}
                 </option>
               ))}
@@ -250,10 +238,10 @@ export default function ProductCreateDrawer({
           {/* Names */}
           <div className="grid grid-cols-2 gap-3">
             <Field label="English Name *">
-              <input type="text" value={state.nameEn} onChange={(e) => setNameEn(e.target.value)} style={inputStyle} />
+              <input type="text" value={state.nameEn} onChange={(e) => setNameEn(e.target.value)} className="admin-input" />
             </Field>
             <Field label="Arabic Name *">
-              <input type="text" value={state.nameAr} onChange={(e) => patch({ nameAr: e.target.value })} dir="rtl" style={inputStyle} />
+              <input type="text" value={state.nameAr} onChange={(e) => patch({ nameAr: e.target.value })} dir="rtl" className="admin-input" />
             </Field>
           </div>
 
@@ -263,39 +251,39 @@ export default function ProductCreateDrawer({
               type="text"
               value={state.slug}
               onChange={(e) => patch({ slug: e.target.value.trim().toLowerCase(), slugTouched: true })}
-              style={inputStyle}
+              className="admin-input"
             />
           </Field>
-          <p style={{ marginTop: -8, fontSize: 11, color: "var(--cream-dim)", opacity: 0.5 }}>
+          <p className="-mt-2 text-[11px] admin-faint">
             Auto-generated from the English name. Variant SKUs will be {state.slug || "{slug}"}-250g / -500g / -1kg.
           </p>
 
           {/* Descriptions */}
           <div className="grid grid-cols-1 gap-3">
             <Field label="English Description">
-              <textarea value={state.descEn} onChange={(e) => patch({ descEn: e.target.value })} rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+              <textarea value={state.descEn} onChange={(e) => patch({ descEn: e.target.value })} rows={2} className="admin-textarea" />
             </Field>
             <Field label="Arabic Description">
-              <textarea value={state.descAr} onChange={(e) => patch({ descAr: e.target.value })} dir="rtl" rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+              <textarea value={state.descAr} onChange={(e) => patch({ descAr: e.target.value })} dir="rtl" rows={2} className="admin-textarea" />
             </Field>
           </div>
 
           {/* Prices */}
           <div className="grid grid-cols-3 gap-3">
             <Field label="250g (EGP) *">
-              <input type="number" min="0" value={state.price250} onChange={(e) => patch({ price250: e.target.value })} style={inputStyle} placeholder="0" />
+              <input type="number" min="0" value={state.price250} onChange={(e) => patch({ price250: e.target.value })} className="admin-input" placeholder="0" />
             </Field>
             <Field label="500g (EGP) *">
-              <input type="number" min="0" value={state.price500} onChange={(e) => patch({ price500: e.target.value })} style={inputStyle} placeholder="0" />
+              <input type="number" min="0" value={state.price500} onChange={(e) => patch({ price500: e.target.value })} className="admin-input" placeholder="0" />
             </Field>
             <Field label="1kg (EGP) *">
-              <input type="number" min="0" value={state.price1kg} onChange={(e) => patch({ price1kg: e.target.value })} style={inputStyle} placeholder="0" />
+              <input type="number" min="0" value={state.price1kg} onChange={(e) => patch({ price1kg: e.target.value })} className="admin-input" placeholder="0" />
             </Field>
           </div>
 
           {/* Cost */}
           <Field label="Purchase Cost / kg (EGP)">
-            <input type="number" min="0" value={state.costPerKg} onChange={(e) => patch({ costPerKg: e.target.value })} style={inputStyle} placeholder="optional" />
+            <input type="number" min="0" value={state.costPerKg} onChange={(e) => patch({ costPerKg: e.target.value })} className="admin-input" placeholder="optional" />
           </Field>
 
           {/* Toggles */}
@@ -308,33 +296,33 @@ export default function ProductCreateDrawer({
 
           {/* Validation errors */}
           {errors.length > 0 && (
-            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)", borderRadius: 10, padding: "10px 12px" }}>
-              {errors.map((err) => <p key={err} style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.5 }}>{err}</p>)}
+            <div className="rounded-xl px-3 py-2.5" style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.24)" }}>
+              {errors.map((err) => <p key={err} className="text-[11.5px] leading-relaxed" style={{ color: "#eeb4a8" }}>{err}</p>)}
             </div>
           )}
 
           {/* Save error */}
           {state.errorMsg && (
-            <div style={{ background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)", borderRadius: 10, padding: "10px 12px" }}>
-              <p style={{ fontSize: 11.5, color: "#fca5a5" }}>{state.errorMsg}</p>
+            <div className="rounded-xl px-3 py-2.5" style={{ background: "rgba(227,154,140,0.10)", border: "1px solid rgba(227,154,140,0.28)" }}>
+              <p className="text-[11.5px]" style={{ color: "#eeb4a8" }}>{state.errorMsg}</p>
             </div>
           )}
 
           {/* Info note */}
-          <div style={{ background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.12)", borderRadius: 10, padding: "9px 12px" }}>
-            <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.6 }}>
+          <div className="admin-surface !shadow-none rounded-xl px-3 py-2.5">
+            <p className="text-[11px] admin-muted">
               Creates the product plus its 250g / 500g / 1kg variants. The product stays hidden (draft) until you publish it from the product drawer. Image and inventory are added later.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4" style={{ background: "rgba(15,10,7,0.96)", borderTop: "1px solid rgba(182,136,94,0.12)" }}>
-          {state.saved && <span style={{ marginRight: "auto", fontSize: 12, color: "#4ade80", fontWeight: 600 }}>✓ Created</span>}
-          <button type="button" onClick={onClose} disabled={state.saving} style={{ padding: "7px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, background: "rgba(255,255,255,0.04)", color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.10)", cursor: state.saving ? "not-allowed" : "pointer" }}>
+        <div className="admin-drawer-footer sticky bottom-0 flex items-center justify-end gap-2 px-5 py-4">
+          {state.saved && <span className="mr-auto text-[12px] font-semibold" style={{ color: "#8fcf9a" }}>✓ Created</span>}
+          <button type="button" onClick={onClose} disabled={state.saving} className="admin-btn !px-4 !py-2 !text-[12.5px]">
             Cancel
           </button>
-          <button type="button" onClick={handleSave} disabled={!canSave} style={{ padding: "7px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, background: canSave ? "rgba(182,136,94,0.18)" : "rgba(182,136,94,0.06)", color: canSave ? "var(--gold)" : "rgba(245,232,209,0.3)", border: "1px solid rgba(182,136,94,0.22)", cursor: canSave ? "pointer" : "not-allowed" }}>
+          <button type="button" onClick={handleSave} disabled={!canSave} className="admin-btn admin-btn-primary !px-4.5 !py-2 !text-[12.5px]">
             {state.saving ? "Creating…" : "Create product"}
           </button>
         </div>

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 // Shared field styling + primitives used across the checkout sections.
 
 export const inputClass =
-  "h-11 w-full rounded-xl border border-[#B6885E]/20 bg-[#120D09]/68 px-4 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/28 outline-none transition-all focus:border-[#D6A373]/40 focus:ring-1 focus:ring-[#D6A373]/18";
+  "h-11 w-full rounded-xl border border-[#B6885E]/26 bg-[#120D09]/68 px-4 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/28 outline-none shadow-[0_0_12px_rgba(182,136,94,0.08)] transition-all hover:border-[#D6A373]/38 focus:border-[#D6A373]/45 focus:shadow-[0_0_18px_rgba(182,136,94,0.16)] focus:ring-1 focus:ring-[#D6A373]/20";
 
 export const errorClass = "mt-1.5 text-[11px] text-red-400";
 
@@ -61,7 +61,7 @@ export function CustomSelect({
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-[#B6885E]/65 transition-transform duration-200",
+            "h-4 w-4 shrink-0 text-[#D6A373]/80 transition-transform duration-200",
             open && "rotate-180",
           )}
         />
@@ -72,9 +72,9 @@ export function CustomSelect({
           style={{
             position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 60,
             background: "linear-gradient(135deg,#130E09 0%,#0F0A06 100%)",
-            border: "1px solid rgba(182,136,94,0.26)", borderRadius: 14,
+            border: "1px solid rgba(214,163,115,0.32)", borderRadius: 14,
             maxHeight: 240, overflowY: "auto",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.72), 0 0 0 1px rgba(182,136,94,0.08)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.72), 0 0 0 1px rgba(182,136,94,0.10), 0 0 26px rgba(182,136,94,0.14)",
           }}
         >
           {options.map((opt) => {
@@ -84,11 +84,11 @@ export function CustomSelect({
                 key={opt.value}
                 type="button"
                 onClick={() => { onChange(opt.value); setOpen(false); }}
-                className="w-full px-4 py-2.5 text-start transition-colors hover:bg-white/[0.04]"
+                className="w-full px-4 py-2.5 text-start transition-colors hover:bg-[#D6A373]/[0.08]"
                 style={{
                   fontSize: 13,
                   color:      isSel ? "var(--gold)"              : "var(--cream)",
-                  background: isSel ? "rgba(182,136,94,0.12)"    : "transparent",
+                  background: isSel ? "rgba(182,136,94,0.14)"    : "transparent",
                   fontWeight: isSel ? 600                        : 400,
                   borderLeft:  isSel && dir === "ltr" ? "2px solid var(--gold)" : "none",
                   borderRight: isSel && dir === "rtl" ? "2px solid var(--gold)" : "none",

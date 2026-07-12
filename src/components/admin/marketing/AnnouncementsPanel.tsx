@@ -21,8 +21,8 @@ import {
   type AnnouncementInput,
 } from "@/lib/admin/admin-announcements";
 
-const inputClass =
-  "w-full rounded-lg border border-[#2a2018] bg-[#0b0806] px-3 py-2.5 text-sm text-[#f5e6d8] outline-none transition-colors focus:border-[#b6885e]/60";
+const inputClass = "admin-input !text-sm";
+const fieldLabelClass = "admin-label mb-1.5 block !text-[10px]";
 
 function Field({
   label,
@@ -35,11 +35,11 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]">
+      <span className={fieldLabelClass}>
         {label}
       </span>
       {children}
-      {hint && <span className="mt-1 block text-[10px] text-[#6b5744]">{hint}</span>}
+      {hint && <span className="mt-1 block text-[10px] admin-faint">{hint}</span>}
     </label>
   );
 }
@@ -105,30 +105,27 @@ function AnnouncementModal({
       <button
         type="button"
         aria-label="Close announcement dialog"
-        className="fixed inset-0 z-[300] bg-black/70"
+        className="admin-modal-overlay fixed inset-0 z-[300]"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="announcement-dialog-title"
-        className="fixed left-1/2 top-1/2 z-[301] flex max-h-[90vh] w-[94vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-[#b6885e]/20 bg-[#120d09] shadow-2xl"
+        className="admin-modal-surface fixed left-1/2 top-1/2 z-[301] flex max-h-[90vh] w-[94vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl"
       >
-        <div className="flex items-center justify-between border-b border-[#2a2018] px-5 py-4">
+        <div className="admin-drawer-header flex items-center justify-between px-5 py-4">
           <div>
-            <h2
-              id="announcement-dialog-title"
-              className="text-sm font-semibold text-[#f5e6d8]"
-            >
+            <h2 id="announcement-dialog-title" className="text-sm font-semibold" style={{ color: "var(--admin-heading)" }}>
               {existing ? "Edit announcement" : "New announcement"}
             </h2>
-            <p className="mt-0.5 text-[11px] text-[#b79b85]/65">
+            <p className="mt-0.5 text-[11px] admin-faint">
               Shown in the public top bar with a &quot;Shop now&quot; button. Both
               languages are required.
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close">
-            <X size={16} className="text-[#b79b85]" />
+          <button type="button" onClick={onClose} aria-label="Close" className="admin-btn admin-btn-sm !p-1.5">
+            <X size={16} />
           </button>
         </div>
 
@@ -196,7 +193,7 @@ function AnnouncementModal({
               />
             </Field>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-2.5 text-sm text-[#f5e6d8]">
+              <label className="admin-surface !shadow-none flex items-center gap-2.5 px-3 py-2.5 text-sm admin-text">
                 <input
                   type="checkbox"
                   checked={active}
@@ -208,32 +205,29 @@ function AnnouncementModal({
             </div>
 
             {!hrefValid && (
-              <p className="text-xs text-[#fbbf24] md:col-span-2">
+              <p className="text-xs md:col-span-2" style={{ color: "#e3b673" }}>
                 Link must be an internal path that starts with &quot;/&quot;.
               </p>
             )}
             {error && (
               <p
                 role="alert"
-                className="rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300 md:col-span-2"
+                className="rounded-lg px-3 py-2 text-xs md:col-span-2"
+                style={{ background: "rgba(227,154,140,0.10)", color: "#eeb4a8" }}
               >
                 {error}
               </p>
             )}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-[#2a2018] px-5 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-[#b79b85]"
-            >
+          <div className="admin-drawer-footer flex justify-end gap-3 px-5 py-4">
+            <button type="button" onClick={onClose} className="admin-btn !px-4 !py-2 !text-sm">
               Cancel
             </button>
             <button
               type="submit"
               disabled={!canSave || saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#b6885e] px-5 py-2 text-sm font-bold text-[#0b0806] disabled:cursor-not-allowed disabled:opacity-40"
+              className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-5 !py-2 !text-sm"
             >
               {saving ? (
                 <RefreshCw size={13} className="animate-spin" />
@@ -337,14 +331,14 @@ export default function AnnouncementsPanel() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-[#93c5fd]/15 bg-[#93c5fd]/5 px-4 py-3">
+      <div className="rounded-xl px-4 py-3" style={{ background: "rgba(143,176,217,0.06)", border: "1px solid rgba(143,176,217,0.20)" }}>
         <div className="flex items-start gap-3">
-          <Megaphone size={16} className="mt-0.5 shrink-0 text-[#93c5fd]" />
+          <Megaphone size={16} className="mt-0.5 shrink-0" style={{ color: "#8fb0d9" }} />
           <div>
-            <p className="text-sm font-semibold text-[#f5e6d8]">
+            <p className="text-sm font-semibold" style={{ color: "var(--admin-heading)" }}>
               These are the real public top-bar messages
             </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#b79b85]/70">
+            <p className="mt-1 text-[11px] leading-relaxed admin-muted">
               Active messages rotate in the site header, each with its own
               &quot;Shop now&quot; button. If no message is active, the site shows the
               built-in launch messages so the bar is never blank.
@@ -355,18 +349,15 @@ export default function AnnouncementsPanel() {
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          ["Active", summary.active, "#4ade80"],
-          ["Hidden", summary.inactive, "#b79b85"],
-          ["Total", summary.total, "#b6885e"],
+          ["Active", summary.active, "#8fcf9a"],
+          ["Hidden", summary.inactive, "var(--admin-muted)"],
+          ["Total", summary.total, "var(--admin-hazelnut)"],
         ].map(([label, value, color]) => (
-          <div key={String(label)} className="admin-kpi-card p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6b5744]">
+          <div key={String(label)} className="admin-kpi-card">
+            <p className="admin-label">
               {label}
             </p>
-            <p
-              className="mt-2 text-xl font-bold tabular-nums"
-              style={{ color: String(color) }}
-            >
+            <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: String(color) }}>
               {value}
             </p>
           </div>
@@ -374,116 +365,97 @@ export default function AnnouncementsPanel() {
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => void load(true)}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#2a2018] px-3 py-2 text-xs font-semibold text-[#b79b85]"
-        >
+        <button type="button" onClick={() => void load(true)} disabled={refreshing} className="admin-btn inline-flex items-center gap-1.5 !px-3 !py-2 !text-xs">
           <RefreshCw size={12} className={refreshing ? "animate-spin" : undefined} />
           Refresh
         </button>
-        <button
-          type="button"
-          onClick={() => setEditing("new")}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#b6885e] px-3 py-2 text-xs font-bold text-[#0b0806]"
-        >
+        <button type="button" onClick={() => setEditing("new")} className="admin-btn admin-btn-primary inline-flex items-center gap-1.5 !px-3 !py-2 !text-xs">
           <Plus size={13} />
           New announcement
         </button>
       </div>
 
       {success && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-lg border border-[#4ade80]/20 bg-[#4ade80]/10 px-3 py-2 text-xs text-[#4ade80]"
-        >
+        <p role="status" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(143,207,154,0.10)", color: "#8fcf9a" }}>
           <Check size={13} />
           {success}
         </p>
       )}
       {error && (
-        <div
-          role="alert"
-          className="flex items-center justify-between gap-3 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300"
-        >
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(227,154,140,0.10)", color: "#eeb4a8" }}>
           <span>{error}</span>
-          <button type="button" onClick={() => void load()}>
+          <button type="button" onClick={() => void load()} className="admin-link">
             Try again
           </button>
         </div>
       )}
 
       <div className="admin-surface overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-[#2a2018] px-4 py-3">
-          <Megaphone size={14} className="text-[#b6885e]" />
-          <h2 className="text-sm font-semibold text-[#f5e6d8]">Announcement bar</h2>
+        <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--admin-border)" }}>
+          <Megaphone size={14} style={{ color: "var(--admin-hazelnut)" }} />
+          <h2 className="admin-card-title">Announcement bar</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
+        <div className="admin-table-wrap !border-0 !rounded-none !shadow-none overflow-x-auto">
+          <table className="admin-table w-full min-w-[820px]">
             <thead>
-              <tr className="border-b border-[#2a2018]">
+              <tr>
                 {["Order", "Message", "Button", "Status", "Actions"].map((heading) => (
-                  <th
-                    key={heading}
-                    className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6b5744]"
-                  >
+                  <th key={heading}>
                     {heading}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1b140f]">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-xs text-[#b79b85]">
+                  <td colSpan={5} className="!py-12 text-center text-xs admin-muted">
                     Loading announcements…
                   </td>
                 </tr>
               ) : (
                 items.map((item) => (
-                  <tr key={item.id} className="align-top hover:bg-[#0b0806]/60">
-                    <td className="px-4 py-3 text-xs font-semibold tabular-nums text-[#b79b85]">
+                  <tr key={item.id} className="align-top">
+                    <td className="text-xs font-semibold tabular-nums admin-muted">
                       {item.sortOrder}
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="max-w-[360px] text-[#f5e6d8]">{item.messageEn}</p>
-                      <p dir="rtl" className="mt-1 max-w-[360px] text-[12px] text-[#b79b85]/80">
+                    <td>
+                      <p className="max-w-[360px] admin-text">{item.messageEn}</p>
+                      <p dir="rtl" className="mt-1 max-w-[360px] text-[12px] admin-muted">
                         {item.messageAr}
                       </p>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="text-xs text-[#f5e6d8]">{item.ctaLabelEn}</p>
-                      <p className="mt-0.5 font-mono text-[10px] text-[#6b5744]">
+                    <td>
+                      <p className="text-xs admin-text">{item.ctaLabelEn}</p>
+                      <p className="mt-0.5 font-mono text-[10px] admin-faint">
                         {item.ctaHref}
                       </p>
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <span
-                        className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                          item.active
-                            ? "border-[#4ade80]/25 bg-[#4ade80]/10 text-[#4ade80]"
-                            : "border-[#6b5744]/30 bg-[#2a2018] text-[#b79b85]"
-                        }`}
+                        className="admin-badge"
+                        style={item.active
+                          ? { color: "#8fcf9a", background: "rgba(143,207,154,0.12)" }
+                          : { color: "var(--admin-faint)", background: "rgb(227 210 184 / 0.06)" }}
                       >
                         {item.active ? "Active" : "Hidden"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       {confirmDeleteId === item.id ? (
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => void handleDelete(item)}
                             disabled={busyId === item.id}
-                            className="rounded-md border border-red-400/30 px-2.5 py-1.5 text-[10px] font-semibold text-red-300 disabled:opacity-40"
+                            className="admin-btn admin-btn-danger !px-2.5 !py-1.5 !text-[10px]"
                           >
                             {busyId === item.id ? "Deleting…" : "Confirm"}
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(null)}
-                            className="rounded-md border border-[#2a2018] px-2.5 py-1.5 text-[10px] font-semibold text-[#b79b85]"
+                            className="admin-btn admin-btn-sm !px-2.5 !py-1.5 !text-[10px]"
                           >
                             Cancel
                           </button>
@@ -495,7 +467,8 @@ export default function AnnouncementsPanel() {
                             onClick={() => setEditing(item)}
                             aria-label="Edit announcement"
                             title="Edit"
-                            className="grid h-7 w-7 place-items-center rounded-md border border-[#2a2018] text-[#93c5fd]"
+                            className="admin-btn admin-btn-sm !w-7 !h-7 !p-0"
+                            style={{ color: "#8fb0d9" }}
                           >
                             <Edit3 size={12} />
                           </button>
@@ -503,11 +476,8 @@ export default function AnnouncementsPanel() {
                             type="button"
                             onClick={() => void handleToggle(item)}
                             disabled={busyId === item.id}
-                            className={`rounded-md border px-2.5 py-1.5 text-[10px] font-semibold ${
-                              item.active
-                                ? "border-[#fbbf24]/25 text-[#fbbf24]"
-                                : "border-[#4ade80]/25 text-[#4ade80]"
-                            } disabled:opacity-40`}
+                            className="admin-btn admin-btn-sm !px-2.5 !py-1.5 !text-[10px]"
+                            style={{ color: item.active ? "#e3b673" : "#8fcf9a" }}
                           >
                             {busyId === item.id
                               ? "Saving…"
@@ -520,7 +490,7 @@ export default function AnnouncementsPanel() {
                             onClick={() => setConfirmDeleteId(item.id)}
                             aria-label="Delete announcement"
                             title="Delete"
-                            className="grid h-7 w-7 place-items-center rounded-md border border-[#2a2018] text-[#b79b85] hover:text-red-300"
+                            className="admin-btn admin-btn-sm !w-7 !h-7 !p-0 hover:!text-[#e39a8c]"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -534,9 +504,9 @@ export default function AnnouncementsPanel() {
           </table>
         </div>
         {!loading && items.length === 0 && !error && (
-          <div className="py-12 text-center">
-            <AlertTriangle size={20} className="mx-auto text-[#6b5744]" />
-            <p className="mt-2 text-xs text-[#b79b85]">
+          <div className="admin-empty-state !border-0 !rounded-none">
+            <span className="admin-empty-icon"><AlertTriangle size={20} /></span>
+            <p className="text-xs admin-muted">
               No announcements yet. The site is showing the built-in launch
               messages until you add one.
             </p>

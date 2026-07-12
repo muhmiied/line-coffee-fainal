@@ -23,6 +23,7 @@ import {
   type PublicCatalogProduct,
 } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 type CatalogLoadState = "loading" | "ready" | "error";
 type WeightLabel = "250g" | "500g" | "1kg";
@@ -518,8 +519,8 @@ export default function ProductDetailPage() {
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#B6885E]/12">
                           <div className="h-full rounded-full bg-[#D6A373]" style={{ width: `${component.pct}%` }} />
                         </div>
-                        <span className="arabic-number w-10 text-end text-xs font-bold text-[#D6A373]">
-                          {component.pct}%
+                        <span className="w-10 text-end text-xs font-bold text-[#D6A373]">
+                          <MixedNumeric text={`${component.pct}%`} />
                         </span>
                       </div>
                     </div>

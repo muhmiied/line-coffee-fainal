@@ -94,7 +94,7 @@ export default function OrderDrawer({
         type="button"
         aria-label="Close order drawer"
         onClick={onClose}
-        className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-[1px] transition-opacity"
+        className="admin-modal-overlay fixed inset-0 z-[100] transition-opacity"
         style={{
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? "auto" : "none",
@@ -105,51 +105,46 @@ export default function OrderDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={activeOrder ? `Order ${activeOrder.code}` : "Order details"}
-        className="fixed right-0 top-0 z-[101] flex h-dvh w-full max-w-2xl flex-col border-l border-[#B6885E]/14 bg-[#0F0B08] shadow-2xl transition-transform duration-300"
+        className="admin-drawer-surface fixed right-0 top-0 z-[101] flex h-dvh w-full max-w-2xl flex-col transition-transform duration-300"
         style={{ transform: isOpen ? "translateX(0)" : "translateX(100%)" }}
       >
-        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[#B6885E]/10 px-5 py-4">
+        <header className="admin-drawer-header flex shrink-0 items-start justify-between gap-4 px-5 py-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-mono text-lg font-bold text-[#D6A373]">
+              <h2 className="font-mono text-lg font-bold" style={{ color: "var(--admin-hazelnut)" }}>
                 {activeOrder?.code ?? "Order details"}
               </h2>
               {activeOrder && <OrderStatusBadge status={activeOrder.status} />}
             </div>
             {activeOrder && (
-              <p className="mt-1 text-xs text-[#D6B79A]/42">
+              <p className="mt-1 text-xs admin-faint">
                 {new Date(activeOrder.placedAt).toLocaleString("en-EG")}
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-lg p-2 text-[#D6B79A]/50 hover:bg-white/5 hover:text-[#F5E6D8]"
-          >
+          <button type="button" onClick={onClose} aria-label="Close" className="admin-btn admin-btn-sm !p-2">
             <X className="h-4 w-4" />
           </button>
         </header>
 
         <div className="admin-scrollbar flex-1 overflow-y-auto p-5">
           {!activeOrder && !loadError && (
-            <div className="flex items-center justify-center gap-2 py-20 text-sm text-[#D6B79A]/55">
+            <div className="flex items-center justify-center gap-2 py-20 text-sm admin-muted">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading real order…
             </div>
           )}
 
           {loadError && !activeOrder && (
-            <div className="rounded-xl border border-red-400/20 bg-red-400/8 p-4 text-sm text-red-200">
+            <div className="rounded-xl p-4 text-sm" style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.24)", color: "#eeb4a8" }}>
               {loadError}
             </div>
           )}
 
           {activeOrder && (
             <div className="space-y-4">
-              <section className="rounded-xl border border-[#B6885E]/14 bg-[#D6A373]/[0.045] p-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/65">
+              <section className="admin-surface p-4">
+                <h3 className="admin-label !text-[10px]" style={{ color: "var(--admin-hazelnut)" }}>
                   Status action
                 </h3>
                 <textarea
@@ -158,7 +153,7 @@ export default function OrderDrawer({
                   maxLength={1000}
                   rows={2}
                   placeholder="Optional timeline note"
-                  className="mt-3 w-full resize-none rounded-lg border border-[#B6885E]/15 bg-[#0B0806]/65 px-3 py-2 text-sm text-[#F5E6D8] outline-none placeholder:text-[#D6B79A]/25 focus:border-[#D6A373]/35"
+                  className="admin-textarea mt-3 !resize-none !text-sm"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   {ALLOWED_ADMIN_ORDER_TRANSITIONS[activeOrder.status].map((status) => (
@@ -167,7 +162,7 @@ export default function OrderDrawer({
                       type="button"
                       disabled={updatingTo !== null}
                       onClick={() => void changeStatus(status)}
-                      className="rounded-lg border border-[#D6A373]/25 bg-[#D6A373]/10 px-3 py-2 text-xs font-semibold text-[#D6A373] transition-colors hover:bg-[#D6A373]/16 disabled:cursor-not-allowed disabled:opacity-45"
+                      className="admin-btn admin-btn-primary !px-3 !py-2 !text-xs"
                     >
                       {updatingTo === status
                         ? "Saving…"
@@ -175,13 +170,13 @@ export default function OrderDrawer({
                     </button>
                   ))}
                   {ALLOWED_ADMIN_ORDER_TRANSITIONS[activeOrder.status].length === 0 && (
-                    <p className="text-xs text-[#D6B79A]/45">
+                    <p className="text-xs admin-faint">
                       This order is in a terminal status.
                     </p>
                   )}
                 </div>
                 {actionMessage && (
-                  <p className="mt-3 text-xs text-[#D6B79A]/65" role="status">
+                  <p className="mt-3 text-xs admin-faint" role="status">
                     {actionMessage}
                   </p>
                 )}
@@ -193,7 +188,7 @@ export default function OrderDrawer({
 
               <Link
                 href={`/admin/orders/${activeOrder.id}`}
-                className="inline-flex rounded-lg border border-[#B6885E]/18 px-4 py-2 text-xs font-semibold text-[#D6B79A]/70 hover:border-[#D6A373]/30 hover:text-[#D6A373]"
+                className="admin-btn inline-flex !px-4 !py-2 !text-xs"
               >
                 Open full order page
               </Link>

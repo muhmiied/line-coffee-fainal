@@ -70,27 +70,27 @@ const LEGAL_STATUSES: LegalPageStatus[] = ["Draft", "Published"];
 const CONTACT_STATUSES: ContactStatus[] = ["New", "In Progress", "Replied", "Archived"];
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; color: string }> = {
-  Draft: { bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.22)", color: "#fbbf24" },
-  Published: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#4ade80" },
+  Draft: { bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.22)", color: "#e3b673" },
+  Published: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#8fcf9a" },
   Archived: { bg: "rgba(107,87,68,0.18)", border: "rgba(107,87,68,0.35)", color: "#8b735b" },
-  Featured: { bg: "rgba(182,136,94,0.14)", border: "rgba(182,136,94,0.35)", color: "#d6a373" },
-  Pending: { bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.22)", color: "#fbbf24" },
-  Approved: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#4ade80" },
-  Rejected: { bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.22)", color: "#f87171" },
+  Featured: { bg: "var(--admin-border)", border: "var(--admin-border-strong)", color: "var(--admin-hazelnut)" },
+  Pending: { bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.22)", color: "#e3b673" },
+  Approved: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#8fcf9a" },
+  Rejected: { bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.22)", color: "#e39a8c" },
   Hidden: { bg: "rgba(107,87,68,0.18)", border: "rgba(107,87,68,0.35)", color: "#8b735b" },
-  New: { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#60a5fa" },
-  "In Progress": { bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.22)", color: "#fbbf24" },
-  Replied: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#4ade80" },
+  New: { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#8fb0d9" },
+  "In Progress": { bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.22)", color: "#e3b673" },
+  Replied: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#8fcf9a" },
   WhatsApp: { bg: "rgba(37,211,102,0.10)", border: "rgba(37,211,102,0.24)", color: "#25D366" },
-  Website: { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#60a5fa" },
-  Facebook: { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#60a5fa" },
-  Instagram: { bg: "rgba(214,163,115,0.10)", border: "rgba(214,163,115,0.24)", color: "#d6a373" },
-  Manual: { bg: "rgba(183,155,133,0.10)", border: "rgba(183,155,133,0.24)", color: "#b79b85" },
-  Email: { bg: "rgba(183,155,133,0.10)", border: "rgba(183,155,133,0.24)", color: "#b79b85" },
-  "Contact Form": { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#60a5fa" },
-  "Product Page": { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#60a5fa" },
-  "Homepage Testimonials": { bg: "rgba(182,136,94,0.14)", border: "rgba(182,136,94,0.35)", color: "#d6a373" },
-  Both: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#4ade80" },
+  Website: { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#8fb0d9" },
+  Facebook: { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#8fb0d9" },
+  Instagram: { bg: "rgba(214,163,115,0.10)", border: "rgba(214,163,115,0.24)", color: "var(--admin-hazelnut)" },
+  Manual: { bg: "rgba(183,155,133,0.10)", border: "rgba(183,155,133,0.24)", color: "var(--admin-muted)" },
+  Email: { bg: "rgba(183,155,133,0.10)", border: "rgba(183,155,133,0.24)", color: "var(--admin-muted)" },
+  "Contact Form": { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#8fb0d9" },
+  "Product Page": { bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)", color: "#8fb0d9" },
+  "Homepage Testimonials": { bg: "var(--admin-border)", border: "var(--admin-border-strong)", color: "var(--admin-hazelnut)" },
+  Both: { bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.22)", color: "#8fcf9a" },
 };
 
 function formatNumber(value: number) {
@@ -185,7 +185,7 @@ function Stars({ rating }: { rating: number }) {
         <Star
           key={item}
           size={12}
-          fill={item <= rating ? "#b6885e" : "none"}
+          fill={item <= rating ? "var(--admin-caramel)" : "none"}
           className={item <= rating ? "text-[#b6885e]" : "text-[#4a3828]"}
         />
       ))}
@@ -223,15 +223,15 @@ function KpiCard({
 }) {
   const color =
     tone === "gold" ? "text-[#b6885e]" :
-    tone === "green" ? "text-[#4ade80]" :
-    tone === "amber" ? "text-[#fbbf24]" :
-    tone === "red" ? "text-[#f87171]" :
+    tone === "green" ? "text-[#8fcf9a]" :
+    tone === "amber" ? "text-[#e3b673]" :
+    tone === "red" ? "text-[#e39a8c]" :
     "text-[#f5e6d8]";
 
   const content = (
     <>
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]/50">{label}</p>
+        <p className="admin-label">{label}</p>
         <Icon size={14} className={color} />
       </div>
       <p className={`text-xl font-bold tabular-nums ${color}`}>{value}</p>
@@ -240,13 +240,13 @@ function KpiCard({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className="admin-kpi-card py-3 text-left transition-colors hover:border-[#b6885e]/30">
+      <button type="button" onClick={onClick} className="admin-kpi-card !py-3 text-left">
         {content}
       </button>
     );
   }
 
-  return <div className="admin-kpi-card py-3">{content}</div>;
+  return <div className="admin-kpi-card !py-3">{content}</div>;
 }
 
 function SectionTitle({
@@ -259,10 +259,10 @@ function SectionTitle({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-[#2a2018] px-4 py-3">
+    <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ borderBottom: "1px solid var(--admin-border)" }}>
       <div className="flex min-w-0 items-center gap-2">
-        <Icon size={14} className="flex-shrink-0 text-[#b6885e]" />
-        <p className="truncate text-xs font-semibold uppercase tracking-wider text-[#b79b85]/70">{title}</p>
+        <Icon size={14} className="flex-shrink-0 text-[var(--admin-hazelnut)]" />
+        <p className="admin-card-title truncate !text-xs !uppercase !tracking-wider">{title}</p>
       </div>
       {right}
     </div>
@@ -285,18 +285,23 @@ function ActionButton({
   title?: string;
 }) {
   const toneClass =
-    tone === "gold" ? "border-[#b6885e]/35 bg-[#b6885e] text-[#0b0806] hover:bg-[#d6a373]" :
-    tone === "green" ? "border-[#4ade80]/25 text-[#4ade80] hover:bg-[#4ade80]/10" :
-    tone === "amber" ? "border-[#fbbf24]/25 text-[#fbbf24] hover:bg-[#fbbf24]/10" :
-    tone === "red" ? "border-[#f87171]/25 text-[#f87171] hover:bg-[#f87171]/10" :
-    "border-[#2a2018] text-[#b79b85] hover:border-[#b6885e]/40 hover:text-[#f5e6d8]";
+    tone === "gold" ? "admin-btn-primary" :
+    tone === "green" ? "" :
+    tone === "amber" ? "" :
+    tone === "red" ? "admin-btn-danger" :
+    "";
+  const toneStyle: React.CSSProperties | undefined =
+    tone === "green" ? { color: "#8fcf9a" } :
+    tone === "amber" ? { color: "#e3b673" } :
+    undefined;
 
   return (
     <button
       type={type}
       onClick={onClick}
       title={title}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${toneClass}`}
+      style={toneStyle}
+      className={`admin-btn inline-flex items-center justify-center gap-1.5 !px-3 !py-2 !text-xs ${toneClass}`}
     >
       {Icon && <Icon size={13} />}
       {children}
@@ -316,11 +321,11 @@ function IconButton({
   tone?: Tone;
 }) {
   const color =
-    tone === "green" ? "text-[#4ade80] hover:bg-[#4ade80]/10" :
-    tone === "amber" ? "text-[#fbbf24] hover:bg-[#fbbf24]/10" :
-    tone === "red" ? "text-[#f87171] hover:bg-[#f87171]/10" :
-    tone === "gold" ? "text-[#b6885e] hover:bg-[#b6885e]/10" :
-    "text-[#b79b85] hover:bg-white/5 hover:text-[#f5e6d8]";
+    tone === "green" ? "#8fcf9a" :
+    tone === "amber" ? "#e3b673" :
+    tone === "red" ? "#e39a8c" :
+    tone === "gold" ? "var(--admin-hazelnut)" :
+    undefined;
 
   return (
     <button
@@ -328,7 +333,8 @@ function IconButton({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className={`grid h-8 w-8 place-items-center rounded-lg transition-colors ${color}`}
+      style={color ? { color } : undefined}
+      className="admin-btn admin-btn-sm !w-8 !h-8 !p-0"
     >
       <Icon size={14} />
     </button>
@@ -353,24 +359,24 @@ function DrawerShell({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+      <div className="admin-modal-overlay absolute inset-0" />
       <aside
-        className="admin-surface relative z-10 flex h-full w-full max-w-[760px] flex-col overflow-hidden rounded-none border-l border-[#2a2018]"
+        className="admin-drawer-surface relative z-10 flex h-full w-full max-w-[760px] flex-col overflow-hidden !rounded-none"
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[#2a2018] px-5 py-4">
+        <div className="admin-drawer-header flex items-start justify-between gap-3 px-5 py-4">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-bold text-[#f5e6d8]" style={{ fontFamily: "var(--font-playfair)" }}>
+            <h2 className="truncate text-base font-bold" style={{ fontFamily: "var(--font-playfair)", color: "var(--admin-heading)" }}>
               {title}
             </h2>
-            {subtitle && <p className="mt-0.5 text-xs text-[#b79b85]/55">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-xs admin-faint">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg text-[#b79b85] transition-colors hover:bg-white/5 hover:text-[#f5e6d8]"
+            className="admin-btn admin-btn-sm !w-8 !h-8 !p-0 flex-shrink-0"
             aria-label="Close drawer"
             title="Close drawer"
           >
@@ -386,7 +392,7 @@ function DrawerShell({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#b79b85]/55">{label}</span>
+      <span className="admin-label mb-1.5 block !text-[10px]">{label}</span>
       {children}
     </label>
   );
@@ -415,7 +421,7 @@ function TextInput({
       dir={dir}
       readOnly={readOnly}
       onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs text-[#f5e6d8] outline-none transition-colors placeholder:text-[#4a3828] focus:border-[#b6885e] read-only:text-[#b79b85]"
+      className="admin-input !text-xs"
     />
   );
 }
@@ -443,7 +449,7 @@ function TextArea({
       rows={rows}
       readOnly={readOnly}
       onChange={(event) => onChange(event.target.value)}
-      className="w-full resize-none rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs leading-5 text-[#f5e6d8] outline-none transition-colors placeholder:text-[#4a3828] focus:border-[#b6885e] read-only:text-[#b79b85]"
+      className="admin-textarea !resize-none !text-xs !leading-5"
     />
   );
 }
@@ -461,7 +467,7 @@ function SelectInput({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs text-[#f5e6d8] outline-none transition-colors focus:border-[#b6885e]"
+      className="admin-select !text-xs"
     >
       {children}
     </select>
@@ -1062,7 +1068,7 @@ function ReviewsTab({
                     type="button"
                     onClick={() => onFilterChange(item)}
                     className={`flex-shrink-0 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                      active ? "border-[#b6885e]/50 bg-[#b6885e]/20 text-[#f5e6d8] shadow-[0_0_0_1px_rgba(182,136,94,0.16)]" : "border-[#2a2018] text-[#b79b85]/65 hover:text-[#f5e6d8]"
+                      active ? "border-[#b6885e]/50 bg-[#b6885e]/20 text-[#f5e6d8] shadow-[0_0_0_1px_var(--admin-border-strong)]" : "border-[#2a2018] text-[#b79b85]/65 hover:text-[#f5e6d8]"
                     }`}
                   >
                     {item}
@@ -1153,7 +1159,7 @@ function LegalPagesTab({
                 <td className="px-4 py-3">
                   <button type="button" onClick={() => onOpen(page)} className="text-left">
                     <p className="font-semibold text-[#f5e6d8]">{page.page}</p>
-                    <p className="mt-0.5 line-clamp-1 max-w-[480px] text-[11px] text-[#b79b85]/45">{page.content.en}</p>
+                    <p className="mt-0.5 line-clamp-1 max-w-[480px] text-[11px] text-[#b79b85]/65">{page.content.en}</p>
                   </button>
                 </td>
                 <td className="px-4 py-3"><StatusPill label={page.status} /></td>
@@ -1206,7 +1212,7 @@ function ContactMessagesTab({
                   type="button"
                   onClick={() => setFilter(status)}
                   className={`flex-shrink-0 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                    active ? "border-[#b6885e]/50 bg-[#b6885e]/20 text-[#f5e6d8] shadow-[0_0_0_1px_rgba(182,136,94,0.16)]" : "border-[#2a2018] text-[#b79b85]/65 hover:text-[#f5e6d8]"
+                    active ? "border-[#b6885e]/50 bg-[#b6885e]/20 text-[#f5e6d8] shadow-[0_0_0_1px_var(--admin-border-strong)]" : "border-[#2a2018] text-[#b79b85]/65 hover:text-[#f5e6d8]"
                   }`}
                 >
                   {status}
@@ -1470,24 +1476,28 @@ export default function CmsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[#f5e6d8]" style={{ fontFamily: "var(--font-playfair)" }}>
+          <h1 className="admin-page-title">
             Content Operations Center
           </h1>
-          <p className="mt-0.5 text-[13px] text-[#b79b85]/60">
+          <p className="admin-page-subtitle">
             Blog content, public reviews, legal copy, and customer inquiries.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {copiedLabel && <span className="rounded-lg border border-[#4ade80]/25 bg-[#4ade80]/10 px-3 py-2 text-xs font-semibold text-[#4ade80]">{copiedLabel} copied</span>}
-          <div className="inline-flex items-center gap-2 rounded-lg border border-[#2a2018] bg-[#15100b] px-3 py-2 text-xs text-[#b79b85]">
-            <Globe2 size={13} className="text-[#b6885e]" />
+          {copiedLabel && (
+            <span className="admin-badge" style={{ color: "#8fcf9a", background: "rgba(143,207,154,0.12)" }}>
+              {copiedLabel} copied
+            </span>
+          )}
+          <div className="admin-surface !shadow-none inline-flex items-center gap-2 px-3 py-2 text-xs admin-muted">
+            <Globe2 size={13} style={{ color: "var(--admin-hazelnut)" }} />
             CMS manages content. Product images are managed in Admin Products.
           </div>
         </div>
       </div>
 
       {actionError && (
-        <div className="rounded-lg border border-[#f87171]/25 bg-[#f87171]/10 px-4 py-3 text-xs font-semibold text-[#fca5a5]">
+        <div className="rounded-lg px-4 py-3 text-xs font-semibold" style={{ background: "rgba(227,154,140,0.10)", color: "#eeb4a8" }}>
           {actionError}
         </div>
       )}
@@ -1502,7 +1512,7 @@ export default function CmsPage() {
         </div>
       </div>
 
-      <div className="flex overflow-x-auto rounded-lg border border-[#2a2018] bg-[#0b0806]/35 p-1">
+      <div className="admin-tabs overflow-x-auto flex-nowrap" style={{ background: "rgb(5 3 2 / 0.35)", borderRadius: "0.7rem", padding: "0.25rem" }}>
         {TAB_OPTIONS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -1511,11 +1521,7 @@ export default function CmsPage() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`inline-flex min-h-10 flex-shrink-0 items-center gap-2 rounded-md border px-4 text-xs font-semibold transition-colors ${
-                active
-                  ? "border-[#b6885e]/45 bg-[#b6885e]/20 text-[#f5e6d8] shadow-[inset_0_0_0_1px_rgba(214,163,115,0.10)]"
-                  : "border-transparent text-[#b79b85]/60 hover:bg-white/[0.03] hover:text-[#f5e6d8]"
-              }`}
+              className={`admin-tab shrink-0 !min-h-10${active ? " admin-tab-active" : ""}`}
             >
               <Icon size={14} />
               {tab.label}

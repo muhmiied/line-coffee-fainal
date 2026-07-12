@@ -27,6 +27,7 @@ import {
   type ProductInventorySnapshot,
 } from "@/lib/admin/admin-inventory";
 import { useAdminLanguage } from "@/components/admin/layout/AdminLanguageProvider";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -122,24 +123,14 @@ function marginPct(sale: number, cost: number): number {
 
 function FL({ children }: { children: string }) {
   return (
-    <label style={{
-      display: "block", fontSize: 10.5, fontWeight: 600, textTransform: "uppercase",
-      letterSpacing: "0.06em", color: "var(--cream-dim)", opacity: 0.5, marginBottom: 6,
-    }}>
+    <label className="admin-label !text-[10.5px] mb-1.5">
       {children}
     </label>
   );
 }
 
-const INPUT: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", borderRadius: 8, fontSize: 13,
-  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.15)",
-  color: "var(--cream)", outline: "none",
-};
-
-const NUM_INPUT: React.CSSProperties = {
-  ...INPUT, fontSize: 15, fontWeight: 600, color: "var(--gold)",
-};
+const INPUT_CLASS = "admin-input !rounded-lg !text-[13px]";
+const NUM_INPUT_CLASS = "admin-input !rounded-lg !text-[15px] !font-semibold text-[var(--admin-hazelnut)]";
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -466,10 +457,9 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
       <div
         onClick={handleCancel}
         aria-hidden="true"
+        className="admin-modal-overlay"
         style={{
           position: "fixed", inset: 0, zIndex: 100,
-          background: "rgba(0,0,0,0.55)",
-          backdropFilter: "blur(2px)",
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? "auto" : "none",
           transition: "opacity 0.28s ease",
@@ -481,6 +471,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
         role="dialog"
         aria-modal="true"
         aria-label="Product Editor"
+        className="admin-drawer-surface"
         style={{
           position: "fixed", right: 0, top: 0,
           height: "100dvh",
@@ -488,78 +479,66 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
           zIndex: 101,
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.32s cubic-bezier(0.22,1,0.36,1)",
-          background: "var(--coffee-deep)",
-          borderLeft: "1px solid rgba(182,136,94,0.15)",
           display: "flex", flexDirection: "column", overflow: "hidden",
         }}
       >
         {product && (
           <>
             {/* Header */}
-            <div style={{
+            <div className="admin-drawer-header" style={{
               padding: "14px 18px",
-              borderBottom: "1px solid rgba(182,136,94,0.10)",
               flexShrink: 0, display: "flex", alignItems: "center", gap: 12,
             }}>
               <div style={{
                 position: "relative", width: 44, height: 44,
                 borderRadius: 8, overflow: "hidden", flexShrink: 0,
-                background: "rgba(182,136,94,0.07)",
+                background: "var(--admin-border)",
               }}>
                 <Image src={product.image} alt={localize(product.name)} fill sizes="44px" className="object-contain p-1" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p className="truncate" style={{
-                  color: "var(--cream)", fontSize: 13.5, fontWeight: 700,
+                  color: "var(--admin-heading)", fontSize: 13.5, fontWeight: 700,
                   fontFamily: language === "ar" ? "var(--font-tajawal)" : "var(--font-playfair)", lineHeight: 1.2,
                 }}>
                   <span data-admin-no-translate>{localize(product.name)}</span>
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span style={{
-                  fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 99,
-                  fontFamily: "monospace",
-                  background: "rgba(182,136,94,0.1)", color: "var(--gold)",
-                }}>
+                <span className="admin-badge admin-badge-neutral !font-mono !text-[9.5px]">
                   {product.sku}
                 </span>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="hover:opacity-100 transition-opacity"
-                  style={{ color: "var(--cream-dim)", opacity: 0.4, lineHeight: 0 }}
-                >
+                <button type="button" onClick={handleCancel} className="admin-btn admin-btn-sm !p-1.5">
                   <X size={15} />
                 </button>
               </div>
             </div>
 
             {/* Tab bar */}
-            <div style={{
-              display: "flex",
-              borderBottom: "1px solid rgba(182,136,94,0.10)",
+            <div className="admin-tabs !gap-0 !p-0" style={{
+              borderBottom: "1px solid var(--admin-border)",
               flexShrink: 0, overflowX: "auto",
             }}>
-              {TABS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => set("activeTab", key)}
-                  style={{
-                    padding: "9px 14px", fontSize: 11.5, whiteSpace: "nowrap",
-                    fontWeight: form.activeTab === key ? 600 : 400,
-                    color: form.activeTab === key ? "var(--gold)" : "var(--cream-dim)",
-                    borderBottom: form.activeTab === key
-                      ? "2px solid var(--gold)"
-                      : "2px solid transparent",
-                    opacity: form.activeTab === key ? 1 : 0.55,
-                    transition: "all 0.15s", flexShrink: 0,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+              {TABS.map(({ key, label }) => {
+                const active = form.activeTab === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => set("activeTab", key)}
+                    className="!rounded-none !bg-transparent"
+                    style={{
+                      padding: "9px 14px", fontSize: 11.5, whiteSpace: "nowrap",
+                      fontWeight: active ? 700 : 500,
+                      color: active ? "var(--admin-hazelnut)" : "var(--admin-muted)",
+                      borderBottom: active ? "2px solid var(--admin-hazelnut)" : "2px solid transparent",
+                      transition: "all 0.15s", flexShrink: 0,
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Tab content */}
@@ -569,16 +548,16 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
               {form.activeTab === "general" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div><FL>English Name</FL>
-                    <input type="text" value={form.nameEn} onChange={(e) => set("nameEn", e.target.value)} style={INPUT} />
+                    <input type="text" value={form.nameEn} onChange={(e) => set("nameEn", e.target.value)} className={INPUT_CLASS} />
                   </div>
                   <div><FL>Arabic Name</FL>
-                    <input type="text" value={form.nameAr} onChange={(e) => set("nameAr", e.target.value)} dir="rtl" style={INPUT} />
+                    <input type="text" value={form.nameAr} onChange={(e) => set("nameAr", e.target.value)} dir="rtl" className={INPUT_CLASS} />
                   </div>
                   <div><FL>English Description</FL>
-                    <textarea value={form.descEn} onChange={(e) => set("descEn", e.target.value)} rows={3} style={{ ...INPUT, resize: "vertical" }} />
+                    <textarea value={form.descEn} onChange={(e) => set("descEn", e.target.value)} rows={3} className={`${INPUT_CLASS} resize-y`} />
                   </div>
                   <div><FL>Arabic Description</FL>
-                    <textarea value={form.descAr} onChange={(e) => set("descAr", e.target.value)} dir="rtl" rows={3} style={{ ...INPUT, resize: "vertical" }} />
+                    <textarea value={form.descAr} onChange={(e) => set("descAr", e.target.value)} dir="rtl" rows={3} className={`${INPUT_CLASS} resize-y`} />
                   </div>
                 </div>
               )}
@@ -589,10 +568,10 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   <div style={{
                     display: "flex", alignItems: "flex-start", gap: 8,
                     padding: "10px 12px", borderRadius: 10,
-                    background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.16)",
+                    background: "var(--admin-border)", border: "1px solid var(--admin-border-strong)",
                   }}>
-                    <ImageIcon size={14} style={{ color: "var(--gold)", marginTop: 1, flexShrink: 0 }} />
-                    <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{MEDIA_NOTICE}</p>
+                    <ImageIcon size={14} style={{ color: "var(--admin-hazelnut)", marginTop: 1, flexShrink: 0 }} />
+                    <p style={{ fontSize: 11.5, color: "var(--admin-muted)", lineHeight: 1.5 }}>{MEDIA_NOTICE}</p>
                   </div>
 
                   {imageError && (
@@ -601,8 +580,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                       padding: "9px 11px", borderRadius: 9,
                       background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)",
                     }}>
-                      <AlertTriangle size={13} style={{ color: "#f87171", marginTop: 1, flexShrink: 0 }} />
-                      <p style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.45 }}>{imageError}</p>
+                      <AlertTriangle size={13} style={{ color: "#e39a8c", marginTop: 1, flexShrink: 0 }} />
+                      <p style={{ fontSize: 11.5, color: "#eeb4a8", lineHeight: 1.45 }}>{imageError}</p>
                     </div>
                   )}
 
@@ -626,8 +605,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                         style={{
                           display: "inline-flex", alignItems: "center", gap: 6,
                           padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                          background: imageBusy ? "rgba(182,136,94,0.05)" : "rgba(214,163,115,0.10)",
-                          color: imageBusy ? "rgba(245,232,209,0.3)" : "var(--gold)",
+                          background: imageBusy ? "var(--admin-border)" : "rgba(214,163,115,0.10)",
+                          color: imageBusy ? "rgba(245,232,209,0.3)" : "var(--admin-hazelnut)",
                           border: "1px solid rgba(214,163,115,0.28)",
                           cursor: imageBusy ? "not-allowed" : "pointer",
                         }}
@@ -643,9 +622,9 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                           style={{
                             display: "inline-flex", alignItems: "center", gap: 6,
                             padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                            background: imageBusy ? "rgba(182,136,94,0.05)" : "rgba(255,255,255,0.05)",
-                            color: imageBusy ? "rgba(245,232,209,0.3)" : "var(--cream-dim)",
-                            border: "1px solid rgba(182,136,94,0.22)",
+                            background: imageBusy ? "var(--admin-border)" : "rgba(255,255,255,0.05)",
+                            color: imageBusy ? "rgba(245,232,209,0.3)" : "var(--admin-muted)",
+                            border: "1px solid var(--admin-border-strong)",
                             cursor: imageBusy ? "not-allowed" : "pointer",
                           }}
                         >
@@ -659,9 +638,9 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                         style={{
                           display: "inline-flex", alignItems: "center", gap: 6,
                           padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                          background: imageBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
-                          color: imageBusy ? "rgba(245,232,209,0.35)" : "var(--gold)",
-                          border: "1px solid rgba(182,136,94,0.30)",
+                          background: imageBusy ? "var(--admin-border)" : "var(--admin-border-strong)",
+                          color: imageBusy ? "rgba(245,232,209,0.35)" : "var(--admin-hazelnut)",
+                          border: "1px solid var(--admin-border-strong)",
                           cursor: imageBusy ? "not-allowed" : "pointer",
                         }}
                       >
@@ -673,23 +652,23 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   </div>
 
                   {managedImageCount === 0 && (
-                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
+                    <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
                       No custom images uploaded yet. The public site is showing the default
                       placeholder below. Upload the product&apos;s real photos to replace it.
                     </p>
                   )}
 
                   {managedImageCount > 0 && selectedPrimaryUrl === null && (
-                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
+                    <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.5, lineHeight: 1.5, marginTop: -6 }}>
                       The default image is selected. Use
-                      <strong style={{ color: "var(--gold)", fontWeight: 600 }}> Set primary </strong>
+                      <strong style={{ color: "var(--admin-hazelnut)", fontWeight: 600 }}> Set primary </strong>
                       on an upload, preview it, then save when it looks right.
                     </p>
                   )}
 
                   {mediaDirty && (
                     <p style={{
-                      fontSize: 11, color: "var(--gold)", lineHeight: 1.5, marginTop: -6,
+                      fontSize: 11, color: "var(--admin-hazelnut)", lineHeight: 1.5, marginTop: -6,
                       padding: "8px 10px", borderRadius: 8,
                       background: "rgba(214,163,115,0.07)",
                       border: "1px solid rgba(214,163,115,0.16)",
@@ -711,8 +690,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                             borderRadius: 12, overflow: "hidden",
                             border: image.isPrimary
                               ? "1px solid rgba(214,163,115,0.55)"
-                              : "1px solid rgba(182,136,94,0.14)",
-                            background: "rgba(182,136,94,0.05)",
+                              : "1px solid var(--admin-border)",
+                            background: "var(--admin-border)",
                             display: "flex", flexDirection: "column",
                           }}
                         >
@@ -737,7 +716,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                               <span style={{
                                 position: "absolute", top: 6, right: 6,
                                 fontSize: 9, fontWeight: 600, padding: "3px 7px", borderRadius: 99,
-                                background: "rgba(255,255,255,0.08)", color: "var(--cream-dim)",
+                                background: "rgba(255,255,255,0.08)", color: "var(--admin-muted)",
                               }}>
                                 Default
                               </span>
@@ -748,7 +727,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                                 alignItems: "center", justifyContent: "center",
                                 background: "rgba(11,8,6,0.55)",
                               }}>
-                                <Loader2 size={18} className="animate-spin" style={{ color: "var(--gold)" }} />
+                                <Loader2 size={18} className="animate-spin" style={{ color: "var(--admin-hazelnut)" }} />
                               </div>
                             )}
                           </div>
@@ -763,9 +742,9 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                                 style={{
                                   flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
                                   padding: "6px 8px", borderRadius: 7, fontSize: 11, fontWeight: 600,
-                                  background: image.isPrimary ? "rgba(214,163,115,0.10)" : "rgba(182,136,94,0.12)",
-                                  color: image.isPrimary ? "rgba(214,163,115,0.55)" : "var(--gold)",
-                                  border: "1px solid rgba(182,136,94,0.22)",
+                                  background: image.isPrimary ? "rgba(214,163,115,0.10)" : "var(--admin-border)",
+                                  color: image.isPrimary ? "rgba(214,163,115,0.55)" : "var(--admin-hazelnut)",
+                                  border: "1px solid var(--admin-border-strong)",
                                   cursor: image.isPrimary || imageBusy ? "not-allowed" : "pointer",
                                 }}
                               >
@@ -781,7 +760,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                                 style={{
                                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                                   padding: "6px 9px", borderRadius: 7, fontSize: 11,
-                                  background: "rgba(239,68,68,0.10)", color: "#f87171",
+                                  background: "rgba(239,68,68,0.10)", color: "#e39a8c",
                                   border: "1px solid rgba(239,68,68,0.24)",
                                   cursor: imageBusy ? "not-allowed" : "pointer",
                                 }}
@@ -795,11 +774,11 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     })}
                   </div>
 
-                  <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.4, lineHeight: 1.5 }}>
                     JPG, PNG, WEBP, AVIF, or GIF · up to 5&nbsp;MB. The primary image is used on
                     product cards, the category page, and as the main product photo.
                   </p>
-                  <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.4, lineHeight: 1.5, marginTop: -8 }}>
+                  <p style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.4, lineHeight: 1.5, marginTop: -8 }}>
                     Recommended product card image: 1600×1000 (8:5 horizontal). Keep important
                     content away from the outer 5%. Portrait images remain fully visible with side spacing.
                   </p>
@@ -810,27 +789,27 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
               {form.activeTab === "pricing" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div><FL>250g Price (EGP)</FL>
-                    <input type="number" value={form.price250} onChange={(e) => set("price250", Number(e.target.value))} style={NUM_INPUT} />
+                    <input type="number" value={form.price250} onChange={(e) => set("price250", Number(e.target.value))} className={NUM_INPUT_CLASS} />
                   </div>
                   <div><FL>500g Price (EGP)</FL>
-                    <input type="number" value={form.price500} onChange={(e) => set("price500", Number(e.target.value))} style={NUM_INPUT} />
+                    <input type="number" value={form.price500} onChange={(e) => set("price500", Number(e.target.value))} className={NUM_INPUT_CLASS} />
                   </div>
                   <div><FL>1kg Price (EGP)</FL>
-                    <input type="number" value={form.price1kg} onChange={(e) => set("price1kg", Number(e.target.value))} style={NUM_INPUT} />
+                    <input type="number" value={form.price1kg} onChange={(e) => set("price1kg", Number(e.target.value))} className={NUM_INPUT_CLASS} />
                   </div>
                   <div style={{
                     marginTop: 4, padding: "12px 14px", borderRadius: 10,
-                    background: "rgba(182,136,94,0.05)", border: "1px solid rgba(182,136,94,0.1)",
+                    background: "var(--admin-border)", border: "1px solid var(--admin-border)",
                     display: "flex", flexDirection: "column", gap: 8,
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55 }}>Purchase cost / kg</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--cream)" }}>{product.purchaseCostPerKg.toLocaleString("en-EG")} EGP</span>
+                      <span style={{ fontSize: 12, color: "var(--admin-muted)", opacity: 0.55 }}>Purchase cost / kg</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--admin-white-coffee)" }}>{product.purchaseCostPerKg.toLocaleString("en-EG")} EGP</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.55 }}>Gross margin</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: margin >= 40 ? "#4ade80" : margin >= 30 ? "var(--gold)" : "#ef4444" }}>
-                        {margin}%
+                      <span style={{ fontSize: 12, color: "var(--admin-muted)", opacity: 0.55 }}>Gross margin</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: margin >= 40 ? "#8fcf9a" : margin >= 30 ? "var(--admin-hazelnut)" : "#e39a8c" }}>
+                        <MixedNumeric text={`${margin}%`} />
                       </span>
                     </div>
                   </div>
@@ -845,21 +824,18 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     padding: "10px 12px", borderRadius: 10,
                     background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.18)",
                   }}>
-                    <AlertTriangle size={14} style={{ color: "#fbbf24", marginTop: 1, flexShrink: 0 }} />
-                    <p style={{ fontSize: 11.5, color: "var(--cream-dim)", lineHeight: 1.5 }}>{INVENTORY_NOTICE}</p>
+                    <AlertTriangle size={14} style={{ color: "#e3b673", marginTop: 1, flexShrink: 0 }} />
+                    <p style={{ fontSize: 11.5, color: "var(--admin-muted)", lineHeight: 1.5 }}>{INVENTORY_NOTICE}</p>
                   </div>
 
                   {inventoryLoading ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "18px 0", color: "var(--cream-dim)", fontSize: 12.5 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "18px 0", color: "var(--admin-muted)", fontSize: 12.5 }}>
                       <Loader2 size={15} className="animate-spin" /> Loading stock…
                     </div>
                   ) : inventory === null ? (
-                    <div style={{
-                      padding: "12px 14px", borderRadius: 10,
-                      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.12)",
-                    }}>
-                      <p style={{ fontSize: 12, color: "var(--cream)", fontWeight: 600 }}>No inventory record yet</p>
-                      <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.55, marginTop: 4, lineHeight: 1.5 }}>
+                    <div className="admin-surface !shadow-none" style={{ padding: "12px 14px" }}>
+                      <p style={{ fontSize: 12, color: "var(--admin-heading)", fontWeight: 600 }}>No inventory record yet</p>
+                      <p className="mt-1 text-[11px] leading-relaxed admin-muted">
                         This product has no stock row yet. Set a low-stock threshold below (it starts tracking at 0&nbsp;kg),
                         then add stock with a movement in the Inventory module.
                       </p>
@@ -867,19 +843,19 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   ) : (
                     <div style={{
                       borderRadius: 10, overflow: "hidden",
-                      border: "1px solid rgba(182,136,94,0.12)",
+                      border: "1px solid var(--admin-border)",
                     }}>
                       {[
-                        ["Available", `${inventory.availableKg} kg`, "var(--cream)"],
-                        ["Reserved", `${inventory.reservedKg} kg`, "#93c5fd"],
-                        ["On hand", `${inventory.onHandKg} kg`, "var(--cream)"],
+                        ["Available", `${inventory.availableKg} kg`, "var(--admin-white-coffee)"],
+                        ["Reserved", `${inventory.reservedKg} kg`, "#b7cbe6"],
+                        ["On hand", `${inventory.onHandKg} kg`, "var(--admin-white-coffee)"],
                       ].map(([label, value, color], index) => (
                         <div key={label} style={{
                           display: "flex", alignItems: "center", justifyContent: "space-between",
                           padding: "11px 14px",
-                          borderBottom: index < 3 ? "1px solid rgba(182,136,94,0.08)" : "none",
+                          borderBottom: index < 3 ? "1px solid var(--admin-border)" : "none",
                         }}>
-                          <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>{label}</span>
+                          <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.6 }}>{label}</span>
                           <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 700, color }}>{value}</span>
                         </div>
                       ))}
@@ -887,11 +863,11 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         padding: "11px 14px",
                       }}>
-                        <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6 }}>Status</span>
+                        <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.6 }}>Status</span>
                         <span style={{
                           fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 99,
                           textTransform: "uppercase",
-                          color: inventory.status === "ok" ? "#4ade80" : inventory.status === "low" ? "#fbbf24" : "#f87171",
+                          color: inventory.status === "ok" ? "#8fcf9a" : inventory.status === "low" ? "#e3b673" : "#e39a8c",
                           background: inventory.status === "ok" ? "rgba(74,222,128,0.10)" : inventory.status === "low" ? "rgba(251,191,36,0.10)" : "rgba(248,113,113,0.10)",
                         }}>
                           {inventory.status === "ok" ? "OK" : inventory.status === "low" ? "Low" : "Out"}
@@ -911,7 +887,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                           step="0.001"
                           value={thresholdInput}
                           onChange={(e) => { setThresholdInput(e.target.value); setThresholdSaved(false); }}
-                          style={{ ...NUM_INPUT, maxWidth: 140 }}
+                          className={NUM_INPUT_CLASS}
+                          style={{ maxWidth: 140 }}
                         />
                         <button
                           type="button"
@@ -920,9 +897,9 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                           style={{
                             display: "inline-flex", alignItems: "center", gap: 6,
                             padding: "8px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600,
-                            background: thresholdBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
-                            color: thresholdBusy ? "rgba(245,232,209,0.3)" : "var(--gold)",
-                            border: "1px solid rgba(182,136,94,0.30)",
+                            background: thresholdBusy ? "var(--admin-border)" : "var(--admin-border-strong)",
+                            color: thresholdBusy ? "rgba(245,232,209,0.3)" : "var(--admin-hazelnut)",
+                            border: "1px solid var(--admin-border-strong)",
                             cursor: thresholdBusy ? "not-allowed" : "pointer",
                           }}
                         >
@@ -931,7 +908,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                             : thresholdSaved ? "✓ Saved" : "Save threshold"}
                         </button>
                       </div>
-                      <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.45, marginTop: 6, lineHeight: 1.5 }}>
+                      <p style={{ fontSize: 10.5, color: "var(--admin-muted)", opacity: 0.45, marginTop: 6, lineHeight: 1.5 }}>
                         A product is flagged Low when available stock falls to this value or below. Drives the dashboard low-stock alerts.
                       </p>
                     </div>
@@ -943,8 +920,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                       padding: "9px 11px", borderRadius: 9,
                       background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)",
                     }}>
-                      <AlertTriangle size={13} style={{ color: "#f87171", marginTop: 1, flexShrink: 0 }} />
-                      <p style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.45 }}>{inventoryError}</p>
+                      <AlertTriangle size={13} style={{ color: "#e39a8c", marginTop: 1, flexShrink: 0 }} />
+                      <p style={{ fontSize: 11.5, color: "#eeb4a8", lineHeight: 1.45 }}>{inventoryError}</p>
                     </div>
                   )}
 
@@ -953,8 +930,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                     className="inline-flex items-center justify-center gap-2"
                     style={{
                       padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                      background: "rgba(182,136,94,0.15)", color: "var(--gold)",
-                      border: "1px solid rgba(182,136,94,0.30)", width: "fit-content",
+                      background: "var(--admin-border-strong)", color: "var(--admin-hazelnut)",
+                      border: "1px solid var(--admin-border-strong)", width: "fit-content",
                     }}
                   >
                     <Boxes size={14} /> Open Inventory module
@@ -977,12 +954,12 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                       key={label}
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "14px 0", borderBottom: "1px solid rgba(182,136,94,0.07)",
+                        padding: "14px 0", borderBottom: "1px solid var(--admin-border)",
                       }}
                     >
                       <div>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--cream)" }}>{label}</p>
-                        <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.42, marginTop: 2 }}>{sub}</p>
+                        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--admin-white-coffee)" }}>{label}</p>
+                        <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.42, marginTop: 2 }}>{sub}</p>
                       </div>
                       <button
                         type="button"
@@ -999,7 +976,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                         <span style={{
                           position: "absolute", top: 2, width: 16, height: 16, borderRadius: "50%",
                           left: value ? "calc(100% - 18px)" : 2,
-                          background: value ? "#4ade80" : "rgba(255,255,255,0.28)",
+                          background: value ? "#8fcf9a" : "rgba(255,255,255,0.28)",
                           transition: "all 0.2s",
                         }} />
                       </button>
@@ -1008,7 +985,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
 
                   {/* New badge helper */}
                   <div style={{ paddingTop: 12, paddingBottom: 4 }}>
-                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.42, lineHeight: 1.55 }}>
+                    <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.42, lineHeight: 1.55 }}>
                       New badge expires automatically after 40 days.{" "}
                       {form.isNew && product.isNew && product.newUntil
                         ? `Current expiry: ${new Date(product.newUntil).toLocaleDateString("en-EG", { month: "short", day: "numeric", year: "numeric" })}.`
@@ -1021,12 +998,12 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   {/* ── Lifecycle: Archive / Restore ─────────────────────────── */}
                   <div style={{
                     marginTop: 18, paddingTop: 16,
-                    borderTop: "1px solid rgba(182,136,94,0.12)",
+                    borderTop: "1px solid var(--admin-border)",
                   }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--cream)" }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--admin-white-coffee)" }}>
                       {isArchived ? "Archived product" : "Archive product"}
                     </p>
-                    <p style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.5, marginTop: 3, lineHeight: 1.55 }}>
+                    <p style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.5, marginTop: 3, lineHeight: 1.55 }}>
                       {isArchived
                         ? "This product is hidden from the entire public website but kept here with its prices and variants. Restore it to bring it back as a draft for review — it will not go public until you set it Active and save."
                         : "Archiving removes this product from the website (products page, category pages, best sellers, and its direct link) but keeps the row, variants, and order history. It stays here under the Archived filter and can be restored anytime. No data is deleted."}
@@ -1038,8 +1015,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                         padding: "9px 11px", borderRadius: 9,
                         background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.24)",
                       }}>
-                        <AlertTriangle size={13} style={{ color: "#f87171", marginTop: 1, flexShrink: 0 }} />
-                        <p style={{ fontSize: 11.5, color: "#fca5a5", lineHeight: 1.45 }}>{lifecycleError}</p>
+                        <AlertTriangle size={13} style={{ color: "#e39a8c", marginTop: 1, flexShrink: 0 }} />
+                        <p style={{ fontSize: 11.5, color: "#eeb4a8", lineHeight: 1.45 }}>{lifecycleError}</p>
                       </div>
                     )}
 
@@ -1053,7 +1030,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                             display: "inline-flex", alignItems: "center", gap: 7,
                             padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
                             background: lifecycleBusy ? "rgba(74,222,128,0.08)" : "rgba(74,222,128,0.14)",
-                            color: lifecycleBusy ? "rgba(74,222,128,0.5)" : "#4ade80",
+                            color: lifecycleBusy ? "rgba(74,222,128,0.5)" : "#8fcf9a",
                             border: "1px solid rgba(74,222,128,0.30)",
                             cursor: lifecycleBusy ? "not-allowed" : "pointer",
                           }}
@@ -1072,7 +1049,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                               display: "inline-flex", alignItems: "center", gap: 7,
                               padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
                               background: lifecycleBusy ? "rgba(239,68,68,0.08)" : "rgba(239,68,68,0.16)",
-                              color: lifecycleBusy ? "rgba(248,113,113,0.5)" : "#f87171",
+                              color: lifecycleBusy ? "rgba(248,113,113,0.5)" : "#e39a8c",
                               border: "1px solid rgba(239,68,68,0.32)",
                               cursor: lifecycleBusy ? "not-allowed" : "pointer",
                             }}
@@ -1087,8 +1064,8 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                             disabled={lifecycleBusy}
                             style={{
                               padding: "9px 14px", borderRadius: 9, fontSize: 12.5,
-                              color: "var(--cream-dim)", opacity: lifecycleBusy ? 0.3 : 0.6,
-                              border: "1px solid rgba(182,136,94,0.12)",
+                              color: "var(--admin-muted)", opacity: lifecycleBusy ? 0.3 : 0.6,
+                              border: "1px solid var(--admin-border)",
                               cursor: lifecycleBusy ? "not-allowed" : "pointer",
                             }}
                           >
@@ -1102,7 +1079,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                           style={{
                             display: "inline-flex", alignItems: "center", gap: 7,
                             padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                            background: "rgba(239,68,68,0.10)", color: "#f87171",
+                            background: "rgba(239,68,68,0.10)", color: "#e39a8c",
                             border: "1px solid rgba(239,68,68,0.24)", cursor: "pointer",
                           }}
                         >
@@ -1120,51 +1097,50 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                   <div>
                     <FL>URL Slug</FL>
                     <input type="text" value={form.slugVal} onChange={(e) => set("slugVal", e.target.value)}
-                      style={{ ...INPUT, fontFamily: "monospace", fontSize: 12, color: "var(--gold)" }} />
-                    <p style={{ fontSize: 10.5, color: "var(--cream-dim)", opacity: 0.32, marginTop: 4 }}>
+                      className={`${INPUT_CLASS} !font-mono !text-[12px]`} style={{ color: "var(--admin-hazelnut)" }} />
+                    <p className="mt-1 text-[10.5px] admin-faint">
                       linecoffee.eg/products/{form.slugVal}
                     </p>
                     <p style={{
                       display: "flex", alignItems: "center", gap: 5,
-                      fontSize: 10.5, color: "#fbbf24", opacity: 0.85, marginTop: 6, lineHeight: 1.4,
+                      fontSize: 10.5, color: "#e3b673", opacity: 0.85, marginTop: 6, lineHeight: 1.4,
                     }}>
                       <AlertTriangle size={11} style={{ flexShrink: 0 }} />
                       Changing the slug changes the public product URL.
                     </p>
                   </div>
                   <div><FL>Meta Title (EN)</FL>
-                    <input type="text" value={form.metaTitleEn} onChange={(e) => set("metaTitleEn", e.target.value)} style={INPUT} />
+                    <input type="text" value={form.metaTitleEn} onChange={(e) => set("metaTitleEn", e.target.value)} className={INPUT_CLASS} />
                   </div>
                   <div><FL>Meta Title (AR)</FL>
-                    <input type="text" value={form.metaTitleAr} onChange={(e) => set("metaTitleAr", e.target.value)} dir="rtl" style={INPUT} />
+                    <input type="text" value={form.metaTitleAr} onChange={(e) => set("metaTitleAr", e.target.value)} dir="rtl" className={INPUT_CLASS} />
                   </div>
                   <div><FL>Meta Description (EN)</FL>
-                    <textarea value={form.metaDescEn} onChange={(e) => set("metaDescEn", e.target.value)} rows={3} style={{ ...INPUT, resize: "vertical" }} />
+                    <textarea value={form.metaDescEn} onChange={(e) => set("metaDescEn", e.target.value)} rows={3} className={`${INPUT_CLASS} resize-y`} />
                   </div>
                   <div><FL>Meta Description (AR)</FL>
-                    <textarea value={form.metaDescAr} onChange={(e) => set("metaDescAr", e.target.value)} dir="rtl" rows={3} style={{ ...INPUT, resize: "vertical" }} />
+                    <textarea value={form.metaDescAr} onChange={(e) => set("metaDescAr", e.target.value)} dir="rtl" rows={3} className={`${INPUT_CLASS} resize-y`} />
                   </div>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div style={{
+            <div className="admin-drawer-footer" style={{
               padding: "12px 18px",
-              borderTop: "1px solid rgba(182,136,94,0.10)",
               display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
             }}>
               {form.errorMsg ? (
-                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "#fca5a5", marginRight: "auto", lineHeight: 1.4 }}>
+                <span className="mr-auto flex items-center gap-1.5 text-[11.5px] leading-snug" style={{ color: "#eeb4a8" }}>
                   <AlertTriangle size={13} style={{ flexShrink: 0 }} />
                   <span>{form.errorMsg}</span>
                 </span>
               ) : form.saving ? (
-                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--cream-dim)", marginRight: "auto" }}>
+                <span className="mr-auto flex items-center gap-1.5 text-[12px] admin-muted">
                   <Loader2 size={13} className="animate-spin" /> Saving…
                 </span>
               ) : form.saved ? (
-                <span style={{ fontSize: 12, color: "#4ade80", marginRight: "auto" }}>✓ Saved to Supabase</span>
+                <span className="mr-auto text-[12px]" style={{ color: "#8fcf9a" }}>✓ Saved to Supabase</span>
               ) : (
                 <span style={{ flex: 1 }} />
               )}
@@ -1172,15 +1148,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                 type="button"
                 onClick={handleCancel}
                 disabled={form.saving || imageBusy !== null}
-                className="hover:opacity-100 transition-opacity"
-                style={{
-                  padding: "9px 16px", borderRadius: 9, fontSize: 12.5,
-                  color: hasPendingChanges ? "var(--cream)" : "var(--cream-dim)",
-                  opacity: form.saving || imageBusy ? 0.3 : hasPendingChanges ? 0.82 : 0.55,
-                  background: hasPendingChanges ? "rgba(255,255,255,0.035)" : "transparent",
-                  border: "1px solid rgba(182,136,94,0.12)",
-                  cursor: form.saving || imageBusy ? "not-allowed" : "pointer",
-                }}
+                className="admin-btn !px-4 !py-2.5 !text-[12.5px]"
               >
                 Cancel
               </button>
@@ -1189,13 +1157,7 @@ export default function ProductDrawer({ product, isOpen, onClose, onSaved }: Pro
                 onClick={handleSave}
                 disabled={!hasPendingChanges || form.saving || imageBusy !== null}
                 title={!hasPendingChanges ? "Edit a field or select a primary image to enable saving" : undefined}
-                style={{
-                  padding: "9px 22px", borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                  background: !hasPendingChanges || form.saving || imageBusy ? "rgba(182,136,94,0.06)" : "rgba(182,136,94,0.15)",
-                  color: !hasPendingChanges || form.saving || imageBusy ? "rgba(245,232,209,0.30)" : "var(--gold)",
-                  border: "1px solid rgba(182,136,94,0.30)",
-                  cursor: !hasPendingChanges || form.saving || imageBusy ? "not-allowed" : "pointer",
-                }}
+                className="admin-btn admin-btn-primary !px-5 !py-2.5 !text-[12.5px]"
               >
                 {form.saving ? "Saving…" : "Save Changes"}
               </button>

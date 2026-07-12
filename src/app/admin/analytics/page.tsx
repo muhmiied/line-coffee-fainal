@@ -34,6 +34,7 @@ import {
   type AnalyticsTrendPoint,
 } from "@/lib/admin/admin-analytics";
 import type { OrderStatus, PaymentStatus } from "@/lib/types/order";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 type ActiveTab = "overview" | "sales" | "products" | "customers" | "marketing" | "geography";
 type Tone = "gold" | "green" | "blue" | "amber" | "red" | "violet";
@@ -50,31 +51,31 @@ const TAB_OPTIONS: { key: ActiveTab; label: string; icon: LucideIcon }[] = [
 
 const TONE_STYLE: Record<Tone, { text: string; bg: string; border: string; bar: string }> = {
   gold: {
-    text: "var(--gold)",
-    bg: "rgba(182,136,94,0.12)",
-    border: "rgba(182,136,94,0.24)",
-    bar: "linear-gradient(90deg, rgba(182,136,94,0.95), rgba(214,163,115,0.45))",
+    text: "var(--admin-hazelnut)",
+    bg: "var(--admin-border)",
+    border: "var(--admin-border-strong)",
+    bar: "linear-gradient(90deg, var(--admin-border-strong), rgba(214,163,115,0.45))",
   },
   green: {
-    text: "#4ade80",
+    text: "#8fcf9a",
     bg: "rgba(74,222,128,0.10)",
     border: "rgba(74,222,128,0.22)",
     bar: "linear-gradient(90deg, rgba(74,222,128,0.9), rgba(74,222,128,0.28))",
   },
   blue: {
-    text: "#60a5fa",
+    text: "#8fb0d9",
     bg: "rgba(96,165,250,0.10)",
     border: "rgba(96,165,250,0.22)",
     bar: "linear-gradient(90deg, rgba(96,165,250,0.9), rgba(96,165,250,0.28))",
   },
   amber: {
-    text: "#fbbf24",
+    text: "#e3b673",
     bg: "rgba(251,191,36,0.10)",
     border: "rgba(251,191,36,0.24)",
     bar: "linear-gradient(90deg, rgba(251,191,36,0.9), rgba(251,191,36,0.28))",
   },
   red: {
-    text: "#ef4444",
+    text: "#e39a8c",
     bg: "rgba(239,68,68,0.10)",
     border: "rgba(239,68,68,0.24)",
     bar: "linear-gradient(90deg, rgba(239,68,68,0.9), rgba(239,68,68,0.28))",
@@ -150,13 +151,13 @@ function TrendBadge({ value }: { value: AnalyticsTrend }) {
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
       style={{
-        color: up ? "#4ade80" : "#ef4444",
+        color: up ? "#8fcf9a" : "#e39a8c",
         background: up ? "rgba(74,222,128,0.08)" : "rgba(239,68,68,0.08)",
         border: `1px solid ${up ? "rgba(74,222,128,0.18)" : "rgba(239,68,68,0.18)"}`,
       }}
     >
       <Icon size={11} />
-      {`${up ? "+" : "-"}${formatted}%`}
+      <MixedNumeric text={`${up ? "+" : "-"}${formatted}%`} />
     </span>
   );
 }
@@ -178,16 +179,16 @@ function Surface({
     <section className="admin-surface overflow-hidden">
       <div
         className="flex items-start justify-between gap-4 px-5 py-3.5"
-        style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
+        style={{ borderBottom: "1px solid var(--admin-border)" }}
       >
         <div className="flex items-start gap-2.5 min-w-0">
           {Icon && (
             <span
               className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
               style={{
-                color: "var(--gold)",
-                background: "rgba(182,136,94,0.10)",
-                border: "1px solid rgba(182,136,94,0.16)",
+                color: "var(--admin-hazelnut)",
+                background: "var(--admin-border)",
+                border: "1px solid var(--admin-border-strong)",
               }}
             >
               <Icon size={14} />
@@ -196,12 +197,12 @@ function Surface({
           <div className="min-w-0">
             <p
               className="text-[11px] font-semibold uppercase tracking-wider"
-              style={{ color: "var(--cream-dim)", opacity: 0.55 }}
+              style={{ color: "var(--admin-muted)", opacity: 0.55 }}
             >
               {title}
             </p>
             {caption && (
-              <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
+              <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--admin-muted)", opacity: 0.55 }}>
                 {caption}
               </p>
             )}
@@ -237,15 +238,15 @@ function KpiCard({
         <div className="min-w-0">
           <p
             className="text-[10.5px] font-semibold uppercase tracking-wider"
-            style={{ color: "var(--cream-dim)", opacity: 0.45 }}
+            style={{ color: "var(--admin-muted)", opacity: 0.45 }}
           >
             {label}
           </p>
           <p className="mt-2 text-[22px] font-bold leading-tight" style={{ color: style.text }}>
-            {value}
+            <MixedNumeric text={value} />
           </p>
-          <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.52 }}>
-            {caption}
+          <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: "var(--admin-muted)", opacity: 0.52 }}>
+            <MixedNumeric text={caption} />
           </p>
         </div>
         {Icon && (
@@ -288,7 +289,7 @@ function ProgressBar({
 
 function LegendDot({ label, color }: { label: string; color: string }) {
   return (
-    <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.65 }}>
+    <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.65 }}>
       <span className="h-2.5 w-2.5 rounded-sm" style={{ background: color }} />
       {label}
     </span>
@@ -303,7 +304,7 @@ function SignalPill({ label, value, tone }: { label: string; value: string; tone
       <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: style.text, opacity: 0.85 }}>
         {label}
       </p>
-      <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: "var(--cream)" }}>
+      <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: "var(--admin-white-coffee)" }}>
         {value}
       </p>
     </div>
@@ -313,11 +314,11 @@ function SignalPill({ label, value, tone }: { label: string; value: string; tone
 function MetricCell({ label, value, warning = false }: { label: string; value: string; warning?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 lg:block lg:text-right">
-      <span className="text-[10.5px] font-semibold uppercase tracking-wider lg:hidden" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
+      <span className="text-[10.5px] font-semibold uppercase tracking-wider lg:hidden" style={{ color: "var(--admin-muted)", opacity: 0.45 }}>
         {label}
       </span>
-      <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: warning ? "#fbbf24" : "var(--cream)" }}>
-        {value}
+      <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: warning ? "#e3b673" : "var(--admin-white-coffee)" }}>
+        <MixedNumeric text={value} />
       </span>
     </div>
   );
@@ -325,7 +326,7 @@ function MetricCell({ label, value, warning = false }: { label: string; value: s
 
 function EmptyNote({ children }: { children: ReactNode }) {
   return (
-    <p className="px-5 py-8 text-center text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+    <p className="px-5 py-8 text-center text-[12.5px] admin-muted">
       {children}
     </p>
   );
@@ -353,9 +354,9 @@ function TrendChart({ data }: { data: AdminAnalyticsData }) {
               onClick={() => setPeriod(key)}
               className="rounded-md px-2 py-1 text-[10.5px] font-semibold capitalize transition-colors"
               style={{
-                color: period === key ? "var(--gold)" : "var(--cream-dim)",
-                background: period === key ? "rgba(182,136,94,0.14)" : "transparent",
-                border: `1px solid ${period === key ? "rgba(182,136,94,0.24)" : "transparent"}`,
+                color: period === key ? "var(--admin-hazelnut)" : "var(--admin-muted)",
+                background: period === key ? "var(--admin-border)" : "transparent",
+                border: `1px solid ${period === key ? "var(--admin-border-strong)" : "transparent"}`,
               }}
             >
               {key}
@@ -378,8 +379,8 @@ function TrendChart({ data }: { data: AdminAnalyticsData }) {
                     title={`${money(point.revenue)} revenue`}
                     style={{
                       height: `${revenueHeight}%`,
-                      background: "linear-gradient(to top, rgba(182,136,94,0.62), rgba(214,163,115,0.18))",
-                      border: "1px solid rgba(182,136,94,0.16)",
+                      background: "linear-gradient(to top, var(--admin-border-strong), rgba(214,163,115,0.18))",
+                      border: "1px solid var(--admin-border-strong)",
                     }}
                   />
                   <div
@@ -392,13 +393,13 @@ function TrendChart({ data }: { data: AdminAnalyticsData }) {
                     }}
                   />
                 </div>
-                <p className="text-center text-[10px] font-semibold" style={{ color: "var(--cream)" }}>{point.label}</p>
+                <p className="text-center text-[10px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{point.label}</p>
               </div>
             );
           })}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <LegendDot label="Revenue" color="rgba(182,136,94,0.72)" />
+          <LegendDot label="Revenue" color="var(--admin-border-strong)" />
           <LegendDot label="Orders" color="rgba(96,165,250,0.55)" />
         </div>
       </div>
@@ -424,14 +425,14 @@ function CategoryRevenuePanel({ data }: { data: AdminAnalyticsData }) {
         {data.categories.map((item) => (
           <div key={item.key}>
             <div className="mb-1.5 flex items-start justify-between gap-3">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{item.name}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{item.name}</p>
               <div className="text-right">
-                <p className="text-[12.5px] font-semibold" style={{ color: "var(--gold)" }}>{money(item.revenue)}</p>
-                <p className="text-[10.5px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>{item.share}% share</p>
+                <p className="text-[12.5px] font-semibold" style={{ color: "var(--admin-hazelnut)" }}><MixedNumeric text={money(item.revenue)} /></p>
+                <p className="text-[10.5px]" style={{ color: "var(--admin-muted)", opacity: 0.5 }}><MixedNumeric text={`${item.share}%`} /> share</p>
               </div>
             </div>
             <ProgressBar value={item.revenue} max={maxRevenue} tone="gold" />
-            <p className="mt-1 text-[10.5px]" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
+            <p className="mt-1 text-[10.5px]" style={{ color: "var(--admin-muted)", opacity: 0.45 }}>
               {fmt(item.unitsSold)} units sold
             </p>
           </div>
@@ -454,13 +455,13 @@ function FulfillmentPanel({ data }: { data: AdminAnalyticsData }) {
         {rows.map((row) => (
           <div key={row.label}>
             <div className="mb-1.5 flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{row.label}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{row.label}</p>
               <p className="text-[12.5px] font-semibold" style={{ color: TONE_STYLE[row.tone].text }}>{pct(row.value)}</p>
             </div>
             <ProgressBar value={row.value} max={100} tone={row.tone} />
           </div>
         ))}
-        <p className="pt-1 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+        <p className="pt-1 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.5 }}>
           {fmt(data.ordersTotal)} total orders · {fmt(data.validOrders)} valid (non-cancelled)
         </p>
       </div>
@@ -484,7 +485,7 @@ function StatusBreakdownPanel({ data }: { data: AdminAnalyticsData }) {
         {data.statusBreakdown.map((s) => (
           <div key={s.status}>
             <div className="mb-1.5 flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{STATUS_LABEL[s.status]}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{STATUS_LABEL[s.status]}</p>
               <p className="text-[12px] font-semibold" style={{ color: TONE_STYLE[STATUS_TONE[s.status]].text }}>
                 {fmt(s.count)} · {pct(s.share)}
               </p>
@@ -513,7 +514,7 @@ function PaymentSplitPanel({ data }: { data: AdminAnalyticsData }) {
         {data.paymentSplit.map((s) => (
           <div key={s.status}>
             <div className="mb-1.5 flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{PAYMENT_LABEL[s.status]}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{PAYMENT_LABEL[s.status]}</p>
               <p className="text-[12px] font-semibold" style={{ color: TONE_STYLE[PAYMENT_TONE[s.status]].text }}>
                 {fmt(s.count)} · {pct(s.share)}
               </p>
@@ -552,20 +553,20 @@ function ProductRankingPanel({
 
   return (
     <Surface title={title} caption={caption} icon={icon}>
-      <div className="divide-y" style={{ borderColor: "rgba(182,136,94,0.06)" }}>
+      <div className="divide-y" style={{ borderColor: "var(--admin-border)" }}>
         {products.slice(0, 5).map((product, index) => (
           <div key={product.key} className="px-5 py-3.5">
             <div className="mb-2 flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
-                <span className="mt-0.5 w-5 flex-shrink-0 text-right text-[11px] font-bold" style={{ color: "var(--gold)", opacity: 0.55 }}>
+                <span className="mt-0.5 w-5 flex-shrink-0 text-right text-[11px] font-bold" style={{ color: "var(--admin-hazelnut)", opacity: 0.55 }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{product.name}</p>
-                  <p className="truncate text-[10.5px]" style={{ color: "var(--gold)", opacity: 0.6 }}>{product.category}</p>
+                  <p className="truncate text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{product.name}</p>
+                  <p className="truncate text-[10.5px]" style={{ color: "var(--admin-hazelnut)", opacity: 0.6 }}>{product.category}</p>
                 </div>
               </div>
-              <span className="flex-shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: "var(--gold)" }}>
+              <span className="flex-shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: "var(--admin-hazelnut)" }}>
                 {formatter(metric(product))}
               </span>
             </div>
@@ -590,9 +591,9 @@ function ProductTable({ data }: { data: AdminAnalyticsData }) {
         className="hidden gap-4 px-5 py-3 text-[10.5px] font-semibold uppercase tracking-wider lg:grid"
         style={{
           gridTemplateColumns: "2fr 1fr 1fr 1fr",
-          color: "var(--cream-dim)",
+          color: "var(--admin-muted)",
           opacity: 0.55,
-          borderBottom: "1px solid rgba(182,136,94,0.08)",
+          borderBottom: "1px solid var(--admin-border)",
         }}
       >
         <span>Product</span>
@@ -611,11 +612,11 @@ function ProductTable({ data }: { data: AdminAnalyticsData }) {
               <article
                 key={product.key}
                 className="grid gap-3 px-5 py-4 lg:grid-cols-[2fr_1fr_1fr_1fr] lg:items-center"
-                style={index < data.topByRevenue.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}
+                style={index < data.topByRevenue.length - 1 ? { borderBottom: "1px solid var(--admin-border)" } : undefined}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{product.name}</p>
-                  <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--gold)", opacity: 0.65 }}>{product.category}</p>
+                  <p className="truncate text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{product.name}</p>
+                  <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--admin-hazelnut)", opacity: 0.65 }}>{product.category}</p>
                 </div>
                 <MetricCell label="Units" value={fmt(product.unitsSold)} />
                 <MetricCell label="Revenue" value={money(product.revenue)} />
@@ -625,7 +626,7 @@ function ProductTable({ data }: { data: AdminAnalyticsData }) {
           })}
         </div>
       )}
-      <p className="px-5 pb-4 pt-1 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
+      <p className="px-5 pb-4 pt-1 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.45 }}>
         Product view, cart, and conversion tracking is not connected yet — only real sales are shown.
       </p>
     </Surface>
@@ -645,7 +646,7 @@ function CustomerTypePanel({ data }: { data: AdminAnalyticsData }) {
         {rows.map((row) => (
           <div key={row.label}>
             <div className="mb-1.5 flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{row.label}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{row.label}</p>
               <p className="text-[12.5px] font-semibold" style={{ color: TONE_STYLE[row.tone].text }}>
                 {fmt(row.value)} · {pct(Math.round((row.value / total) * 1000) / 10)}
               </p>
@@ -678,16 +679,16 @@ function TopCustomersPanel({ data }: { data: AdminAnalyticsData }) {
           <div
             key={customer.id}
             className="flex items-center justify-between gap-4 px-5 py-4"
-            style={index < data.topCustomers.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}
+            style={index < data.topCustomers.length - 1 ? { borderBottom: "1px solid var(--admin-border)" } : undefined}
           >
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{customer.name}</p>
-              <p className="mt-1 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{customer.name}</p>
+              <p className="mt-1 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.5 }}>
                 {customer.type === "registered" ? "Registered" : "Guest"} · {customer.orders} orders
                 {customer.lastOrder ? ` · last ${customer.lastOrder.slice(0, 10)}` : ""}
               </p>
             </div>
-            <span className="flex-shrink-0 text-[13px] font-semibold tabular-nums" style={{ color: "var(--gold)" }}>
+            <span className="flex-shrink-0 text-[13px] font-semibold tabular-nums" style={{ color: "var(--admin-hazelnut)" }}>
               {money(customer.spend)}
             </span>
           </div>
@@ -710,9 +711,9 @@ function PromoTable({ data }: { data: AdminAnalyticsData }) {
         className="hidden gap-4 px-5 py-3 text-[10.5px] font-semibold uppercase tracking-wider lg:grid"
         style={{
           gridTemplateColumns: "1.4fr 0.9fr 0.9fr 1.1fr 0.9fr",
-          color: "var(--cream-dim)",
+          color: "var(--admin-muted)",
           opacity: 0.55,
-          borderBottom: "1px solid rgba(182,136,94,0.08)",
+          borderBottom: "1px solid var(--admin-border)",
         }}
       >
         <span>Code</span>
@@ -729,18 +730,18 @@ function PromoTable({ data }: { data: AdminAnalyticsData }) {
             <article
               key={campaign.code}
               className="grid gap-3 px-5 py-4 lg:grid-cols-[1.4fr_0.9fr_0.9fr_1.1fr_0.9fr] lg:items-center"
-              style={index < data.promoPerformance.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}
+              style={index < data.promoPerformance.length - 1 ? { borderBottom: "1px solid var(--admin-border)" } : undefined}
             >
-              <p className="truncate text-[13px] font-semibold font-mono" style={{ color: "var(--cream)" }}>{campaign.code}</p>
+              <p className="truncate text-[13px] font-semibold font-mono" style={{ color: "var(--admin-white-coffee)" }}>{campaign.code}</p>
               <MetricCell label="Status" value={campaign.status} />
               <MetricCell label="Uses" value={fmt(campaign.uses)} />
               <MetricCell label="Discount" value={money(campaign.discountGiven)} />
               <div className="lg:text-right">
                 <div className="mb-1 flex items-center justify-between gap-3 lg:block">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wider lg:hidden" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
+                  <span className="text-[10.5px] font-semibold uppercase tracking-wider lg:hidden" style={{ color: "var(--admin-muted)", opacity: 0.45 }}>
                     Revenue
                   </span>
-                  <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: "var(--cream)" }}>
+                  <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: "var(--admin-white-coffee)" }}>
                     {money(campaign.revenue)}
                   </span>
                 </div>
@@ -770,10 +771,10 @@ function GeographyPanel({ data }: { data: AdminAnalyticsData }) {
         {data.geography.map((area) => (
           <div key={area.governorate}>
             <div className="mb-1.5 flex items-start justify-between gap-3">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{area.governorate}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{area.governorate}</p>
               <div className="text-right">
-                <p className="text-[12.5px] font-semibold" style={{ color: "var(--gold)" }}>{money(area.revenue)}</p>
-                <p className="text-[10.5px]" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>{area.orders} orders</p>
+                <p className="text-[12.5px] font-semibold" style={{ color: "var(--admin-hazelnut)" }}>{money(area.revenue)}</p>
+                <p className="text-[10.5px]" style={{ color: "var(--admin-muted)", opacity: 0.5 }}>{area.orders} orders</p>
               </div>
             </div>
             <ProgressBar value={area.revenue} max={maxRevenue} tone="gold" />
@@ -791,9 +792,9 @@ function GeographyTable({ data }: { data: AdminAnalyticsData }) {
         className="hidden gap-4 px-5 py-3 text-[10.5px] font-semibold uppercase tracking-wider md:grid"
         style={{
           gridTemplateColumns: "1.4fr 0.8fr 1fr 1fr 0.9fr 0.9fr",
-          color: "var(--cream-dim)",
+          color: "var(--admin-muted)",
           opacity: 0.55,
-          borderBottom: "1px solid rgba(182,136,94,0.08)",
+          borderBottom: "1px solid var(--admin-border)",
         }}
       >
         <span>Governorate</span>
@@ -811,9 +812,9 @@ function GeographyTable({ data }: { data: AdminAnalyticsData }) {
             <article
               key={area.governorate}
               className="grid gap-3 px-5 py-4 md:grid-cols-[1.4fr_0.8fr_1fr_1fr_0.9fr_0.9fr] md:items-center"
-              style={index < data.geography.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}
+              style={index < data.geography.length - 1 ? { borderBottom: "1px solid var(--admin-border)" } : undefined}
             >
-              <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{area.governorate}</p>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{area.governorate}</p>
               <MetricCell label="Orders" value={fmt(area.orders)} />
               <MetricCell label="Revenue" value={money(area.revenue)} />
               <MetricCell label="AOV" value={money(area.averageOrderValue)} />
@@ -836,7 +837,7 @@ function ContentPanel({ data }: { data: AdminAnalyticsData }) {
         <SignalPill label="New messages" value={`${fmt(data.contactNew)} unanswered`} tone="blue" />
         <SignalPill label="Replied messages" value={`${fmt(data.contactReplied)} handled`} tone="gold" />
       </div>
-      <p className="px-5 pb-4 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
+      <p className="px-5 pb-4 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.45 }}>
         {fmt(data.reviewsTotal)} reviews · {fmt(data.contactTotal)} contact messages recorded.
       </p>
     </Surface>
@@ -1013,8 +1014,8 @@ export default function AnalyticsPage() {
   const body = useMemo(() => {
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center gap-3 py-24" style={{ color: "var(--cream-dim)" }}>
-          <Loader2 size={28} className="animate-spin" style={{ color: "var(--gold)" }} />
+        <div className="flex flex-col items-center justify-center gap-3 py-24" style={{ color: "var(--admin-muted)" }}>
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--admin-hazelnut)" }} />
           <p className="text-[13px]">Loading real analytics…</p>
         </div>
       );
@@ -1022,14 +1023,9 @@ export default function AnalyticsPage() {
     if (error) {
       return (
         <div className="admin-surface flex flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-          <AlertTriangle size={28} style={{ color: "#ef4444" }} />
-          <p className="text-[13.5px] font-semibold" style={{ color: "var(--cream)" }}>{error}</p>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12.5px] font-semibold"
-            style={{ color: "var(--gold)", background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.24)" }}
-          >
+          <AlertTriangle size={28} style={{ color: "#e39a8c" }} />
+          <p className="text-[13.5px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{error}</p>
+          <button type="button" onClick={() => void load()} className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-4 !py-2 !text-[12.5px]">
             <RefreshCw size={14} /> Try again
           </button>
         </div>
@@ -1038,9 +1034,9 @@ export default function AnalyticsPage() {
     if (!data || !data.hasAnyData) {
       return (
         <div className="admin-surface flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-          <BarChart3 size={28} style={{ color: "var(--gold)", opacity: 0.7 }} />
-          <p className="text-[13.5px] font-semibold" style={{ color: "var(--cream)" }}>No analytics data yet</p>
-          <p className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
+          <BarChart3 size={28} style={{ color: "var(--admin-hazelnut)", opacity: 0.7 }} />
+          <p className="text-[13.5px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>No analytics data yet</p>
+          <p className="text-[12.5px]" style={{ color: "var(--admin-muted)", opacity: 0.6 }}>
             Once real orders, customers, and promotions exist, they will appear here.
           </p>
         </div>
@@ -1054,32 +1050,20 @@ export default function AnalyticsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <h1 className="admin-page-title">
               Analytics
             </h1>
-            <span
-              className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
-              style={{
-                color: "var(--gold)",
-                background: "rgba(182,136,94,0.12)",
-                border: "1px solid rgba(182,136,94,0.22)",
-              }}
-            >
+            <span className="admin-badge admin-badge-gold">
               Business Performance Center
             </span>
           </div>
-          <p className="mt-1 text-[13px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>
+          <p className="admin-page-subtitle">
             Real data from orders, customers, products, promotions, reviews, and delivery locations.
           </p>
         </div>
 
         {data && !loading && !error && (
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="inline-flex items-center gap-2 self-start rounded-lg px-3 py-2 text-[12px] font-semibold"
-            style={{ color: "var(--cream-dim)", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.10)" }}
-          >
+          <button type="button" onClick={() => void load()} className="admin-btn inline-flex items-center gap-2 self-start !px-3 !py-2 !text-[12px]">
             <RefreshCw size={13} /> Refresh
           </button>
         )}
@@ -1088,12 +1072,12 @@ export default function AnalyticsPage() {
       <div
         className="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed"
         style={{
-          color: "var(--cream-dim)",
+          color: "var(--admin-muted)",
           background: "rgba(96,165,250,0.08)",
           borderColor: "rgba(96,165,250,0.20)",
         }}
       >
-        <Activity size={14} className="mt-0.5 flex-shrink-0" style={{ color: "#60a5fa" }} />
+        <Activity size={14} className="mt-0.5 flex-shrink-0" style={{ color: "#8fb0d9" }} />
         <span>
           These figures come from real Supabase records. Web-traffic analytics (visits, sessions, page views,
           conversion rate, devices, and channels) are <strong>not connected yet</strong> — no tracking source
@@ -1101,15 +1085,7 @@ export default function AnalyticsPage() {
         </span>
       </div>
 
-      <div
-        className="flex gap-2 overflow-x-auto rounded-xl p-1 admin-scrollbar"
-        style={{
-          background: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(182,136,94,0.10)",
-        }}
-        role="tablist"
-        aria-label="Analytics sections"
-      >
+      <div className="admin-tabs overflow-x-auto admin-scrollbar flex-nowrap" role="tablist" aria-label="Analytics sections" style={{ background: "rgb(5 3 2 / 0.35)", borderRadius: "0.7rem", padding: "0.25rem" }}>
         {TAB_OPTIONS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -1121,12 +1097,7 @@ export default function AnalyticsPage() {
               role="tab"
               aria-selected={active ? "true" : "false"}
               onClick={() => setActiveTab(tab.key)}
-              className="flex min-w-fit items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-all"
-              style={{
-                color: active ? "var(--gold)" : "var(--cream-dim)",
-                background: active ? "rgba(182,136,94,0.13)" : "transparent",
-                border: active ? "1px solid rgba(182,136,94,0.22)" : "1px solid transparent",
-              }}
+              className={`admin-tab min-w-fit !px-3 !py-2 !text-[12px]${active ? " admin-tab-active" : ""}`}
             >
               <Icon size={14} />
               {tab.label}

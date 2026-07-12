@@ -67,13 +67,14 @@
   --pub-ink:        #2a1608;
   --pub-ink-strong: #180d09;
 
-  /* Borders */
-  --pub-border:        rgb(198 153 116 / 0.22);
-  --pub-border-strong: rgb(209 170 132 / 0.42);
+  /* Borders — golden hairline, brightened slightly (Phase 4C) */
+  --pub-border:        rgb(198 153 116 / 0.26);
+  --pub-border-strong: rgb(209 170 132 / 0.46);
 
   /* Glows + shadows (warm coffee light, never neon) */
-  --pub-glow:        rgb(182 136 94 / 0.18);
-  --pub-glow-strong: rgb(214 163 115 / 0.26);
+  --pub-glow:         rgb(182 136 94 / 0.20);
+  --pub-glow-strong:  rgb(214 163 115 / 0.26);
+  --pub-glow-ambient: rgb(182 136 94 / 0.08);
   --pub-shadow:      0 18px 48px rgb(12 5 3 / 0.34);
   --pub-shadow-lift: 0 26px 72px rgb(12 5 3 / 0.46);
   --pub-inset:       inset 0 1px 0 rgb(227 210 184 / 0.08);
@@ -964,7 +965,7 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
   background:
     linear-gradient(145deg, rgb(83 42 18 / 0.18), rgb(24 13 9 / 0.44) 46%, rgb(12 5 3 / 0.58)),
     rgb(24 13 9 / 0.55);
-  box-shadow: var(--pub-shadow), var(--pub-inset);
+  box-shadow: var(--pub-shadow), var(--pub-inset), 0 0 16px var(--pub-glow-ambient);
   transition:
     transform var(--pub-dur) var(--pub-ease),
     box-shadow var(--pub-dur) var(--pub-ease),
@@ -1519,10 +1520,11 @@ html[lang="ar"] .premium-heading-shimmer {
 
 .luxury-panel {
   background: linear-gradient(145deg, rgba(27, 20, 15, 0.9), rgba(11, 8, 6, 0.76));
-  border: 1px solid rgba(182, 136, 94, 0.16);
+  border: 1px solid rgba(198, 153, 116, 0.22);
   box-shadow:
     0 24px 70px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(245, 230, 216, 0.045);
+    inset 0 1px 0 rgba(245, 230, 216, 0.045),
+    0 0 16px rgba(182, 136, 94, 0.07);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
@@ -1927,11 +1929,67 @@ html[lang="ar"] .uppercase {
   font-size: 0.875rem;
   box-shadow:
     inset 0 1px 0 rgb(227 210 184 / 0.05),
-    inset 0 2px 10px rgb(12 5 3 / 0.28);
+    inset 0 2px 10px rgb(12 5 3 / 0.28),
+    0 0 12px var(--pub-glow-ambient);
   transition:
     border-color var(--pub-dur-fast) var(--pub-ease),
     box-shadow var(--pub-dur-fast) var(--pub-ease),
     background var(--pub-dur-fast) var(--pub-ease);
+}
+
+.line-input:hover {
+  border-color: rgb(209 170 132 / 0.36);
+}
+
+/* Drop-in native <select> — same warm-glass language as .line-input plus a
+   built-in gold chevron (no manual <ChevronDown> icon needed). */
+.line-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  border-radius: var(--pub-radius);
+  border: 1px solid var(--pub-border);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--pub-accent) 50%),
+    linear-gradient(135deg, var(--pub-accent) 50%, transparent 50%),
+    linear-gradient(180deg, rgb(182 136 94 / 0.09), rgb(18 13 9 / 0.62));
+  background-position: calc(100% - 1.15rem) center, calc(100% - 0.8rem) center, 0 0;
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-repeat: no-repeat;
+  color: var(--pub-white-coffee);
+  padding: 0.75rem 2.35rem 0.75rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgb(227 210 184 / 0.05),
+    inset 0 2px 10px rgb(12 5 3 / 0.28),
+    0 0 12px var(--pub-glow-ambient);
+  transition:
+    border-color var(--pub-dur-fast) var(--pub-ease),
+    box-shadow var(--pub-dur-fast) var(--pub-ease),
+    background-color var(--pub-dur-fast) var(--pub-ease);
+}
+
+html[dir="rtl"] .line-select {
+  padding: 0.75rem 1rem 0.75rem 2.35rem;
+  background-position: calc(0% + 1.15rem) center, calc(0% + 0.8rem) center, 0 0;
+}
+
+.line-select:hover {
+  border-color: rgb(209 170 132 / 0.36);
+}
+
+.line-select:focus {
+  border-color: var(--pub-accent);
+  box-shadow:
+    0 0 0 3px rgb(214 163 115 / 0.18),
+    0 0 20px var(--pub-glow-strong);
+  outline: none;
+}
+
+.line-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .line-input-search {
@@ -1975,7 +2033,7 @@ html[lang="ar"] .uppercase {
   .products-hero { margin-top: -7.2rem; padding-top: 7.2rem; }
 }
 @media (min-width: 768px) {
-  .products-hero { margin-top: -8.9rem; padding-top: 8.9rem; }
+  .products-hero { margin-top: -7.9rem; padding-top: 7.9rem; }
 }
 
 /* ── Reveal stagger delays ───────────────────────────────────────── */
@@ -2055,7 +2113,92 @@ html[lang="ar"] .uppercase {
   }
 }
 
-/* ── Admin Dashboard ──────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════
+   ADMIN DASHBOARD — centralized visual system (Phase 4A)
+
+   A dedicated --admin-* token layer, kept SEPARATE from the public --pub-*
+   tokens. These tokens drive ONLY the .admin-* classes below and the element
+   defaults scoped under .admin-language-root, so the public website is never
+   affected. Palette = the same warm coffee roles as the public site, but
+   calmer and denser — a premium working tool, not a landing page. Change a
+   value here and it propagates through every admin surface / card / button /
+   chip / input / dropdown / chart.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Coffee palette (roles) */
+  --admin-espresso:     #0c0503;
+  --admin-dark-roast:   #180d09;
+  --admin-mocha:        #42200c;
+  --admin-cappuccino:   #532a12;
+  --admin-latte:        #90603a;
+  --admin-caramel:      #a16e41;
+  --admin-hazelnut:     #c69974;
+  --admin-vanilla:      #d1aa84;
+  --admin-cream:        #d6bb9f;
+  --admin-white-coffee: #e3d2b8;
+  --admin-highlight:    #ffdcc2; /* accent / highlight only */
+
+  /* Surfaces + backgrounds — lifted slightly warmer (Phase 4C) */
+  --admin-bg:        #0d0a07;
+  --admin-surface:   #14100b; /* base panel colour */
+  --admin-surface-2: #191309; /* raised panel / dropdown / tooltip */
+  --admin-card:
+    linear-gradient(150deg, rgb(66 32 12 / 0.10) 0%, rgb(20 14 10 / 0) 46%),
+    linear-gradient(180deg, #16110b 0%, #120d09 100%);
+  --admin-card-hover:
+    linear-gradient(150deg, rgb(83 42 18 / 0.16) 0%, rgb(20 14 10 / 0) 50%),
+    linear-gradient(180deg, #1b140d 0%, #140f0a 100%);
+
+  /* Text — brighter headings, readable captions (never dead-dim) */
+  --admin-heading: #efe0c8;
+  --admin-text:    #e3d2b8;
+  --admin-muted:   rgb(216 191 165 / 0.88);
+  --admin-faint:   rgb(206 166 132 / 0.70);
+
+  /* Borders — golden hairline, brightened slightly (Phase 4C) so every card/
+     input/dropdown edge reads as warm-lit rather than a flat dark line. */
+  --admin-border:        rgb(182 136 94 / 0.20);
+  --admin-border-strong: rgb(198 153 116 / 0.40);
+
+  /* Glow + shadow (warm, subtle — "a tiny lamp behind the edge", never neon) */
+  --admin-glow:         rgb(182 136 94 / 0.22);
+  --admin-glow-ambient: rgb(182 136 94 / 0.07);
+  --admin-shadow:      0 12px 30px rgb(5 3 2 / 0.42);
+  --admin-shadow-lift: 0 20px 46px rgb(5 3 2 / 0.55);
+  --admin-inset:       inset 0 1px 0 rgb(227 210 184 / 0.06);
+
+  /* Interactive */
+  --admin-button:       linear-gradient(150deg, #d1a071 0%, #b6885e 55%, #a16e41 100%);
+  --admin-button-hover: linear-gradient(150deg, #dcab7b 0%, #c2926a 55%, #ab7748 100%);
+  --admin-button-text:  #241206;
+  --admin-input:        rgb(11 8 5 / 0.55);
+  --admin-input-border: rgb(182 136 94 / 0.20);
+  --admin-dropdown:     #191309;
+  --admin-focus-glow:   0 0 0 3px rgb(214 163 115 / 0.16);
+
+  /* Chart palette */
+  --admin-chart-line: #c69974;
+  --admin-chart-2:    #90603a;
+  --admin-chart-3:    #d1aa84;
+  --admin-chart-grid: rgb(227 210 184 / 0.06);
+  --admin-chart-axis: rgb(214 187 159 / 0.6);
+
+  /* Motion */
+  --admin-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * Admin-only re-scopes. Because .admin-language-root wraps the entire admin
+ * tree (and custom properties inherit through display:contents), nudging
+ * --cream-dim brighter HERE lifts every admin caption/label that uses it,
+ * with ZERO effect on the public site's :root value. color-scheme:dark makes
+ * native controls (select popups, scrollbars, date pickers) render dark.
+ */
+.admin-language-root {
+  color-scheme: dark;
+  --cream-dim: #c8ae94; /* was #b79b85 — brighter, readable admin captions */
+}
 
 .admin-language-root[dir="rtl"],
 .admin-language-root[dir="rtl"] * {
@@ -2066,18 +2209,21 @@ html[lang="ar"] .uppercase {
   text-align: right;
 }
 
+/* ── Sidebar navigation ─────────────────────────────────────────────── */
+
 .admin-nav-item {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  margin: 0 0.5rem 2px;
-  padding: 0.55rem 0.75rem;
-  border-radius: 0.5rem;
+  margin: 0 0.5rem 3px;
+  padding: 0.58rem 0.75rem;
+  border-radius: 0.62rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--cream-dim);
+  color: var(--admin-muted);
   border-inline-start: 2px solid transparent;
-  transition: background 130ms ease, color 130ms ease;
+  transition: background 160ms var(--admin-ease), color 160ms var(--admin-ease),
+    box-shadow 160ms var(--admin-ease);
   cursor: pointer;
   overflow: hidden;
   white-space: nowrap;
@@ -2085,23 +2231,64 @@ html[lang="ar"] .uppercase {
 }
 
 .admin-nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--cream);
+  background: rgb(227 210 184 / 0.05);
+  color: var(--admin-white-coffee);
 }
 
 .admin-nav-item.admin-nav-active {
-  background: rgba(182, 136, 94, 0.10);
-  color: var(--cream);
-  border-inline-start-color: var(--gold);
+  background:
+    linear-gradient(100deg, rgb(182 136 94 / 0.22) 0%, rgb(182 136 94 / 0.06) 100%);
+  color: var(--admin-white-coffee);
+  border-inline-start-color: var(--admin-hazelnut);
+  box-shadow: var(--admin-inset), 0 6px 16px rgb(5 3 2 / 0.28);
+}
+
+.admin-nav-item.admin-nav-active svg {
+  color: var(--admin-hazelnut);
+}
+
+/* ── Cards / panels ─────────────────────────────────────────────────── */
+
+.admin-surface {
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 1rem;
+  box-shadow: var(--admin-inset), var(--admin-shadow), 0 0 14px var(--admin-glow-ambient);
+}
+
+/* Interactive card = surface + hover lift. Use where the whole card is clickable. */
+.admin-card {
+  position: relative;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 1rem;
+  box-shadow: var(--admin-inset), var(--admin-shadow), 0 0 14px var(--admin-glow-ambient);
+  transition: transform 200ms var(--admin-ease), box-shadow 200ms var(--admin-ease),
+    border-color 200ms var(--admin-ease), background 200ms var(--admin-ease);
+}
+
+.admin-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--admin-border-strong);
+  background: var(--admin-card-hover);
+  box-shadow: var(--admin-inset), var(--admin-shadow-lift), 0 0 24px var(--admin-glow);
 }
 
 .admin-kpi-card {
   position: relative;
   overflow: hidden;
-  background: #151009;
-  border: 1px solid rgba(182, 136, 94, 0.10);
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
   border-radius: 1rem;
   padding: 1.25rem 1.5rem;
+  box-shadow: var(--admin-inset), var(--admin-shadow), 0 0 14px var(--admin-glow-ambient);
+  transition: border-color 200ms var(--admin-ease), box-shadow 200ms var(--admin-ease);
+}
+
+/* Calm hover for data tiles — brighten border + faint glow, no jumpy lift. */
+.admin-kpi-card:hover {
+  border-color: var(--admin-border-strong);
+  box-shadow: var(--admin-inset), var(--admin-shadow), 0 0 20px var(--admin-glow);
 }
 
 .admin-kpi-card::before {
@@ -2109,33 +2296,739 @@ html[lang="ar"] .uppercase {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(182, 136, 94, 0.04) 0%, transparent 55%);
+  background: linear-gradient(135deg, rgb(182 136 94 / 0.06) 0%, transparent 55%);
   pointer-events: none;
 }
 
-.admin-surface {
-  background: #151009;
-  border: 1px solid rgba(182, 136, 94, 0.10);
-  border-radius: 1rem;
+/* ── Buttons ────────────────────────────────────────────────────────── */
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.62rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  background: rgb(227 210 184 / 0.045);
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-inset);
+  cursor: pointer;
+  transition: transform 130ms var(--admin-ease), box-shadow 130ms var(--admin-ease),
+    background 130ms var(--admin-ease), border-color 130ms var(--admin-ease), color 130ms;
 }
+
+.admin-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--admin-border-strong);
+  background: rgb(227 210 184 / 0.08);
+  color: var(--admin-white-coffee);
+  box-shadow: var(--admin-inset), 0 8px 20px rgb(5 3 2 / 0.35);
+}
+
+.admin-btn:active {
+  transform: translateY(0.5px);
+  box-shadow: inset 0 2px 6px rgb(5 3 2 / 0.4);
+}
+
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--admin-inset);
+}
+
+.admin-btn-primary {
+  color: var(--admin-button-text);
+  background: var(--admin-button);
+  border: 1px solid rgb(182 136 94 / 0.5);
+  box-shadow: var(--admin-inset), 0 10px 24px rgb(5 3 2 / 0.4);
+}
+
+.admin-btn-primary:hover {
+  transform: translateY(-1px);
+  color: var(--admin-button-text);
+  background: var(--admin-button-hover);
+  border-color: rgb(214 163 115 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 14px 30px rgb(5 3 2 / 0.5),
+    0 0 20px var(--admin-glow);
+}
+
+.admin-btn-primary:active {
+  transform: translateY(0.5px);
+  box-shadow: inset 0 2px 6px rgb(5 3 2 / 0.35);
+}
+
+/* ── Filter chips / tabs ────────────────────────────────────────────── */
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.55rem;
+  padding: 0.38rem 0.72rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+  background: rgb(227 210 184 / 0.03);
+  border: 1px solid var(--admin-border);
+  cursor: pointer;
+  transition: transform 130ms var(--admin-ease), background 130ms var(--admin-ease),
+    border-color 130ms var(--admin-ease), color 130ms var(--admin-ease);
+}
+
+.admin-chip:hover {
+  color: var(--admin-white-coffee);
+  border-color: var(--admin-border-strong);
+  background: rgb(227 210 184 / 0.06);
+}
+
+.admin-chip-active {
+  color: var(--admin-button-text);
+  background: linear-gradient(150deg, #d1a071, #b6885e);
+  border-color: rgb(214 163 115 / 0.55);
+  box-shadow: var(--admin-inset), 0 6px 16px rgb(5 3 2 / 0.35);
+}
+
+.admin-chip-active:hover {
+  color: var(--admin-button-text);
+}
+
+/* ── Language pill (topbar) — matches the public warm pill language ───── */
+
+.admin-lang-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  padding: 0 0.85rem;
+  min-height: 2.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--admin-white-coffee);
+  background:
+    linear-gradient(145deg, rgb(66 32 12 / 0.24), rgb(12 5 3 / 0.36)),
+    rgb(24 13 9 / 0.34);
+  border: 1px solid rgb(209 170 132 / 0.32);
+  box-shadow: 0 8px 22px rgb(5 3 2 / 0.3), var(--admin-inset);
+  cursor: pointer;
+  transition: transform 160ms var(--admin-ease), box-shadow 160ms var(--admin-ease),
+    border-color 160ms var(--admin-ease), color 160ms var(--admin-ease);
+}
+
+.admin-lang-pill:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  border-color: rgb(227 210 184 / 0.5);
+  box-shadow: 0 12px 28px rgb(5 3 2 / 0.36), 0 0 16px var(--admin-glow), var(--admin-inset);
+}
+
+.admin-lang-pill:active {
+  transform: translateY(0.5px);
+}
+
+.admin-lang-pill svg {
+  color: var(--admin-hazelnut);
+}
+
+/* ── Inputs / selects / dropdowns — admin-scoped element defaults ──────
+   Low-specificity so any existing inline styles still win; this just gives
+   un-styled native controls a warm dark-glass focus + dark option list.
+   Scoped to .admin-language-root, so checkout/profile/public forms are
+   untouched. ─────────────────────────────────────────────────────────── */
+
+.admin-input {
+  width: 100%;
+  border-radius: 0.62rem;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--admin-text);
+  background: var(--admin-input);
+  border: 1px solid var(--admin-input-border);
+  box-shadow: var(--admin-inset), 0 0 10px var(--admin-glow-ambient);
+  outline: none;
+  transition: border-color 140ms var(--admin-ease), box-shadow 140ms var(--admin-ease);
+}
+
+.admin-input::placeholder {
+  color: var(--admin-faint);
+}
+
+.admin-input:focus {
+  border-color: rgb(214 163 115 / 0.42);
+  box-shadow: var(--admin-inset), var(--admin-focus-glow);
+}
+
+.admin-language-root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.admin-language-root textarea:focus,
+.admin-language-root select:focus {
+  outline: none;
+  box-shadow: var(--admin-focus-glow);
+}
+
+.admin-language-root select option,
+.admin-language-root select optgroup {
+  background: var(--admin-dropdown);
+  color: var(--admin-text);
+}
+
+/* Slightly brighter, still-secondary placeholders across admin forms. */
+.admin-language-root input::placeholder,
+.admin-language-root textarea::placeholder {
+  color: var(--admin-faint);
+}
+
+/* ── Shell ambience (Phase 4C) — warm coffee glow behind the whole admin
+   workspace, so the dark field reads as "lit from behind the cards"
+   instead of flat black. Applied via className (not inline style) so the
+   gate screens (loading/error/forbidden) and the authorized shell share
+   one source of truth. ─────────────────────────────────────────────── */
+
+.admin-shell-bg {
+  background:
+    radial-gradient(1100px 620px at 16% -8%, rgb(90 46 18 / 0.22), transparent 60%),
+    radial-gradient(900px 520px at 102% 6%, rgb(66 32 12 / 0.16), transparent 58%),
+    radial-gradient(1000px 560px at 50% 120%, rgb(66 32 12 / 0.14), transparent 62%),
+    var(--admin-bg);
+}
+
+.admin-content-bg {
+  background:
+    radial-gradient(1200px 640px at 18% -8%, rgb(90 46 18 / 0.20), transparent 62%),
+    radial-gradient(900px 520px at 100% 100%, rgb(66 32 12 / 0.14), transparent 60%),
+    var(--admin-bg);
+}
+
+/* ── Misc ───────────────────────────────────────────────────────────── */
 
 .admin-topbar-divider {
   width: 1px;
   height: 18px;
-  background: rgba(182, 136, 94, 0.14);
+  background: rgba(182, 136, 94, 0.16);
   flex-shrink: 0;
 }
 
 .admin-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 .admin-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .admin-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(182, 136, 94, 0.18);
-  border-radius: 2px;
+  background: rgba(182, 136, 94, 0.20);
+  border-radius: 3px;
 }
 .admin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(182, 136, 94, 0.30);
+  background: rgba(182, 136, 94, 0.34);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ADMIN DASHBOARD — Phase 4B corrective pass: full component system
+   Everything below is a real class meant to be applied directly in
+   admin page/component markup (not just tokens). Typography, badges,
+   tables, tabs, selects, drawers/modals, empty states, page headers,
+   icon chips, progress bars, danger buttons.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Typography hierarchy ───────────────────────────────────────────── */
+
+.admin-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-page-title {
+  font-family: var(--font-playfair);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--admin-heading);
+  letter-spacing: -0.01em;
+}
+
+.admin-page-subtitle {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--admin-muted);
+}
+
+.admin-section-title {
+  font-family: var(--font-playfair);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--admin-heading);
+  letter-spacing: -0.005em;
+}
+
+.admin-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--admin-heading);
+}
+
+.admin-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-faint);
+}
+
+.admin-value {
+  font-family: var(--font-playfair);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--admin-white-coffee);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-value-sm {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-white-coffee);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-text {
+  color: var(--admin-text);
+}
+
+.admin-muted {
+  color: var(--admin-muted);
+}
+
+.admin-caption {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+}
+
+.admin-faint {
+  color: var(--admin-faint);
+}
+
+.admin-link {
+  color: var(--admin-hazelnut);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 140ms var(--admin-ease), opacity 140ms var(--admin-ease);
+}
+
+.admin-link:hover {
+  color: var(--admin-highlight);
+}
+
+.admin-trend-up {
+  color: #8fcf9a;
+  font-weight: 600;
+}
+
+.admin-trend-down {
+  color: #e39a8c;
+  font-weight: 600;
+}
+
+.admin-divider {
+  height: 1px;
+  width: 100%;
+  background: var(--admin-border);
+}
+
+/* ── Icon chip (circular icon shell — KPI cards, feature rows) ───────── */
+
+.admin-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(150deg, rgb(198 153 116 / 0.20), rgb(66 32 12 / 0.30));
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-inset), 0 6px 14px rgb(5 3 2 / 0.3);
+  color: var(--admin-hazelnut);
+}
+
+.admin-icon-chip.admin-icon-chip-alert {
+  background: linear-gradient(150deg, rgb(227 154 140 / 0.22), rgb(66 32 12 / 0.30));
+  color: #e39a8c;
+}
+
+.admin-icon-chip.admin-icon-chip-success {
+  background: linear-gradient(150deg, rgb(143 207 154 / 0.20), rgb(66 32 12 / 0.30));
+  color: #8fcf9a;
+}
+
+/* ── Badges / status pills ──────────────────────────────────────────── */
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.admin-badge-neutral {
+  color: var(--admin-text);
+  background: rgb(227 210 184 / 0.08);
+  border-color: var(--admin-border);
+}
+
+.admin-badge-gold {
+  color: #2a1608;
+  background: linear-gradient(150deg, #dcab7b, #b6885e);
+}
+
+.admin-badge-success {
+  color: #16261a;
+  background: linear-gradient(150deg, #a9e0b2, #6fb87e);
+}
+
+.admin-badge-warning {
+  color: #2e1d08;
+  background: linear-gradient(150deg, #f0c785, #d9a34f);
+}
+
+.admin-badge-danger {
+  color: #341210;
+  background: linear-gradient(150deg, #eeaa9d, #d9705d);
+}
+
+.admin-badge-info {
+  color: #101d2e;
+  background: linear-gradient(150deg, #a7cdea, #6ea3cf);
+}
+
+.admin-badge-outline-success {
+  color: #8fcf9a;
+  background: rgb(143 207 154 / 0.10);
+  border-color: rgb(143 207 154 / 0.35);
+}
+
+.admin-badge-outline-warning {
+  color: #e3b673;
+  background: rgb(227 182 115 / 0.10);
+  border-color: rgb(227 182 115 / 0.35);
+}
+
+.admin-badge-outline-danger {
+  color: #e39a8c;
+  background: rgb(227 154 140 / 0.10);
+  border-color: rgb(227 154 140 / 0.35);
+}
+
+/* ── Tabs / segmented control ───────────────────────────────────────── */
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 140ms var(--admin-ease), color 140ms var(--admin-ease),
+    border-color 140ms var(--admin-ease), box-shadow 140ms var(--admin-ease);
+}
+
+.admin-tab:hover {
+  color: var(--admin-white-coffee);
+  background: rgb(227 210 184 / 0.05);
+}
+
+.admin-tab-active {
+  color: var(--admin-button-text);
+  background: var(--admin-button);
+  border-color: rgb(182 136 94 / 0.5);
+  box-shadow: var(--admin-inset), 0 8px 18px rgb(5 3 2 / 0.35);
+}
+
+.admin-tab-active:hover {
+  color: var(--admin-button-text);
+  background: var(--admin-button-hover);
+}
+
+/* ── Danger / ghost button variants ─────────────────────────────────── */
+
+.admin-btn-danger {
+  color: #f3d8d2;
+  background: linear-gradient(150deg, rgb(196 90 72 / 0.28), rgb(120 44 32 / 0.30));
+  border: 1px solid rgb(212 122 104 / 0.4);
+  box-shadow: var(--admin-inset);
+}
+
+.admin-btn-danger:hover {
+  transform: translateY(-1px);
+  color: #ffe4de;
+  background: linear-gradient(150deg, rgb(212 110 90 / 0.4), rgb(140 54 40 / 0.4));
+  border-color: rgb(230 145 125 / 0.55);
+  box-shadow: var(--admin-inset), 0 10px 22px rgb(5 3 2 / 0.4);
+}
+
+.admin-btn-danger:active {
+  transform: translateY(0.5px);
+}
+
+.admin-btn-ghost {
+  color: var(--admin-muted);
+  background: transparent;
+  border: 1px solid var(--admin-border);
+  box-shadow: none;
+}
+
+.admin-btn-ghost:hover {
+  color: var(--admin-white-coffee);
+  background: rgb(227 210 184 / 0.05);
+  border-color: var(--admin-border-strong);
+  box-shadow: none;
+}
+
+.admin-btn-sm {
+  padding: 0.36rem 0.7rem;
+  font-size: 0.72rem;
+  border-radius: 0.5rem;
+}
+
+/* ── Inputs / selects (drop-in classes, no markup change needed) ────── */
+
+.admin-language-root select.admin-select,
+.admin-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  border-radius: 0.62rem;
+  padding: 0.55rem 2.15rem 0.55rem 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--admin-text);
+  background-color: var(--admin-input);
+  background-image:
+    linear-gradient(150deg, rgb(66 32 12 / 0.10) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 50%, var(--admin-hazelnut) 50%),
+    linear-gradient(135deg, var(--admin-hazelnut) 50%, transparent 50%);
+  background-position: 0 0, calc(100% - 1.2rem) center, calc(100% - 0.85rem) center;
+  background-size: 100% 100%, 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  border: 1px solid var(--admin-input-border);
+  box-shadow: var(--admin-inset), 0 0 10px var(--admin-glow-ambient);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 140ms var(--admin-ease), box-shadow 140ms var(--admin-ease);
+}
+
+html[dir="rtl"] .admin-select {
+  padding: 0.55rem 0.8rem 0.55rem 2.15rem;
+  background-position: 0 0, calc(0% + 1.2rem) center, calc(0% + 0.85rem) center;
+}
+
+.admin-select:hover {
+  border-color: var(--admin-border-strong);
+  box-shadow: var(--admin-inset), 0 0 16px var(--admin-glow);
+}
+
+.admin-select:focus {
+  border-color: rgb(214 163 115 / 0.42);
+  box-shadow: var(--admin-inset), var(--admin-focus-glow), 0 0 18px var(--admin-glow);
+}
+
+.admin-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-textarea {
+  width: 100%;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--admin-text);
+  background: var(--admin-input);
+  border: 1px solid var(--admin-input-border);
+  box-shadow: var(--admin-inset);
+  outline: none;
+  resize: vertical;
+  transition: border-color 140ms var(--admin-ease), box-shadow 140ms var(--admin-ease);
+}
+
+.admin-textarea:focus {
+  border-color: rgb(214 163 115 / 0.42);
+  box-shadow: var(--admin-inset), var(--admin-focus-glow);
+}
+
+.admin-textarea::placeholder,
+.admin-input::placeholder {
+  color: var(--admin-faint);
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────── */
+
+.admin-table-wrap {
+  border-radius: 1rem;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  box-shadow: var(--admin-inset), var(--admin-shadow);
+  overflow: hidden;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.admin-table thead th {
+  text-align: left;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-faint);
+  background: rgb(227 210 184 / 0.035);
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+}
+
+html[dir="rtl"] .admin-table thead th {
+  text-align: right;
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid rgb(227 210 184 / 0.05);
+  transition: background 140ms var(--admin-ease);
+}
+
+.admin-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: rgb(227 210 184 / 0.035);
+}
+
+.admin-table tbody td {
+  padding: 0.85rem 1.1rem;
+  color: var(--admin-text);
+  vertical-align: middle;
+}
+
+.admin-table tbody td.admin-td-strong {
+  color: var(--admin-white-coffee);
+  font-weight: 600;
+}
+
+.admin-table-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Empty states ────────────────────────────────────────────────────── */
+
+.admin-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px dashed var(--admin-border-strong);
+  background: rgb(227 210 184 / 0.02);
+  color: var(--admin-muted);
+}
+
+.admin-empty-state .admin-empty-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(227 210 184 / 0.06);
+  color: var(--admin-faint);
+  margin-bottom: 0.25rem;
+}
+
+/* ── Progress bars ───────────────────────────────────────────────────── */
+
+.admin-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgb(227 210 184 / 0.08);
+  box-shadow: inset 0 1px 2px rgb(5 3 2 / 0.4);
+  overflow: hidden;
+}
+
+.admin-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--admin-caramel), var(--admin-hazelnut));
+  transition: width 320ms var(--admin-ease);
+}
+
+/* ── Drawers / modals ────────────────────────────────────────────────── */
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(5 3 2 / 0.6);
+  backdrop-filter: blur(3px);
+}
+
+.admin-drawer-surface,
+.admin-modal-surface {
+  background: linear-gradient(150deg, rgb(66 32 12 / 0.08) 0%, rgb(20 14 10 / 0) 40%),
+    linear-gradient(180deg, #171109 0%, #120d09 100%);
+  border: 1px solid var(--admin-border-strong);
+  box-shadow: var(--admin-inset), 0 30px 70px rgb(5 3 2 / 0.6), 0 0 30px var(--admin-glow-ambient);
+}
+
+.admin-drawer-header {
+  border-bottom: 1px solid var(--admin-border);
+  background: rgb(227 210 184 / 0.02);
+}
+
+.admin-drawer-footer {
+  border-top: 1px solid var(--admin-border);
+  background: rgb(227 210 184 / 0.02);
+}
+
+/* ── Filter / toolbar row ───────────────────────────────────────────── */
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-inset), var(--admin-shadow);
 }

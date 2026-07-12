@@ -10,6 +10,7 @@ import { useWishlist } from "@/lib/hooks/useWishlist";
 import type { VisualProduct } from "@/types/homepage";
 import type { PublicCatalogProduct } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 // ─── Type helpers ─────────────────────────────────────────────────────────────
 
@@ -252,7 +253,7 @@ export function ProductCard({
                       </span>
                     </div>
                     <span className="shrink-0 text-[9px] font-semibold text-[#D6A373]/85 sm:text-[10px]">
-                      {b.pct}%
+                      <MixedNumeric text={`${b.pct}%`} />
                     </span>
                   </div>
                 ))}

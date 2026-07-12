@@ -38,26 +38,17 @@ function Surface({
   children: ReactNode;
 }) {
   return (
-    <section
-      className="rounded-2xl border p-5 md:p-6"
-      style={{ borderColor: "rgba(182,136,94,0.16)", background: "rgba(245,230,216,0.02)" }}
-    >
+    <section className="admin-surface p-5 md:p-6">
       <div className="mb-4 flex items-start gap-3">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: "rgba(182,136,94,0.12)", color: "var(--gold)" }}
-        >
+        <span className="admin-icon-chip !h-9 !w-9">
           {icon}
         </span>
         <div className="min-w-0">
-          <h2
-            className="text-sm font-semibold"
-            style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
-          >
+          <h2 className="admin-card-title !text-sm" style={{ fontFamily: "var(--font-playfair)" }}>
             {title}
           </h2>
           {description && (
-            <p className="mt-0.5 text-xs leading-relaxed text-[#B79B85]/70">{description}</p>
+            <p className="mt-0.5 text-xs leading-relaxed admin-muted">{description}</p>
           )}
         </div>
       </div>
@@ -85,7 +76,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#B79B85]/70">
+      <span className="admin-label mb-1.5 block !text-[11px] !tracking-wide">
         {label}
       </span>
       <input
@@ -94,14 +85,9 @@ function Field({
         dir={dir}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors focus:border-[#B6885E]/50"
-        style={{
-          borderColor: "rgba(182,136,94,0.2)",
-          background: "rgba(11,8,6,0.6)",
-          color: "var(--cream)",
-        }}
+        className="admin-input !text-sm"
       />
-      {hint && <span className="mt-1 block text-[11px] text-[#B79B85]/55">{hint}</span>}
+      {hint && <span className="mt-1 block text-[11px] admin-faint">{hint}</span>}
     </label>
   );
 }
@@ -121,7 +107,7 @@ function TextAreaField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[#B79B85]/70">
+      <span className="admin-label mb-1.5 block !text-[11px] !tracking-wide">
         {label}
       </span>
       <textarea
@@ -129,14 +115,9 @@ function TextAreaField({
         rows={3}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none transition-colors focus:border-[#B6885E]/50"
-        style={{
-          borderColor: "rgba(182,136,94,0.2)",
-          background: "rgba(11,8,6,0.6)",
-          color: "var(--cream)",
-        }}
+        className="admin-textarea !resize-y !text-sm"
       />
-      {hint && <span className="mt-1 block text-[11px] text-[#B79B85]/55">{hint}</span>}
+      {hint && <span className="mt-1 block text-[11px] admin-faint">{hint}</span>}
     </label>
   );
 }
@@ -160,14 +141,14 @@ function Toggle({
     >
       <span
         className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
-        style={{ background: checked ? "rgba(74,222,128,0.55)" : "rgba(182,136,94,0.22)" }}
+        style={{ background: checked ? "linear-gradient(90deg, #6fb87e, #8fcf9a)" : "var(--admin-border-strong)" }}
       >
         <span
-          className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+          className="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform"
           style={{ transform: checked ? "translateX(24px)" : "translateX(4px)" }}
         />
       </span>
-      <span className="text-sm" style={{ color: "var(--cream)" }}>
+      <span className="text-sm admin-text">
         {label}
       </span>
     </button>
@@ -234,8 +215,8 @@ export default function AdminSettingsPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-3 h-7 w-7 animate-spin text-[#D6A373]" />
-          <p className="text-sm text-[#B79B85]/70">Loading settings…</p>
+          <Loader2 className="mx-auto mb-3 h-7 w-7 animate-spin" style={{ color: "var(--admin-hazelnut)" }} />
+          <p className="text-sm admin-muted">Loading settings…</p>
         </div>
       </div>
     );
@@ -244,10 +225,10 @@ export default function AdminSettingsPage() {
   if (loadError) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-2xl border border-amber-400/25 bg-[#1A1209] p-6 text-center">
-          <AlertTriangle className="mx-auto mb-3 h-7 w-7 text-amber-400" />
-          <p className="text-sm font-semibold text-[#F5E6D8]">Couldn’t load settings</p>
-          <p className="mt-1.5 text-xs leading-relaxed text-[#B79B85]/70">{loadError}</p>
+        <div className="admin-drawer-surface w-full max-w-sm rounded-2xl p-6 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-7 w-7" style={{ color: "#e3b673" }} />
+          <p className="text-sm font-semibold" style={{ color: "var(--admin-heading)" }}>Couldn’t load settings</p>
+          <p className="mt-1.5 text-xs leading-relaxed admin-muted">{loadError}</p>
           <button
             type="button"
             onClick={() => void load()}
@@ -265,23 +246,15 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1
-            className="text-lg font-semibold"
-            style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
-          >
+          <h1 className="admin-page-title !text-lg">
             Store Settings
           </h1>
-          <p className="mt-0.5 text-xs text-[#B79B85]/70">
+          <p className="mt-0.5 text-xs admin-muted">
             Your store details, saved to Supabase.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg border border-[#B6885E]/20 px-3 py-2 text-xs font-medium text-[#D6B79A]/85 transition-colors hover:text-[#F5E6D8] disabled:opacity-50"
-          >
+          <button type="button" onClick={() => void load()} disabled={saving} className="admin-btn flex items-center gap-1.5 !px-3 !py-2 !text-xs">
             <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </button>
           <button
@@ -303,10 +276,10 @@ export default function AdminSettingsPage() {
       {/* Honest info line */}
       <div
         className="mb-5 flex items-start gap-2.5 rounded-xl border px-4 py-3"
-        style={{ borderColor: "rgba(96,165,250,0.22)", background: "rgba(96,165,250,0.06)" }}
+        style={{ borderColor: "rgba(143,176,217,0.24)", background: "rgba(143,176,217,0.06)" }}
       >
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#60a5fa]" />
-        <p className="text-xs leading-relaxed text-[#B79B85]/80">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#8fb0d9" }} />
+        <p className="text-xs leading-relaxed admin-text">
           These are your real store settings and are saved to the database. Delivery
           fees are still calculated by the checkout engine and are not editable here.
           The store-status flag is stored for reference and is not yet enforced at
@@ -494,7 +467,7 @@ export default function AdminSettingsPage() {
         </Surface>
 
         {/* Footer note */}
-        <div className="flex items-center gap-2 px-1 text-[11px] text-[#B79B85]/45">
+        <div className="flex items-center gap-2 px-1 text-[11px] admin-faint">
           <MapPin className="h-3.5 w-3.5" />
           <span>All fields above are saved to your store settings in Supabase.</span>
         </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { cn } from "@/lib/utils/cn";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 import {
   espressoBeans,
   metricLabels,
@@ -319,7 +320,7 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
           </div>
         </div>
       ) : (
-        <section className="relative -mt-[6.4rem] min-h-[28rem] overflow-hidden border-b border-[#B6885E]/14 bg-[#0B0806] pb-12 pt-[calc(6.4rem+3rem)] sm:-mt-[7.2rem] sm:min-h-[30rem] sm:pb-14 sm:pt-[calc(7.2rem+3.5rem)] md:-mt-[8.9rem] md:min-h-[32rem] md:pb-16 md:pt-[calc(8.9rem+4rem)]">
+        <section className="relative -mt-[6.4rem] min-h-[28rem] overflow-hidden border-b border-[#B6885E]/14 bg-[#0B0806] pb-12 pt-[calc(6.4rem+3rem)] sm:-mt-[7.2rem] sm:min-h-[30rem] sm:pb-14 sm:pt-[calc(7.2rem+3.5rem)] md:-mt-[7.9rem] md:min-h-[32rem] md:pb-16 md:pt-[calc(7.9rem+4rem)]">
           <div className="absolute inset-0 opacity-55" aria-hidden="true">
             <Image
               src="/assets/hero/dark-roast.png"
@@ -585,7 +586,7 @@ function GuidePanel({
               <div key={bean.id} className="flex items-center justify-between gap-3 text-sm">
                 <span className="min-w-0 truncate text-[#F5E6D8]/84">{t(bean.name)}</span>
                 <span className="shrink-0 font-bold text-[#D6A373]">
-                  {formatPercent(getRatio(suggestedRatios, bean.id))}%
+                  <MixedNumeric text={`${formatPercent(getRatio(suggestedRatios, bean.id))}%`} />
                 </span>
               </div>
             ))}
@@ -622,7 +623,7 @@ function ToggleChip({
           : "border-[#B6885E]/16 bg-[#0B0806]/42 text-[#D6B79A]/70 hover:border-[#D6A373]/32 hover:text-[#F5E6D8]",
       )}
     >
-      {t(label)}
+      <MixedNumeric text={t(label)} />
     </button>
   );
 }
@@ -712,7 +713,9 @@ function SmartBlendConsole({
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[#D6A373]/18 bg-[#0B0806]/38 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-[#D6B79A]/72">
             {t({ en: "Suggested ratio", ar: "النسبة المقترحة" })}:{" "}
-            {selectedBeans.map((bean) => `${t(bean.name)} ${formatPercent(getRatio(pendingRatios, bean.id))}%`).join(" · ")}
+            <MixedNumeric
+              text={selectedBeans.map((bean) => `${t(bean.name)} ${formatPercent(getRatio(pendingRatios, bean.id))}%`).join(" · ")}
+            />
           </p>
           <button
             type="button"
@@ -845,16 +848,16 @@ function BeanLibrary({
                       className="h-7 w-14 rounded-lg border border-[#B6885E]/18 bg-[#120D09]/90 px-2 text-center text-xs font-bold text-[#F5E6D8] outline-none transition-colors focus:border-[#D6A373]/60"
                       aria-label={`${t(bean.name)} ratio`}
                     />
-                    <span className="font-bold">%</span>
+                    <span className="font-bold"><MixedNumeric text="%" /></span>
                   </label>
                 )}
 
                 {disabled && (
                   <p className="mt-2 rounded-xl border border-[#D6A373]/16 bg-[#D6A373]/8 px-3 py-2 text-xs leading-5 text-[#D6A373]">
-                    {t({
+                    <MixedNumeric text={t({
                       en: "Not available with 100% Arabica",
                       ar: "غير متاح مع اختيار 100% أرابيكا",
-                    })}
+                    })} />
                   </p>
                 )}
 
@@ -1095,11 +1098,11 @@ function LiveBlendCart({
                             className="h-8 w-16 rounded-lg border border-[#B6885E]/18 bg-[#120D09]/80 px-2 text-center text-xs font-bold text-[#F5E6D8] outline-none focus:border-[#D6A373]/60"
                             aria-label={`${t(bean.name)} ratio`}
                           />
-                          <span className="text-xs font-bold text-[#D6A373]">%</span>
+                          <span className="text-xs font-bold text-[#D6A373]"><MixedNumeric text="%" /></span>
                         </label>
                       ) : (
-                        <span className="arabic-number shrink-0 rounded-full border border-[#D6A373]/22 bg-[#D6A373]/10 px-2.5 py-1 text-xs font-bold text-[#D6A373]">
-                          {formatPercent(percent)}%
+                        <span className="shrink-0 rounded-full border border-[#D6A373]/22 bg-[#D6A373]/10 px-2.5 py-1 text-xs font-bold text-[#D6A373]">
+                          <MixedNumeric text={`${formatPercent(percent)}%`} />
                         </span>
                       )}
                     </div>
@@ -1118,9 +1121,9 @@ function LiveBlendCart({
                 : "border-[#F59E0B]/26 bg-[#F59E0B]/10 text-[#F6D59B]",
             )}>
               {t({ en: "Total", ar: "المجموع" })}:{" "}
-              <span className="arabic-number font-bold">{formatPercent(ratioTotal)}%</span>
+              <span className="font-bold"><MixedNumeric text={`${formatPercent(ratioTotal)}%`} /></span>
               {!manualTotalIsValid && (
-                <span className="ms-2">{t({ en: "Must equal 100%.", ar: "يجب أن يساوي 100%." })}</span>
+                <span className="ms-2"><MixedNumeric text={t({ en: "Must equal 100%.", ar: "يجب أن يساوي 100%." })} /></span>
               )}
             </div>
           )}

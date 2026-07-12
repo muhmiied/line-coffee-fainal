@@ -44,6 +44,7 @@ import {
   type Supplier,
 } from "@/lib/admin/admin-purchasing";
 import type { OrderStatus } from "@/lib/types/order";
+import { MixedNumeric } from "@/components/shared/MixedNumeric";
 
 type ActiveTab = "overview" | "revenue" | "purchases" | "expenses" | "suppliers" | "activity";
 type ActivityFilter = "All" | "in" | "out" | "neutral";
@@ -59,12 +60,12 @@ const TABS: Array<{ key: ActiveTab; label: string; icon: LucideIcon }> = [
 ];
 
 const TONE_STYLE: Record<Tone, { color: string; bg: string; border: string }> = {
-  gold: { color: "var(--gold)", bg: "rgba(182,136,94,0.12)", border: "rgba(182,136,94,0.24)" },
-  green: { color: "#4ade80", bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.24)" },
-  blue: { color: "#60a5fa", bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)" },
-  amber: { color: "#fbbf24", bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.24)" },
-  red: { color: "#f87171", bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.24)" },
-  cream: { color: "var(--cream)", bg: "rgba(245,230,216,0.07)", border: "rgba(245,230,216,0.14)" },
+  gold: { color: "var(--admin-hazelnut)", bg: "var(--admin-border)", border: "var(--admin-border-strong)" },
+  green: { color: "#8fcf9a", bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.24)" },
+  blue: { color: "#8fb0d9", bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.24)" },
+  amber: { color: "#e3b673", bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.24)" },
+  red: { color: "#e39a8c", bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.24)" },
+  cream: { color: "var(--admin-white-coffee)", bg: "rgba(245,230,216,0.07)", border: "rgba(245,230,216,0.14)" },
 };
 
 const STATUS_TONE: Record<OrderStatus, Tone> = {
@@ -156,13 +157,9 @@ const EMPTY_EXPENSE_FORM: ExpenseFormState = {
   notes: "",
 };
 
-const INPUT_STYLE = {
-  background: "rgba(255,255,255,0.045)",
-  border: "1px solid rgba(182,136,94,0.15)",
-  color: "var(--cream)",
-} as const;
+const INPUT_STYLE = {} as const;
 
-const SELECT_STYLE = { ...INPUT_STYLE, colorScheme: "dark" as const };
+const SELECT_STYLE = { colorScheme: "dark" as const };
 
 // Local YYYY-MM-DD for the default expense date. Called only from event handlers
 // (never during render) so it stays clear of the react-hooks purity rule.
@@ -175,10 +172,7 @@ function todayLocal(): string {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span
-        className="mb-1.5 block text-[10.5px] font-semibold uppercase tracking-wider"
-        style={{ color: "var(--cream-dim)", opacity: 0.5 }}
-      >
+      <span className="admin-label mb-1.5 block !text-[10.5px]">
         {label}
       </span>
       {children}
@@ -217,16 +211,16 @@ function Surface({
     <section className="admin-surface overflow-hidden">
       <div
         className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
-        style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
+        style={{ borderBottom: "1px solid var(--admin-border)" }}
       >
         <div className="flex min-w-0 items-start gap-3">
           {Icon && (
             <span
               className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
               style={{
-                color: "var(--gold)",
-                background: "rgba(182,136,94,0.10)",
-                border: "1px solid rgba(182,136,94,0.16)",
+                color: "var(--admin-hazelnut)",
+                background: "var(--admin-border)",
+                border: "1px solid var(--admin-border-strong)",
               }}
             >
               <Icon size={15} />
@@ -235,12 +229,12 @@ function Surface({
           <div className="min-w-0">
             <p
               className="text-[11px] font-semibold uppercase tracking-wider"
-              style={{ color: "var(--cream-dim)", opacity: 0.55 }}
+              style={{ color: "var(--admin-muted)", opacity: 0.55 }}
             >
               {title}
             </p>
             {caption && (
-              <p className="mt-1 max-w-3xl text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+              <p className="mt-1 max-w-3xl text-[12px] leading-relaxed" style={{ color: "var(--admin-muted)", opacity: 0.58 }}>
                 {caption}
               </p>
             )}
@@ -271,11 +265,11 @@ function KpiCard({
     <article className="admin-kpi-card py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--cream-dim)", opacity: 0.46 }}>
+          <p className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--admin-muted)", opacity: 0.46 }}>
             {label}
           </p>
           <p className="mt-1 text-[20px] font-bold leading-tight" style={{ color: style.color }}>
-            {value}
+            <MixedNumeric text={value} />
           </p>
         </div>
         {Icon && (
@@ -288,8 +282,8 @@ function KpiCard({
         )}
       </div>
       {caption && (
-        <p className="mt-2 text-[11.5px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.52 }}>
-          {caption}
+        <p className="mt-2 text-[11.5px] leading-relaxed" style={{ color: "var(--admin-muted)", opacity: 0.52 }}>
+          <MixedNumeric text={caption} />
         </p>
       )}
     </article>
@@ -302,7 +296,7 @@ function Note({ children, tone = "gold" }: { children: ReactNode; tone?: Tone })
     <div
       role={tone === "red" ? "alert" : undefined}
       className="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed"
-      style={{ color: "var(--cream-dim)", background: style.bg, borderColor: style.border }}
+      style={{ color: "var(--admin-muted)", background: style.bg, borderColor: style.border }}
     >
       <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" style={{ color: style.color }} />
       <span>{children}</span>
@@ -312,14 +306,11 @@ function Note({ children, tone = "gold" }: { children: ReactNode; tone?: Tone })
 
 function EmptyState({ icon: Icon, message }: { icon: LucideIcon; message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-      <span
-        className="flex h-10 w-10 items-center justify-center rounded-full"
-        style={{ color: "var(--cream-dim)", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(182,136,94,0.12)" }}
-      >
+    <div className="admin-empty-state !border-0 !rounded-none">
+      <span className="admin-empty-icon">
         <Icon size={17} />
       </span>
-      <p className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
+      <p className="text-[12.5px] admin-muted">
         {message}
       </p>
     </div>
@@ -343,7 +334,7 @@ function MonthlyTrendChart({ points }: { points: AdminAccountingData["monthly"] 
     <div className="px-5 py-5">
       <div className="flex flex-wrap gap-3 pb-4">
         {TREND_SERIES.map((series) => (
-          <span key={series.key} className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "var(--cream-dim)" }}>
+          <span key={series.key} className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "var(--admin-muted)" }}>
             <span className="h-2.5 w-2.5 rounded-sm" style={{ background: TONE_STYLE[series.tone].color }} />
             {series.label}
           </span>
@@ -366,7 +357,7 @@ function MonthlyTrendChart({ points }: { points: AdminAccountingData["monthly"] 
                 );
               })}
             </div>
-            <span className="text-[10.5px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
+            <span className="text-[10.5px]" style={{ color: "var(--admin-muted)", opacity: 0.6 }}>
               {point.label}
             </span>
           </div>
@@ -396,24 +387,14 @@ function AddExpenseDrawer({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button type="button" aria-label="Close add expense" className="absolute inset-0 bg-black/55" onClick={onClose} />
-      <aside
-        className="relative flex h-full w-full max-w-[460px] flex-col overflow-hidden"
-        style={{
-          background: "linear-gradient(180deg, #130d09 0%, #0b0806 100%)",
-          borderLeft: "1px solid rgba(182,136,94,0.18)",
-          boxShadow: "-24px 0 80px rgba(0,0,0,0.45)",
-        }}
-      >
-        <div
-          className="flex items-start justify-between gap-4 px-5 py-4"
-          style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}
-        >
+      <button type="button" aria-label="Close add expense" className="admin-modal-overlay absolute inset-0" onClick={onClose} />
+      <aside className="admin-drawer-surface relative flex h-full w-full max-w-[460px] flex-col overflow-hidden">
+        <div className="admin-drawer-header flex items-start justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-[18px] font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <p className="text-[18px] font-bold" style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}>
               Add Expense
             </p>
-            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+            <p className="mt-1 text-[12px] leading-relaxed admin-muted">
               Saves a real operating expense straight to the database.
             </p>
           </div>
@@ -422,8 +403,7 @@ function AddExpenseDrawer({
             onClick={onClose}
             title="Close"
             aria-label="Close"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]"
-            style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+            className="admin-btn admin-btn-sm !w-8 !h-8 !p-0 flex-shrink-0"
           >
             <X size={15} />
           </button>
@@ -445,7 +425,7 @@ function AddExpenseDrawer({
                 type="date"
                 value={form.date}
                 onChange={(event) => onChange({ date: event.target.value })}
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-input !text-[13px]"
                 style={SELECT_STYLE}
               />
             </Field>
@@ -454,7 +434,7 @@ function AddExpenseDrawer({
                 value={form.category}
                 onChange={(event) => onChange({ category: event.target.value })}
                 aria-label="Expense category"
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-select !text-[13px]"
                 style={SELECT_STYLE}
               >
                 <option value="">Select category…</option>
@@ -473,7 +453,7 @@ function AddExpenseDrawer({
                 value={form.amount}
                 onChange={(event) => onChange({ amount: event.target.value })}
                 placeholder="0"
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-input !text-[13px]"
                 style={INPUT_STYLE}
               />
             </Field>
@@ -482,7 +462,7 @@ function AddExpenseDrawer({
                 value={form.method}
                 onChange={(event) => onChange({ method: event.target.value })}
                 aria-label="Expense payment method"
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-select !text-[13px]"
                 style={SELECT_STYLE}
               >
                 {EXPENSE_METHODS.map((method) => (
@@ -499,7 +479,7 @@ function AddExpenseDrawer({
               onChange={(event) => onChange({ notes: event.target.value })}
               rows={3}
               placeholder="Short reason for the expense"
-              className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
+              className="admin-textarea !resize-none !text-[13px]"
               style={INPUT_STYLE}
             />
           </Field>
@@ -507,8 +487,7 @@ function AddExpenseDrawer({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold disabled:opacity-60"
-              style={{ color: "#120d09", background: "var(--gold)" }}
+              className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-4 !py-2 !text-[13px]"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {saving ? "Saving…" : "Save Expense"}
@@ -517,8 +496,7 @@ function AddExpenseDrawer({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04] disabled:opacity-60"
-              style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+              className="admin-btn !px-4 !py-2 !text-[13px]"
             >
               Cancel
             </button>
@@ -657,7 +635,7 @@ function QuickCreateSupplier({
     return (
       <div className="mt-2 space-y-2">
         {createdName && (
-          <p className="text-[11.5px]" style={{ color: "#4ade80" }}>
+          <p className="text-[11.5px]" style={{ color: "#8fcf9a" }}>
             {createdName} created and selected.
           </p>
         )}
@@ -668,8 +646,7 @@ function QuickCreateSupplier({
             setError(null);
             setOpen(true);
           }}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold"
-          style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.18)" }}
+          className="admin-btn admin-btn-sm inline-flex items-center gap-1.5 !px-2.5 !py-1.5 !text-[11.5px]"
         >
           <Plus size={12} /> Add Supplier
         </button>
@@ -679,8 +656,7 @@ function QuickCreateSupplier({
 
   return (
     <div
-      className="mt-2 space-y-3 rounded-lg p-3"
-      style={{ background: "rgba(182,136,94,0.06)", border: "1px solid rgba(182,136,94,0.14)" }}
+      className="admin-surface !shadow-none mt-2 space-y-3 p-3"
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();
@@ -689,7 +665,7 @@ function QuickCreateSupplier({
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[12px] font-semibold" style={{ color: "var(--cream)" }}>New Supplier</p>
+        <p className="text-[12px] font-semibold" style={{ color: "var(--admin-heading)" }}>New Supplier</p>
         <button
           type="button"
           onClick={() => {
@@ -698,8 +674,7 @@ function QuickCreateSupplier({
           }}
           disabled={saving}
           aria-label="Cancel adding supplier"
-          className="flex h-7 w-7 items-center justify-center rounded-lg disabled:opacity-50"
-          style={{ color: "var(--cream-dim)" }}
+          className="admin-btn admin-btn-sm !w-7 !h-7 !p-0"
         >
           <X size={13} />
         </button>
@@ -717,7 +692,7 @@ function QuickCreateSupplier({
             placeholder="Supplier name"
             maxLength={160}
             autoComplete="organization"
-            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            className="admin-input !text-[13px]"
             style={INPUT_STYLE}
           />
         </Field>
@@ -732,7 +707,7 @@ function QuickCreateSupplier({
             placeholder="+20…"
             maxLength={30}
             autoComplete="tel"
-            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            className="admin-input !text-[13px]"
             style={INPUT_STYLE}
           />
         </Field>
@@ -747,7 +722,7 @@ function QuickCreateSupplier({
             placeholder="supplier@example.com"
             maxLength={254}
             autoComplete="email"
-            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            className="admin-input !text-[13px]"
             style={INPUT_STYLE}
           />
         </Field>
@@ -761,7 +736,7 @@ function QuickCreateSupplier({
             }}
             placeholder="Short supplier note"
             maxLength={500}
-            className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+            className="admin-input !text-[13px]"
             style={INPUT_STYLE}
           />
         </Field>
@@ -771,8 +746,7 @@ function QuickCreateSupplier({
           type="button"
           onClick={() => void submit()}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold disabled:opacity-60"
-          style={{ color: "#120d09", background: "var(--gold)" }}
+          className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-3 !py-2 !text-[12px]"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
           {saving ? "Creating…" : "Create Supplier"}
@@ -784,8 +758,7 @@ function QuickCreateSupplier({
             setOpen(false);
           }}
           disabled={saving}
-          className="rounded-lg px-3 py-2 text-[12px] font-semibold disabled:opacity-50"
-          style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+          className="admin-btn !px-3 !py-2 !text-[12px]"
         >
           Cancel
         </button>
@@ -854,27 +827,17 @@ function AddPurchaseDrawer({
       <button
         type="button"
         aria-label="Close add purchase"
-        className="absolute inset-0 bg-black/55 disabled:cursor-wait"
+        className="admin-modal-overlay absolute inset-0 disabled:cursor-wait"
         onClick={onClose}
         disabled={saving}
       />
-      <aside
-        className="relative flex h-full w-full max-w-[620px] flex-col overflow-hidden"
-        style={{
-          background: "linear-gradient(180deg, #130d09 0%, #0b0806 100%)",
-          borderLeft: "1px solid rgba(182,136,94,0.18)",
-          boxShadow: "-24px 0 80px rgba(0,0,0,0.45)",
-        }}
-      >
-        <div
-          className="flex items-start justify-between gap-4 px-5 py-4"
-          style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}
-        >
+      <aside className="admin-drawer-surface relative flex h-full w-full max-w-[620px] flex-col overflow-hidden">
+        <div className="admin-drawer-header flex items-start justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-[18px] font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <p className="text-[18px] font-bold" style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}>
               Add Purchase
             </p>
-            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+            <p className="mt-1 text-[12px] leading-relaxed admin-muted">
               Creates a real draft purchase and supplier payable. Receive it separately when the goods arrive.
             </p>
           </div>
@@ -884,8 +847,7 @@ function AddPurchaseDrawer({
             disabled={saving}
             title="Close"
             aria-label="Close"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05] disabled:opacity-50"
-            style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+            className="admin-btn admin-btn-sm !w-8 !h-8 !p-0 flex-shrink-0"
           >
             <X size={15} />
           </button>
@@ -929,7 +891,7 @@ function AddPurchaseDrawer({
                   onChange={(event) => onChange({ supplierId: event.target.value })}
                   aria-label="Purchase supplier"
                   disabled={activeSuppliers.length === 0}
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
+                  className="admin-select !text-[13px] disabled:opacity-50"
                   style={SELECT_STYLE}
                 >
                   <option value="">Select supplier…</option>
@@ -939,7 +901,7 @@ function AddPurchaseDrawer({
                 </select>
               </Field>
               {normalizedSupplierQuery && matchingSuppliers.length === 0 && (
-                <p className="mt-1.5 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>
+                <p className="mt-1.5 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.62 }}>
                   No supplier matches this search.
                 </p>
               )}
@@ -951,7 +913,7 @@ function AddPurchaseDrawer({
                 value={form.date}
                 onChange={(event) => onChange({ date: event.target.value })}
                 required
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-input !text-[13px]"
                 style={SELECT_STYLE}
               />
             </Field>
@@ -964,14 +926,14 @@ function AddPurchaseDrawer({
               onChange={(event) => onChange({ reference: event.target.value })}
               placeholder="Supplier invoice / PO number"
               maxLength={120}
-              className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+              className="admin-input !text-[13px]"
               style={INPUT_STYLE}
             />
           </Field>
 
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--admin-muted)", opacity: 0.5 }}>
                 Purchase Items
               </p>
               <button
@@ -979,7 +941,7 @@ function AddPurchaseDrawer({
                 onClick={onAddItem}
                 disabled={products.length === 0 || form.items.length >= 200}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-50"
-                style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.18)" }}
+                style={{ color: "var(--admin-hazelnut)", border: "1px solid var(--admin-border-strong)" }}
               >
                 <Plus size={12} /> Add Item
               </button>
@@ -989,17 +951,17 @@ function AddPurchaseDrawer({
                 <div
                   key={item.key}
                   className="rounded-lg p-3"
-                  style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(182,136,94,0.10)" }}
+                  style={{ background: "rgba(255,255,255,0.025)", border: "1px solid var(--admin-border)" }}
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--cream)" }}>Item {index + 1}</span>
+                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>Item {index + 1}</span>
                     <button
                       type="button"
                       onClick={() => onRemoveItem(item.key)}
                       disabled={form.items.length === 1}
                       aria-label={`Remove purchase item ${index + 1}`}
                       className="flex h-7 w-7 items-center justify-center rounded-lg disabled:opacity-30"
-                      style={{ color: "#f87171", border: "1px solid rgba(248,113,113,0.16)" }}
+                      style={{ color: "#e39a8c", border: "1px solid rgba(248,113,113,0.16)" }}
                     >
                       <X size={13} />
                     </button>
@@ -1011,7 +973,7 @@ function AddPurchaseDrawer({
                         onChange={(event) => onItemChange(item.key, { productId: event.target.value })}
                         aria-label={`Product for item ${index + 1}`}
                         required
-                        className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                        className="admin-select !text-[13px]"
                         style={SELECT_STYLE}
                       >
                         <option value="">Select product…</option>
@@ -1032,7 +994,7 @@ function AddPurchaseDrawer({
                         onChange={(event) => onItemChange(item.key, { quantityKg: event.target.value })}
                         placeholder="0"
                         required
-                        className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                        className="admin-input !text-[13px]"
                         style={INPUT_STYLE}
                       />
                     </Field>
@@ -1046,13 +1008,13 @@ function AddPurchaseDrawer({
                         onChange={(event) => onItemChange(item.key, { unitCost: event.target.value })}
                         placeholder="0"
                         required
-                        className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                        className="admin-input !text-[13px]"
                         style={INPUT_STYLE}
                       />
                     </Field>
                   </div>
-                  <p className="mt-2 text-right text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.7 }}>
-                    Line total: <span className="font-semibold" style={{ color: "var(--cream)" }}>{money(purchaseLineTotal(item))}</span>
+                  <p className="mt-2 text-right text-[11.5px]" style={{ color: "var(--admin-muted)", opacity: 0.7 }}>
+                    Line total: <span className="font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{money(purchaseLineTotal(item))}</span>
                   </p>
                 </div>
               ))}
@@ -1066,22 +1028,21 @@ function AddPurchaseDrawer({
               rows={3}
               placeholder="Short note about this purchase"
               maxLength={2000}
-              className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
+              className="admin-textarea !resize-none !text-[13px]"
               style={INPUT_STYLE}
             />
           </Field>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5" style={{ background: "rgba(182,136,94,0.08)" }}>
-            <span className="text-[12px]" style={{ color: "var(--cream-dim)" }}>Draft total · payable increase</span>
-            <span className="text-[14px] font-bold" style={{ color: "var(--gold)" }}>{money(estimatedTotal)}</span>
+          <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5" style={{ background: "var(--admin-border)" }}>
+            <span className="text-[12px]" style={{ color: "var(--admin-muted)" }}>Draft total · payable increase</span>
+            <span className="text-[14px] font-bold" style={{ color: "var(--admin-hazelnut)" }}>{money(estimatedTotal)}</span>
           </div>
 
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
               disabled={saving || cannotCreate}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold disabled:opacity-60"
-              style={{ color: "#120d09", background: "var(--gold)" }}
+              className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-4 !py-2 !text-[13px]"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {saving ? "Creating…" : "Create Purchase"}
@@ -1090,8 +1051,7 @@ function AddPurchaseDrawer({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04] disabled:opacity-60"
-              style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+              className="admin-btn !px-4 !py-2 !text-[13px]"
             >
               Cancel
             </button>
@@ -1199,27 +1159,19 @@ function PaySupplierDrawer({
       <button
         type="button"
         aria-label="Close pay supplier"
-        className="absolute inset-0 bg-black/55 disabled:cursor-wait"
+        className="admin-modal-overlay absolute inset-0 disabled:cursor-wait"
         onClick={onClose}
         disabled={saving}
       />
       <aside
-        className="relative flex h-full w-full max-w-[460px] flex-col overflow-hidden"
-        style={{
-          background: "linear-gradient(180deg, #130d09 0%, #0b0806 100%)",
-          borderLeft: "1px solid rgba(182,136,94,0.18)",
-          boxShadow: "-24px 0 80px rgba(0,0,0,0.45)",
-        }}
+        className="admin-drawer-surface relative flex h-full w-full max-w-[460px] flex-col overflow-hidden"
       >
-        <div
-          className="flex items-start justify-between gap-4 px-5 py-4"
-          style={{ borderBottom: "1px solid rgba(182,136,94,0.10)" }}
-        >
+        <div className="admin-drawer-header flex items-start justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-[18px] font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <p className="text-[18px] font-bold" style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}>
               Pay Supplier
             </p>
-            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+            <p className="mt-1 text-[12px] leading-relaxed admin-muted">
               Records a real payment against an unpaid purchase and lowers the supplier payable.
             </p>
           </div>
@@ -1229,8 +1181,7 @@ function PaySupplierDrawer({
             disabled={saving}
             title="Close"
             aria-label="Close"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05] disabled:opacity-50"
-            style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+            className="admin-btn admin-btn-sm !w-8 !h-8 !p-0 flex-shrink-0"
           >
             <X size={15} />
           </button>
@@ -1239,12 +1190,7 @@ function PaySupplierDrawer({
         {noneToPay ? (
           <div className="flex flex-1 flex-col gap-4 px-5 py-5">
             <Note tone="green">All supplier purchases are settled — there is no outstanding payable to pay right now.</Note>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04]"
-              style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
-            >
+            <button type="button" onClick={onClose} className="admin-btn !px-4 !py-2 !text-[13px]">
               Close
             </button>
           </div>
@@ -1265,7 +1211,7 @@ function PaySupplierDrawer({
                 value={form.supplierId}
                 onChange={(event) => handleSupplierChange(event.target.value)}
                 aria-label="Supplier"
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-select !text-[13px]"
                 style={SELECT_STYLE}
               >
                 <option value="">Select supplier…</option>
@@ -1282,7 +1228,7 @@ function PaySupplierDrawer({
                 onChange={(event) => handlePurchaseChange(event.target.value)}
                 aria-label="Purchase to settle"
                 disabled={!form.supplierId}
-                className="w-full rounded-lg px-3 py-2 text-[13px] outline-none disabled:opacity-50"
+                className="admin-select !text-[13px] disabled:opacity-50"
                 style={SELECT_STYLE}
               >
                 <option value="">{form.supplierId ? "Select purchase…" : "Choose a supplier first"}</option>
@@ -1304,7 +1250,7 @@ function PaySupplierDrawer({
                   onChange={(event) => onChange({ amount: event.target.value })}
                   placeholder="0"
                   required
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  className="admin-input !text-[13px]"
                   style={INPUT_STYLE}
                 />
               </Field>
@@ -1314,7 +1260,7 @@ function PaySupplierDrawer({
                   value={form.date}
                   onChange={(event) => onChange({ date: event.target.value })}
                   required
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  className="admin-input !text-[13px]"
                   style={SELECT_STYLE}
                 />
               </Field>
@@ -1323,7 +1269,7 @@ function PaySupplierDrawer({
                   value={form.method}
                   onChange={(event) => onChange({ method: event.target.value })}
                   aria-label="Supplier payment method"
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  className="admin-select !text-[13px]"
                   style={SELECT_STYLE}
                 >
                   {SUPPLIER_PAYMENT_METHODS.map((method) => (
@@ -1340,7 +1286,7 @@ function PaySupplierDrawer({
                   onChange={(event) => onChange({ reference: event.target.value })}
                   placeholder="Transfer / cheque no."
                   maxLength={120}
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
+                  className="admin-input !text-[13px]"
                   style={INPUT_STYLE}
                 />
               </Field>
@@ -1352,19 +1298,19 @@ function PaySupplierDrawer({
                 rows={3}
                 placeholder="Short note about this payment"
                 maxLength={800}
-                className="w-full resize-none rounded-lg px-3 py-2 text-[13px] outline-none"
+                className="admin-textarea !resize-none !text-[13px]"
                 style={INPUT_STYLE}
               />
             </Field>
             {selectedPurchase && (
-              <div className="space-y-2 rounded-lg px-3 py-2.5" style={{ background: "rgba(182,136,94,0.07)", border: "1px solid rgba(182,136,94,0.12)" }}>
+              <div className="space-y-2 rounded-lg px-3 py-2.5" style={{ background: "var(--admin-border)", border: "1px solid var(--admin-border)" }}>
                 <div className="flex items-center justify-between gap-3 text-[11.5px]">
-                  <span style={{ color: "var(--cream-dim)" }}>Outstanding on purchase</span>
-                  <span className="font-semibold" style={{ color: "#fbbf24" }}>{money(selectedPurchase.unpaid)}</span>
+                  <span style={{ color: "var(--admin-muted)" }}>Outstanding on purchase</span>
+                  <span className="font-semibold" style={{ color: "#e3b673" }}>{money(selectedPurchase.unpaid)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3 text-[11.5px]">
-                  <span style={{ color: "var(--cream-dim)" }}>Balance after this payment</span>
-                  <span className="font-semibold" style={{ color: "var(--cream)" }}>
+                  <span style={{ color: "var(--admin-muted)" }}>Balance after this payment</span>
+                  <span className="font-semibold" style={{ color: "var(--admin-white-coffee)" }}>
                     {money(Math.max(0, selectedPurchase.unpaid - (Number(form.amount) || 0)))}
                   </span>
                 </div>
@@ -1372,7 +1318,7 @@ function PaySupplierDrawer({
                   type="button"
                   onClick={() => onChange({ amount: String(selectedPurchase.unpaid) })}
                   className="text-[11px] font-semibold"
-                  style={{ color: "var(--gold)" }}
+                  style={{ color: "var(--admin-hazelnut)" }}
                 >
                   Use full outstanding amount
                 </button>
@@ -1382,8 +1328,7 @@ function PaySupplierDrawer({
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold disabled:opacity-60"
-                style={{ color: "#120d09", background: "var(--gold)" }}
+                className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-4 !py-2 !text-[13px]"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {saving ? "Saving…" : "Record Payment"}
@@ -1392,8 +1337,7 @@ function PaySupplierDrawer({
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="rounded-lg px-4 py-2 text-[13px] font-semibold hover:bg-white/[0.04] disabled:opacity-60"
-                style={{ color: "var(--cream-dim)", border: "1px solid rgba(182,136,94,0.12)" }}
+                className="admin-btn !px-4 !py-2 !text-[13px]"
               >
                 Cancel
               </button>
@@ -1767,12 +1711,12 @@ export default function AccountingPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold" style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}>
+            <h1 className="admin-page-title">
               Accounting
             </h1>
             <StatusPill label="Live data" tone="green" />
           </div>
-          <p className="mt-1 text-[13px]" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>
+          <p className="admin-page-subtitle">
             Real revenue, collections, COGS, expenses, and supplier balances from live orders and ledgers.
           </p>
         </div>
@@ -1781,16 +1725,14 @@ export default function AccountingPage() {
             type="button"
             onClick={openPurchaseDrawer}
             disabled={!data}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors disabled:opacity-50"
-            style={{ color: "#120d09", background: "var(--gold)" }}
+            className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-3 !py-2 !text-[12px]"
           >
             <Package size={14} /> Add Purchase
           </button>
           <button
             type="button"
             onClick={openExpenseDrawer}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
-            style={{ color: "#120d09", background: "var(--gold)" }}
+            className="admin-btn admin-btn-primary inline-flex items-center gap-2 !px-3 !py-2 !text-[12px]"
           >
             <Plus size={14} /> Add Expense
           </button>
@@ -1798,52 +1740,40 @@ export default function AccountingPage() {
             type="button"
             onClick={openPaySupplierDrawer}
             disabled={!data}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-white/[0.04] disabled:opacity-50"
-            style={{ color: "var(--gold)", background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.24)" }}
+            className="admin-btn inline-flex items-center gap-2 !px-3 !py-2 !text-[12px]"
           >
             <CreditCard size={14} /> Pay Supplier
           </button>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors hover:bg-white/[0.04]"
-            style={{ color: "var(--gold)", background: "rgba(182,136,94,0.12)", border: "1px solid rgba(182,136,94,0.24)" }}
-          >
+          <button type="button" onClick={() => void load()} className="admin-btn inline-flex items-center gap-2 !px-3 !py-2 !text-[12px]">
             <RefreshCw size={14} /> Refresh
           </button>
         </div>
       </div>
 
       {error && (
-        <div
-          className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
-          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.20)" }}
-        >
-          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#f87171" }}>
+        <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.24)" }}>
+          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#e39a8c" }}>
             <AlertTriangle size={14} /> {error}
           </span>
-          <button type="button" onClick={() => void load()} className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "var(--gold)" }}>
+          <button type="button" onClick={() => void load()} className="admin-link flex items-center gap-1.5 !text-[12px]">
             <RefreshCw size={12} /> Retry
           </button>
         </div>
       )}
 
       {notice && (
-        <div
-          className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
-          style={{ background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.20)" }}
-        >
-          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#4ade80" }}>
+        <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: "rgba(143,207,154,0.08)", border: "1px solid rgba(143,207,154,0.24)" }}>
+          <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#8fcf9a" }}>
             <Check size={14} /> {notice}
           </span>
-          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss notice" style={{ color: "var(--cream-dim)" }}>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss notice" className="admin-faint">
             <X size={13} />
           </button>
         </div>
       )}
 
       {loading && !data && (
-        <div className="flex items-center justify-center gap-2 py-16" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>
+        <div className="flex items-center justify-center gap-2 py-16 admin-muted">
           <Loader2 size={16} className="animate-spin" /> Loading real accounting data…
         </div>
       )}
@@ -1895,8 +1825,8 @@ export default function AccountingPage() {
           <div
             className="overflow-x-auto rounded-xl p-1.5"
             style={{
-              background: "linear-gradient(180deg, rgba(182,136,94,0.10), rgba(255,255,255,0.025))",
-              border: "1px solid rgba(182,136,94,0.14)",
+              background: "linear-gradient(180deg, var(--admin-border), rgba(255,255,255,0.025))",
+              border: "1px solid var(--admin-border)",
             }}
           >
             <div className="flex min-w-max gap-1.5">
@@ -1910,11 +1840,11 @@ export default function AccountingPage() {
                     aria-pressed={active ? "true" : "false"}
                     className="inline-flex min-h-10 flex-shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[12px] font-semibold transition-all hover:-translate-y-0.5"
                     style={{
-                      color: active ? "var(--gold)" : "var(--cream-dim)",
+                      color: active ? "var(--admin-hazelnut)" : "var(--admin-muted)",
                       background: active
-                        ? "linear-gradient(180deg, rgba(182,136,94,0.24), rgba(182,136,94,0.10))"
+                        ? "linear-gradient(180deg, var(--admin-border-strong), var(--admin-border))"
                         : "rgba(10,7,5,0.34)",
-                      border: active ? "1px solid rgba(214,163,115,0.42)" : "1px solid rgba(182,136,94,0.08)",
+                      border: active ? "1px solid rgba(214,163,115,0.42)" : "1px solid var(--admin-border)",
                       boxShadow: active ? "0 10px 26px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)" : "none",
                     }}
                   >
@@ -2021,11 +1951,11 @@ function OverviewTab({ data }: { data: AdminAccountingData }) {
                 key={row.label}
                 className="flex items-center justify-between gap-3 rounded-lg px-3 py-3"
                 style={{
-                  background: row.strong ? "rgba(182,136,94,0.08)" : "rgba(255,255,255,0.025)",
-                  border: `1px solid ${row.strong ? "rgba(182,136,94,0.20)" : "rgba(182,136,94,0.08)"}`,
+                  background: row.strong ? "var(--admin-border)" : "rgba(255,255,255,0.025)",
+                  border: `1px solid ${row.strong ? "var(--admin-border-strong)" : "var(--admin-border)"}`,
                 }}
               >
-                <span className={`text-[13px] ${row.strong ? "font-bold" : "font-medium"}`} style={{ color: "var(--cream)" }}>
+                <span className={`text-[13px] ${row.strong ? "font-bold" : "font-medium"}`} style={{ color: "var(--admin-white-coffee)" }}>
                   {row.label}
                 </span>
                 <span className={`text-[14px] ${row.strong ? "font-bold" : "font-semibold"}`} style={{ color: style.color }}>
@@ -2046,11 +1976,11 @@ function OverviewTab({ data }: { data: AdminAccountingData }) {
           <KpiCard label="Receivable" value={money(data.receivable)} caption="Order totals not yet collected." tone={data.receivable > 0 ? "amber" : "green"} icon={CreditCard} />
         </div>
         <div className="px-5 pb-5">
-          <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--cream-dim)", opacity: 0.5 }}>
+          <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--admin-muted)", opacity: 0.5 }}>
             Collected by method
           </p>
           {data.methodBreakdown.length === 0 ? (
-            <p className="text-[12px]" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
+            <p className="text-[12px]" style={{ color: "var(--admin-muted)", opacity: 0.55 }}>
               No payments recorded yet.
             </p>
           ) : (
@@ -2059,15 +1989,15 @@ function OverviewTab({ data }: { data: AdminAccountingData }) {
                 <div
                   key={method.key}
                   className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                  style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(182,136,94,0.08)" }}
+                  style={{ background: "rgba(255,255,255,0.025)", border: "1px solid var(--admin-border)" }}
                 >
-                  <span className="text-[12.5px]" style={{ color: "var(--cream)" }}>
+                  <span className="text-[12.5px]" style={{ color: "var(--admin-white-coffee)" }}>
                     {method.label}
-                    <span className="ml-2 text-[11px]" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
+                    <span className="ml-2 text-[11px]" style={{ color: "var(--admin-muted)", opacity: 0.55 }}>
                       {method.count} payment{method.count === 1 ? "" : "s"}
                     </span>
                   </span>
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--gold)" }}>
+                  <span className="text-[13px] font-semibold" style={{ color: "var(--admin-hazelnut)" }}>
                     {money(method.amount)}
                   </span>
                 </div>
@@ -2112,9 +2042,9 @@ function RevenueTab({ data }: { data: AdminAccountingData }) {
                 className="grid min-w-[1080px] gap-4 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider"
                 style={{
                   gridTemplateColumns: "1fr 1.3fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr 0.9fr 0.9fr",
-                  color: "var(--cream-dim)",
-                  background: "rgba(182,136,94,0.05)",
-                  borderBottom: "1px solid rgba(182,136,94,0.08)",
+                  color: "var(--admin-muted)",
+                  background: "var(--admin-border)",
+                  borderBottom: "1px solid var(--admin-border)",
                 }}
               >
                 <span>Order</span>
@@ -2154,54 +2084,54 @@ function OrderRowDesktop({ entry }: { entry: AccountingOrderRow }) {
       className="grid min-w-[1080px] items-center gap-4 px-5 py-3.5 text-[12.5px]"
       style={{
         gridTemplateColumns: "1fr 1.3fr 0.9fr 0.9fr 0.9fr 0.9fr 1fr 0.9fr 0.9fr",
-        color: "var(--cream)",
-        borderBottom: "1px solid rgba(182,136,94,0.06)",
+        color: "var(--admin-white-coffee)",
+        borderBottom: "1px solid var(--admin-border)",
       }}
     >
-      <span className="font-mono text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>
+      <span className="font-mono text-[11.5px]" style={{ color: "var(--admin-muted)", opacity: 0.58 }}>
         {entry.code}
       </span>
       <span className="truncate">{entry.customer}</span>
       <StatusPill label={STATUS_LABEL[entry.status]} tone={STATUS_TONE[entry.status]} />
       <span className="text-right">{money(entry.subtotal)}</span>
-      <span className="text-right" style={{ color: entry.discount > 0 ? "#fbbf24" : "var(--cream-dim)" }}>
+      <span className="text-right" style={{ color: entry.discount > 0 ? "#e3b673" : "var(--admin-muted)" }}>
         {money(entry.discount)}
       </span>
-      <span className="text-right font-semibold" style={{ color: "#4ade80" }}>
-        {money(entry.total)}
+      <span className="text-right font-semibold" style={{ color: "#8fcf9a" }}>
+        <MixedNumeric text={money(entry.total)} />
       </span>
-      <span className="text-right" style={{ color: "var(--gold)" }}>
-        {money(entry.netPaid)}
+      <span className="text-right" style={{ color: "var(--admin-hazelnut)" }}>
+        <MixedNumeric text={money(entry.netPaid)} />
       </span>
-      <span className="text-right" style={{ color: entry.cogs === null ? "var(--cream-dim)" : "#fbbf24" }}>
-        {entry.cogs === null ? "—" : money(entry.cogs)}
+      <span className="text-right" style={{ color: entry.cogs === null ? "var(--admin-muted)" : "#e3b673" }}>
+        {entry.cogs === null ? "—" : <MixedNumeric text={money(entry.cogs)} />}
       </span>
-      <span className="text-right">{pct(entry.margin)}</span>
+      <span className="text-right"><MixedNumeric text={pct(entry.margin)} /></span>
     </div>
   );
 }
 
 function OrderRowMobile({ entry }: { entry: AccountingOrderRow }) {
   return (
-    <article className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(182,136,94,0.08)" }}>
+    <article className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid var(--admin-border)" }}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[11.5px]" style={{ color: "var(--gold)" }}>
+          <p className="font-mono text-[11.5px]" style={{ color: "var(--admin-hazelnut)" }}>
             {entry.code}
           </p>
-          <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>
+          <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>
             {entry.customer}
           </p>
         </div>
         <StatusPill label={STATUS_LABEL[entry.status]} tone={STATUS_TONE[entry.status]} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
-        <span style={{ color: "var(--cream-dim)" }}>Total</span>
-        <span className="text-right font-semibold" style={{ color: "#4ade80" }}>{money(entry.total)}</span>
-        <span style={{ color: "var(--cream-dim)" }}>Net paid</span>
-        <span className="text-right font-semibold" style={{ color: "var(--gold)" }}>{money(entry.netPaid)}</span>
-        <span style={{ color: "var(--cream-dim)" }}>Est. COGS</span>
-        <span className="text-right" style={{ color: entry.cogs === null ? "var(--cream-dim)" : "#fbbf24" }}>
+        <span style={{ color: "var(--admin-muted)" }}>Total</span>
+        <span className="text-right font-semibold" style={{ color: "#8fcf9a" }}>{money(entry.total)}</span>
+        <span style={{ color: "var(--admin-muted)" }}>Net paid</span>
+        <span className="text-right font-semibold" style={{ color: "var(--admin-hazelnut)" }}>{money(entry.netPaid)}</span>
+        <span style={{ color: "var(--admin-muted)" }}>Est. COGS</span>
+        <span className="text-right" style={{ color: entry.cogs === null ? "var(--admin-muted)" : "#e3b673" }}>
           {entry.cogs === null ? "—" : money(entry.cogs)}
         </span>
       </div>
@@ -2239,7 +2169,7 @@ function PurchasesTab({
             type="button"
             onClick={onAddPurchase}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
-            style={{ color: "#120d09", background: "var(--gold)" }}
+            style={{ color: "var(--admin-surface)", background: "var(--admin-hazelnut)" }}
           >
             <Plus size={14} /> Add Purchase
           </button>
@@ -2253,9 +2183,9 @@ function PurchasesTab({
               className="grid min-w-[1120px] gap-4 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider"
               style={{
                 gridTemplateColumns: "0.8fr 1.3fr 1.1fr 0.8fr 0.8fr 0.85fr 0.85fr 0.85fr 0.9fr",
-                color: "var(--cream-dim)",
-                background: "rgba(182,136,94,0.05)",
-                borderBottom: "1px solid rgba(182,136,94,0.08)",
+                color: "var(--admin-muted)",
+                background: "var(--admin-border)",
+                borderBottom: "1px solid var(--admin-border)",
               }}
             >
               <span>Date</span>
@@ -2274,13 +2204,13 @@ function PurchasesTab({
                 className="grid min-w-[1120px] items-center gap-4 px-5 py-3.5 text-[12.5px]"
                 style={{
                   gridTemplateColumns: "0.8fr 1.3fr 1.1fr 0.8fr 0.8fr 0.85fr 0.85fr 0.85fr 0.9fr",
-                  color: "var(--cream)",
-                  borderBottom: "1px solid rgba(182,136,94,0.06)",
+                  color: "var(--admin-white-coffee)",
+                  borderBottom: "1px solid var(--admin-border)",
                 }}
               >
-                <span style={{ color: "var(--cream-dim)", opacity: 0.58 }}>{shortDate(purchase.date)}</span>
+                <span style={{ color: "var(--admin-muted)", opacity: 0.58 }}>{shortDate(purchase.date)}</span>
                 <span className="truncate">{purchase.supplierName}</span>
-                <span className="truncate" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>{purchase.reference || "—"}</span>
+                <span className="truncate" style={{ color: "var(--admin-muted)", opacity: 0.62 }}>{purchase.reference || "—"}</span>
                 <StatusPill
                   label={purchaseStatusLabel(purchase.status)}
                   tone={purchase.status === "received" ? "green" : purchase.status === "cancelled" ? "red" : "amber"}
@@ -2290,8 +2220,8 @@ function PurchasesTab({
                   tone={purchase.unpaid > 0 ? (purchase.paid > 0 ? "amber" : "red") : "green"}
                 />
                 <span className="text-right font-semibold">{money(purchase.total)}</span>
-                <span className="text-right" style={{ color: "#fbbf24" }}>{money(purchase.paid)}</span>
-                <span className="text-right" style={{ color: purchase.unpaid > 0 ? "#f87171" : "#4ade80" }}>{money(purchase.unpaid)}</span>
+                <span className="text-right" style={{ color: "#e3b673" }}>{money(purchase.paid)}</span>
+                <span className="text-right" style={{ color: purchase.unpaid > 0 ? "#e39a8c" : "#8fcf9a" }}>{money(purchase.unpaid)}</span>
                 <span className="flex justify-end">
                   {purchase.status === "draft" ? (
                     <button
@@ -2299,7 +2229,7 @@ function PurchasesTab({
                       onClick={() => onReceivePurchase(purchase.id)}
                       disabled={receivingPurchaseId !== null}
                       className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-50"
-                      style={{ color: "var(--gold)", border: "1px solid rgba(182,136,94,0.20)" }}
+                      style={{ color: "var(--admin-hazelnut)", border: "1px solid var(--admin-border-strong)" }}
                     >
                       {receivingPurchaseId === purchase.id
                         ? <Loader2 size={12} className="animate-spin" />
@@ -2310,7 +2240,7 @@ function PurchasesTab({
                     <span
                       className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold"
                       style={{
-                        color: purchase.status === "received" ? "#4ade80" : "var(--cream-dim)",
+                        color: purchase.status === "received" ? "#8fcf9a" : "var(--admin-muted)",
                         opacity: purchase.status === "received" ? 1 : 0.58,
                       }}
                     >
@@ -2357,7 +2287,7 @@ function ExpensesTab({ data, onAddExpense }: { data: AdminAccountingData; onAddE
                         title={`${point.label}: ${money(point.expenses)}`}
                       />
                     </div>
-                    <span className="text-[10.5px]" style={{ color: "var(--cream-dim)", opacity: 0.6 }}>{point.label}</span>
+                    <span className="text-[10.5px]" style={{ color: "var(--admin-muted)", opacity: 0.6 }}>{point.label}</span>
                   </div>
                 );
               })}
@@ -2375,7 +2305,7 @@ function ExpensesTab({ data, onAddExpense }: { data: AdminAccountingData; onAddE
             type="button"
             onClick={onAddExpense}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
-            style={{ color: "#120d09", background: "var(--gold)" }}
+            style={{ color: "var(--admin-surface)", background: "var(--admin-hazelnut)" }}
           >
             <Plus size={14} /> Add Expense
           </button>
@@ -2384,16 +2314,16 @@ function ExpensesTab({ data, onAddExpense }: { data: AdminAccountingData; onAddE
         {data.expenses.length === 0 ? (
           <EmptyState icon={Calculator} message="No operating expenses recorded yet." />
         ) : (
-          <div className="divide-y" style={{ borderColor: "rgba(182,136,94,0.06)" }}>
+          <div className="divide-y" style={{ borderColor: "var(--admin-border)" }}>
             {data.expenses.map((expense) => (
               <div key={expense.id} className="grid grid-cols-1 gap-3 px-5 py-3.5 md:grid-cols-[1fr_1.6fr_0.8fr_0.8fr] md:items-center">
                 <div>
-                  <p className="text-[13px] font-semibold" style={{ color: "var(--cream)" }}>{expense.category}</p>
-                  <p className="text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>{shortDate(expense.date)}</p>
+                  <p className="text-[13px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{expense.category}</p>
+                  <p className="text-[11.5px]" style={{ color: "var(--admin-muted)", opacity: 0.55 }}>{shortDate(expense.date)}</p>
                 </div>
-                <p className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.72 }}>{expense.notes || "—"}</p>
-                <p className="text-[12.5px]" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>{expense.method || "—"}</p>
-                <p className="text-left text-[13px] font-semibold md:text-right" style={{ color: "#f87171" }}>-{money(expense.amount)}</p>
+                <p className="text-[12.5px]" style={{ color: "var(--admin-muted)", opacity: 0.72 }}>{expense.notes || "—"}</p>
+                <p className="text-[12.5px]" style={{ color: "var(--admin-muted)", opacity: 0.58 }}>{expense.method || "—"}</p>
+                <p className="text-left text-[13px] font-semibold md:text-right" style={{ color: "#e39a8c" }}>-{money(expense.amount)}</p>
               </div>
             ))}
           </div>
@@ -2425,7 +2355,7 @@ function SuppliersTab({ data, onPaySupplier }: { data: AdminAccountingData; onPa
               type="button"
               onClick={onPaySupplier}
               className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-semibold transition-colors"
-              style={{ color: "#120d09", background: "var(--gold)" }}
+              style={{ color: "var(--admin-surface)", background: "var(--admin-hazelnut)" }}
             >
               <CreditCard size={14} /> Pay Supplier
             </button>
@@ -2440,12 +2370,12 @@ function SuppliersTab({ data, onPaySupplier }: { data: AdminAccountingData; onPa
               <article
                 key={supplier.supplierId}
                 className="rounded-lg p-4"
-                style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(182,136,94,0.08)" }}
+                style={{ background: "rgba(255,255,255,0.025)", border: "1px solid var(--admin-border)" }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-[14px] font-semibold" style={{ color: "var(--cream)" }}>{supplier.name}</p>
-                    <p className="mt-1 text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.56 }}>
+                    <p className="truncate text-[14px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{supplier.name}</p>
+                    <p className="mt-1 text-[11.5px]" style={{ color: "var(--admin-muted)", opacity: 0.56 }}>
                       {supplier.purchaseCount} purchase{supplier.purchaseCount === 1 ? "" : "s"}
                     </p>
                   </div>
@@ -2453,16 +2383,16 @@ function SuppliersTab({ data, onPaySupplier }: { data: AdminAccountingData; onPa
                 </div>
                 <div className="mt-4 space-y-2 text-[12px]">
                   <div className="flex justify-between gap-3">
-                    <span style={{ color: "var(--cream-dim)", opacity: 0.58 }}>Purchase total</span>
-                    <span style={{ color: "var(--cream)" }}>{money(supplier.purchaseTotal)}</span>
+                    <span style={{ color: "var(--admin-muted)", opacity: 0.58 }}>Purchase total</span>
+                    <span style={{ color: "var(--admin-white-coffee)" }}>{money(supplier.purchaseTotal)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span style={{ color: "var(--cream-dim)", opacity: 0.58 }}>Paid</span>
-                    <span style={{ color: "#4ade80" }}>{money(supplier.paid)}</span>
+                    <span style={{ color: "var(--admin-muted)", opacity: 0.58 }}>Paid</span>
+                    <span style={{ color: "#8fcf9a" }}>{money(supplier.paid)}</span>
                   </div>
-                  <div className="flex justify-between gap-3 pt-2" style={{ borderTop: "1px solid rgba(182,136,94,0.08)" }}>
-                    <span className="font-semibold" style={{ color: "var(--cream)" }}>Payable</span>
-                    <span className="font-bold" style={{ color: supplier.payable > 0 ? "#fbbf24" : "#4ade80" }}>{money(supplier.payable)}</span>
+                  <div className="flex justify-between gap-3 pt-2" style={{ borderTop: "1px solid var(--admin-border)" }}>
+                    <span className="font-semibold" style={{ color: "var(--admin-white-coffee)" }}>Payable</span>
+                    <span className="font-bold" style={{ color: supplier.payable > 0 ? "#e3b673" : "#8fcf9a" }}>{money(supplier.payable)}</span>
                   </div>
                 </div>
               </article>
@@ -2520,9 +2450,9 @@ function ActivityTab({
                   aria-pressed={active ? "true" : "false"}
                   className="rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold"
                   style={{
-                    color: active ? "var(--gold)" : "var(--cream-dim)",
-                    background: active ? "rgba(182,136,94,0.14)" : "rgba(255,255,255,0.025)",
-                    border: active ? "1px solid rgba(182,136,94,0.28)" : "1px solid rgba(182,136,94,0.08)",
+                    color: active ? "var(--admin-hazelnut)" : "var(--admin-muted)",
+                    background: active ? "var(--admin-border)" : "rgba(255,255,255,0.025)",
+                    border: active ? "1px solid var(--admin-border-strong)" : "1px solid var(--admin-border)",
                   }}
                 >
                   {option.label}
@@ -2535,18 +2465,18 @@ function ActivityTab({
         {rows.length === 0 ? (
           <EmptyState icon={Activity} message="No transactions match this filter yet." />
         ) : (
-          <div className="divide-y" style={{ borderColor: "rgba(182,136,94,0.06)" }}>
+          <div className="divide-y" style={{ borderColor: "var(--admin-border)" }}>
             {rows.map((entry) => {
               const tone = ACTIVITY_TONE[entry.direction];
               const style = TONE_STYLE[tone];
               return (
                 <div key={entry.id} className="grid grid-cols-1 gap-3 px-5 py-3.5 md:grid-cols-[0.9fr_1fr_2fr_1fr] md:items-center">
                   <div>
-                    <p className="font-mono text-[11.5px]" style={{ color: "var(--cream-dim)", opacity: 0.58 }}>{shortDate(entry.date)}</p>
+                    <p className="font-mono text-[11.5px]" style={{ color: "var(--admin-muted)", opacity: 0.58 }}>{shortDate(entry.date)}</p>
                     <p className="mt-1"><StatusPill label={KIND_LABEL[entry.kind]} tone={tone} /></p>
                   </div>
-                  <p className="text-[12.5px] font-semibold" style={{ color: "var(--cream)" }}>{entry.label}</p>
-                  <p className="text-[11.5px] leading-relaxed" style={{ color: "var(--cream-dim)", opacity: 0.62 }}>{entry.detail}</p>
+                  <p className="text-[12.5px] font-semibold" style={{ color: "var(--admin-white-coffee)" }}>{entry.label}</p>
+                  <p className="text-[11.5px] leading-relaxed" style={{ color: "var(--admin-muted)", opacity: 0.62 }}>{entry.detail}</p>
                   <p className="text-left text-[13px] font-bold md:text-right" style={{ color: style.color }}>
                     {entry.direction === "neutral" ? money(entry.amount) : signedMoney(entry.direction === "in" ? entry.amount : -entry.amount)}
                   </p>

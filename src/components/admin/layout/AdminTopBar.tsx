@@ -16,7 +16,7 @@ import {
   Truck,
   CircleDollarSign,
   PackageX,
-  Languages,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
@@ -77,7 +77,7 @@ export default function AdminTopBar({
           key: "pending",
           count: orderOverview.pending,
           Icon: Clock3,
-          color: "#fbbf24",
+          color: "#e3b673",
           href: "/admin/orders",
           label:
             language === "ar"
@@ -88,7 +88,7 @@ export default function AdminTopBar({
           key: "delivered-unpaid",
           count: orderOverview.deliveredUnpaid,
           Icon: CircleDollarSign,
-          color: "#f87171",
+          color: "#e39a8c",
           href: "/admin/orders",
           label:
             language === "ar"
@@ -99,7 +99,7 @@ export default function AdminTopBar({
           key: "shipped",
           count: orderOverview.shipped,
           Icon: Truck,
-          color: "#a78bfa",
+          color: "#9db3cf",
           href: "/admin/orders",
           label:
             language === "ar"
@@ -115,7 +115,7 @@ export default function AdminTopBar({
             key: "low-stock",
             count: lowStockCount,
             Icon: PackageX,
-            color: "#f97316",
+            color: "#d9905a",
             href: "/admin/inventory",
             label:
               language === "ar"
@@ -153,25 +153,24 @@ export default function AdminTopBar({
 
   return (
     <header
-      className="flex items-center h-[60px] px-4 gap-3 flex-shrink-0"
-      style={{ background: "var(--coffee-black)" }}
+      className="flex items-center h-[64px] px-4 gap-3 flex-shrink-0"
+      style={{
+        background: "var(--admin-bg)",
+        borderBottom: "1px solid var(--admin-border)",
+      }}
     >
       {/* Hamburger / collapse toggle */}
       <button
         type="button"
         onClick={onMenuToggle}
-        className="p-2 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0"
-        style={{ color: "var(--cream-dim)" }}
+        className="admin-btn admin-btn-ghost !p-2 flex-shrink-0"
         aria-label="Toggle sidebar"
       >
         <Menu size={18} />
       </button>
 
       {/* Page title */}
-      <h2
-        className="flex-1 min-w-0 text-base font-semibold truncate"
-        style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
-      >
+      <h2 className="admin-page-title flex-1 min-w-0 !text-base truncate">
         {pageTitle}
       </h2>
 
@@ -182,12 +181,12 @@ export default function AdminTopBar({
         <button
           type="button"
           onClick={toggleLanguage}
-          className="flex min-h-9 items-center gap-1.5 rounded-lg border border-[#B6885E]/15 px-2.5 text-[11px] font-semibold text-[#D6B79A] transition-colors hover:border-[#B6885E]/30 hover:bg-white/5 hover:text-[#F5E6D8]"
+          className="admin-lang-pill"
           aria-label={t(language === "en" ? "Switch to Arabic" : "Switch to English")}
           title={t(language === "en" ? "Switch to Arabic" : "Switch to English")}
         >
-          <Languages size={15} aria-hidden="true" />
-          <span>{language === "en" ? "العربية" : "English"}</span>
+          <Globe size={14} aria-hidden="true" />
+          <span>{language === "en" ? "AR" : "EN"}</span>
         </button>
 
         <div className="relative" ref={notificationsRef}>
@@ -197,55 +196,63 @@ export default function AdminTopBar({
               setNotificationsOpen((open) => !open);
               setProfileOpen(false);
             }}
-            className="relative rounded-lg p-2 text-[#B79B85] transition-colors hover:bg-white/5 hover:text-[#F5E6D8]"
+            className="admin-btn admin-btn-ghost relative !p-2"
             aria-label={t("Operational notifications")}
             aria-expanded={notificationsOpen ? "true" : "false"}
           >
             <Bell size={17} />
             {activeAlertCount > 0 && (
-              <span className="absolute right-0.5 top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_0_0_1.5px_var(--coffee-black)]">
+              <span
+                className="absolute right-0.5 top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-white"
+                style={{
+                  background: "linear-gradient(150deg, #e39a8c, #c4574a)",
+                  boxShadow: "0 0 0 2px var(--admin-bg)",
+                }}
+              >
                 {activeAlertCount}
               </span>
             )}
           </button>
 
           {notificationsOpen && (
-            <div className={`absolute top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#B6885E]/15 bg-[#1A1209] shadow-[0_20px_56px_rgba(0,0,0,0.55)] ${
-              dir === "rtl" ? "left-0" : "right-0"
-            }`}>
-              <div className="border-b border-[#B6885E]/10 px-4 py-3">
-                <p className="font-serif text-sm font-semibold text-[#F5E6D8]">
+            <div
+              className={`admin-drawer-surface absolute top-full z-50 mt-2 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl ${
+                dir === "rtl" ? "left-0" : "right-0"
+              }`}
+            >
+              <div className="admin-drawer-header px-4 py-3">
+                <p className="admin-card-title font-serif !text-sm">
                   {t("Operational notifications")}
                 </p>
-                <p className="mt-0.5 text-[10px] text-[#B79B85]/50">
+                <p className="mt-0.5 admin-caption !text-[10px]">
                   {t("Live order alerts from Supabase")}
                 </p>
               </div>
 
               {notificationsUnavailable ? (
-                <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
+                <p className="px-4 py-6 text-center text-xs admin-muted">
                   {t("Notifications are temporarily unavailable.")}
                 </p>
               ) : alerts.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-[#B79B85]/55">
+                <p className="px-4 py-6 text-center text-xs admin-muted">
                   {t("No active notifications")}
                 </p>
               ) : (
-                <div className="divide-y divide-[#B6885E]/[0.07]">
+                <div className="divide-y" style={{ borderColor: "var(--admin-border)" }}>
                   {alerts.map(({ key, Icon, color, label, href }) => (
                     <Link
                       key={key}
                       href={href}
                       onClick={() => setNotificationsOpen(false)}
-                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025]"
+                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[rgb(227_210_184_/_0.04)]"
                     >
                       <span
                         className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                        style={{ background: `${color}18`, color }}
+                        style={{ background: `${color}20`, color, border: `1px solid ${color}35` }}
                       >
                         <Icon size={14} />
                       </span>
-                      <span className="pt-1 text-xs leading-relaxed text-[#F5E6D8]/85">
+                      <span className="pt-1 text-xs leading-relaxed admin-text">
                         {label}
                       </span>
                     </Link>
@@ -263,7 +270,7 @@ export default function AdminTopBar({
           <button
             type="button"
             onClick={() => setProfileOpen((prev) => !prev)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            className="admin-btn admin-btn-ghost flex items-center gap-2 !px-2 !py-1.5"
             aria-label={t("Open profile menu")}
             aria-expanded={profileOpen ? "true" : "false"}
           >
@@ -271,16 +278,16 @@ export default function AdminTopBar({
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 select-none"
               style={{
-                background: "linear-gradient(135deg, #a8744e, #d6a373)",
-                color: "var(--coffee-black)",
+                background: "linear-gradient(150deg, #dcab7b, #a16e41)",
+                color: "var(--admin-button-text)",
+                boxShadow: "0 3px 8px rgb(5 3 2 / 0.4)",
               }}
             >
               {adminInitials}
             </div>
 
             <span
-              className="hidden sm:block text-[13px] truncate max-w-[96px]"
-              style={{ color: "var(--cream)" }}
+              className="hidden sm:block text-[13px] truncate max-w-[96px] admin-text"
               data-admin-no-translate
             >
               {adminFirstName}
@@ -288,59 +295,40 @@ export default function AdminTopBar({
 
             <ChevronDown
               size={13}
-              className={`hidden sm:block transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
-              style={{ color: "var(--cream-dim)" }}
+              className={`hidden sm:block transition-transform duration-200 admin-faint ${profileOpen ? "rotate-180" : ""}`}
             />
           </button>
 
           {/* Dropdown */}
           {profileOpen && (
             <div
-              className={`absolute top-full mt-2 w-56 rounded-xl py-1.5 z-50 overflow-hidden ${
+              className={`admin-drawer-surface absolute top-full mt-2 w-56 rounded-2xl py-1.5 z-50 overflow-hidden ${
                 dir === "rtl" ? "left-0" : "right-0"
               }`}
-              style={{
-                background: "#1a1209",
-                border: "1px solid rgba(182,136,94,0.15)",
-                boxShadow: "0 20px 56px rgba(0,0,0,0.55)",
-              }}
             >
               {/* User info */}
-              <div
-                className="px-4 py-3"
-                style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
-              >
+              <div className="admin-drawer-header px-4 py-3">
                 <p
-                  className="text-sm font-medium leading-tight truncate"
-                  style={{ color: "var(--cream)" }}
+                  className="text-sm font-semibold leading-tight truncate admin-text"
+                  style={{ color: "var(--admin-heading)" }}
                   data-admin-no-translate
                 >
                   {adminName}
                 </p>
                 <p
-                  className="text-[11px] truncate mt-0.5"
-                  style={{ color: "var(--cream-dim)" }}
+                  className="text-[11px] truncate mt-0.5 admin-muted"
                   data-admin-no-translate
                 >
                   {admin.email}
                 </p>
-                <span
-                  className="inline-flex mt-2 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                  style={{
-                    background: "rgba(182,136,94,0.12)",
-                    color: "var(--gold)",
-                  }}
-                >
+                <span className="admin-badge admin-badge-gold mt-2">
                   {t(adminRoleLabel)}
                 </span>
               </div>
 
               {/* Quick links — honest navigation, no fake workspace switching */}
               <div className="px-3 pt-2.5 pb-1">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-widest px-1 mb-1.5"
-                  style={{ color: "var(--cream-dim)", opacity: 0.5 }}
-                >
+                <p className="admin-label px-1 mb-1.5">
                   {t("Quick Links")}
                 </p>
 
@@ -348,8 +336,7 @@ export default function AdminTopBar({
                 <Link
                   href="/admin/dashboard"
                   onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] hover:bg-white/5 transition-colors"
-                  style={{ color: "var(--cream-dim)" }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] admin-muted transition-colors hover:bg-[rgb(227_210_184_/_0.05)] hover:text-[var(--admin-white-coffee)]"
                 >
                   <LayoutDashboard size={13} />
                   <span className="flex-1">{t("Dashboard")}</span>
@@ -359,8 +346,7 @@ export default function AdminTopBar({
                 <Link
                   href="/admin/settings"
                   onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] hover:bg-white/5 transition-colors"
-                  style={{ color: "var(--cream-dim)" }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] admin-muted transition-colors hover:bg-[rgb(227_210_184_/_0.05)] hover:text-[var(--admin-white-coffee)]"
                 >
                   <Settings size={13} />
                   <span className="flex-1">{t("Settings")}</span>
@@ -372,8 +358,7 @@ export default function AdminTopBar({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] hover:bg-white/5 transition-colors"
-                  style={{ color: "var(--cream-dim)" }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] admin-muted transition-colors hover:bg-[rgb(227_210_184_/_0.05)] hover:text-[var(--admin-white-coffee)]"
                 >
                   <ExternalLink size={13} />
                   <span className="flex-1">{t("Website Preview")}</span>
@@ -381,10 +366,7 @@ export default function AdminTopBar({
               </div>
 
               {/* Divider */}
-              <div
-                className="mx-3 my-1.5"
-                style={{ height: "1px", background: "rgba(182,136,94,0.08)" }}
-              />
+              <div className="mx-3 my-1.5 admin-divider" />
 
               {/* My Account */}
               <button
@@ -393,8 +375,7 @@ export default function AdminTopBar({
                   router.push("/account/profile");
                   setProfileOpen(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12.5px] hover:bg-white/5 transition-colors text-left"
-                style={{ color: "var(--cream-dim)" }}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12.5px] admin-muted transition-colors hover:bg-[rgb(227_210_184_/_0.05)] hover:text-[var(--admin-white-coffee)] text-left"
               >
                 <User size={13} />
                 {t("My Account")}
@@ -404,8 +385,8 @@ export default function AdminTopBar({
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12.5px] hover:bg-white/5 transition-colors text-left"
-                style={{ color: "#ef4444" }}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[12.5px] transition-colors hover:bg-[rgb(227_154_140_/_0.08)] text-left"
+                style={{ color: "#e07a63" }}
               >
                 <LogOut size={13} />
                 {t("Sign Out")}

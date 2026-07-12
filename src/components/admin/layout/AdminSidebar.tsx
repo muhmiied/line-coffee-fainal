@@ -54,26 +54,37 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
 
   return (
     <div className="flex flex-col h-full">
-      {/* Logo area */}
+      {/* Logo area — sits naturally in the sidebar atmosphere: soft ambient
+          glow behind the mark, fade-to-transparent divider (no hard box line) */}
       <div
-        className="flex items-center px-4 flex-shrink-0"
-        style={{
-          height: collapsed ? 64 : 88,
-          borderBottom: "1px solid rgba(182,136,94,0.10)",
-          background: "rgba(182,136,94,0.03)",
-        }}
+        className="relative flex items-center px-5 flex-shrink-0"
+        style={{ height: collapsed ? 68 : 92 }}
       >
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-full"
+          style={{
+            background:
+              "radial-gradient(120px 60px at 20% 40%, rgb(198 153 116 / 0.14), transparent 72%)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-4 bottom-0 h-px"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, rgb(182 136 94 / 0.22) 40%, transparent 100%)",
+          }}
+        />
         {collapsed ? (
           <Image
             src="/brand/logo-colored.svg"
             alt="Line Coffee"
-            width={30}
-            height={30}
-            className="mx-auto"
+            width={32}
+            height={32}
+            className="relative mx-auto"
           />
         ) : (
           <>
-            <span className="relative block flex-1" style={{ height: 56 }}>
+            <span className="relative block flex-1" style={{ height: 46 }}>
               <Image
                 src="/brand/logo-white.svg"
                 alt="Line Coffee"
@@ -86,8 +97,8 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-md hover:bg-white/5 transition-colors flex-shrink-0"
-                style={{ color: "var(--cream-dim)", marginInlineStart: 8 }}
+                className="admin-btn admin-btn-sm relative flex-shrink-0 !p-1.5"
+                style={{ marginInlineStart: 8 }}
                 aria-label={t("Close sidebar")}
               >
                 <ChevronLeft size={14} className={dir === "rtl" ? "rotate-180" : undefined} />
@@ -98,7 +109,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto admin-scrollbar py-2">
+      <nav className="flex-1 overflow-y-auto admin-scrollbar py-3">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -120,13 +131,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
                   <span className="flex-1 truncate">{t(item.label)}</span>
 
                   {item.href === "/admin/orders" && orderCount != null && orderCount > 0 && (
-                    <span
-                      className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none"
-                      style={{
-                        background: "rgba(251,191,36,0.14)",
-                        color: "#fbbf24",
-                      }}
-                    >
+                    <span className="admin-badge admin-badge-gold flex-shrink-0 !px-1.5 !py-0.5 text-[10px] leading-none">
                       {orderCount}
                     </span>
                   )}
@@ -137,70 +142,59 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
         })}
       </nav>
 
-      {/* Bottom promotional card */}
+      {/* Bottom store link — medium card: intentional, not tiny, not oversized */}
       {!collapsed && (
-        <div className="px-3 pb-3 flex-shrink-0">
-          <div
-            className="relative overflow-hidden rounded-xl"
-            style={{ border: "1px solid rgba(182,136,94,0.12)" }}
+        <div className="px-3 pb-2.5 flex-shrink-0">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-card flex items-center gap-3 rounded-2xl p-2.5"
           >
-            <div className="relative h-[80px]">
+            <span
+              className="relative block h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl"
+              style={{ boxShadow: "var(--admin-inset), 0 4px 12px rgb(5 3 2 / 0.4)" }}
+            >
               <Image
                 src="/assets/story/roastery.png"
                 alt=""
                 fill
-                sizes="216px"
+                sizes="56px"
                 className="object-cover"
-                style={{ opacity: 0.6 }}
               />
-              <div
+              <span
                 className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to top, rgba(13,9,7,0.96) 18%, rgba(13,9,7,0.15) 100%)",
-                }}
+                style={{ background: "linear-gradient(180deg, transparent 40%, rgb(5 3 2 / 0.45) 100%)" }}
               />
-            </div>
-            <div
-              className="px-3 py-2.5"
-              style={{ background: "#0D0907" }}
-            >
-              <p
-                className="text-[12px] font-semibold mb-0.5 leading-tight"
-                style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className="block text-[12.5px] font-semibold leading-snug"
+                style={{ color: "var(--admin-white-coffee)", fontFamily: "var(--font-playfair)" }}
               >
                 {t("Your Daily Ritual")}
-              </p>
-              <p
-                className="text-[10.5px] mb-2 leading-relaxed"
-                style={{ color: "var(--cream-dim)", opacity: 0.55 }}
-              >
-                {t("Premium blends for real moments.")}
-              </p>
-              <Link
-                href="/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10.5px] font-semibold transition-opacity hover:opacity-75"
-                style={{ color: "var(--gold)" }}
+              </span>
+              <span className="mt-0.5 block text-[10.5px] leading-tight admin-muted">
+                {t("Premium blends, real moments")}
+              </span>
+              <span
+                className="mt-1 inline-block text-[10.5px] font-bold leading-tight"
+                style={{ color: "var(--admin-hazelnut)" }}
               >
                 {t("View Store →")}
-              </Link>
-            </div>
-          </div>
+              </span>
+            </span>
+          </Link>
         </div>
       )}
 
       {/* Footer */}
       {!collapsed && (
         <div
-          className="px-5 py-3 flex-shrink-0"
-          style={{ borderTop: "1px solid rgba(182,136,94,0.08)" }}
+          className="px-5 py-2.5 flex-shrink-0"
+          style={{ borderTop: "1px solid var(--admin-border)" }}
         >
-          <p
-            className="text-[10px] leading-relaxed"
-            style={{ color: "var(--cream-dim)", opacity: 0.5 }}
-          >
+          <p className="text-[10px] leading-relaxed admin-faint">
             {t("Line Coffee Admin · v1.0")}
           </p>
         </div>
@@ -224,8 +218,10 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const { dir } = useAdminLanguage();
   const SIDEBAR_STYLE = {
-    background: "#0D0907",
-    borderInlineEnd: "1px solid rgba(182,136,94,0.08)",
+    background:
+      "radial-gradient(560px 420px at -10% 0%, rgb(90 46 18 / 0.16), transparent 62%)," +
+      "linear-gradient(175deg, #160f0a 0%, #100b08 55%, #0c0806 100%)",
+    borderInlineEnd: "1px solid var(--admin-border)",
   };
 
   return (

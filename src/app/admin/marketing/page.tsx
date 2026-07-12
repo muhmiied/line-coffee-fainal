@@ -27,20 +27,17 @@ export default function MarketingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1
-          className="text-xl font-bold text-[#f5e6d8]"
-          style={{ fontFamily: "var(--font-playfair)" }}
-        >
+        <h1 className="admin-page-title">
           Marketing &amp; Promotions
         </h1>
-        <p className="mt-1 text-[13px] text-[#b79b85]/60">
+        <p className="admin-page-subtitle">
           Real promo codes used at checkout, and the public site announcement
           bar. Promo discounts apply to the product subtotal only — delivery is
           never discounted.
         </p>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-[#2a2018]">
+      <div className="admin-tabs">
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           const Icon = tab.icon;
@@ -49,17 +46,10 @@ export default function MarketingPage() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`relative flex flex-shrink-0 items-center gap-2 px-4 py-3 text-xs font-semibold transition-colors ${
-                active
-                  ? "text-[#b6885e]"
-                  : "text-[#b79b85]/60 hover:text-[#f5e6d8]"
-              }`}
+              className={`admin-tab${active ? " admin-tab-active" : ""}`}
             >
               <Icon size={14} />
               {tab.label}
-              {active && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#b6885e]" />
-              )}
             </button>
           );
         })}

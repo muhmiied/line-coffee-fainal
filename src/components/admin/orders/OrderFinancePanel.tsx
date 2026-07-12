@@ -49,8 +49,8 @@ function formatDateTime(value: string) {
 
 function Panel({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-[#B6885E]/12 bg-white/[0.018] p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/65">
+    <section className="admin-surface p-4">
+      <h3 className="admin-label mb-3 flex items-center gap-2 !text-[10px]" style={{ color: "var(--admin-hazelnut)" }}>
         {icon}
         {title}
       </h3>
@@ -59,8 +59,8 @@ function Panel({ title, icon, children }: { title: string; icon?: React.ReactNod
   );
 }
 
-const inputClass =
-  "w-full rounded-lg border border-[#B6885E]/15 bg-[#0B0806]/65 px-3 py-2 text-sm text-[#F5E6D8] outline-none placeholder:text-[#D6B79A]/25 focus:border-[#D6A373]/35";
+const inputClass = "admin-input !text-sm";
+const fieldLabelClass = "admin-label mb-1 block !text-[10px] !normal-case !tracking-wide";
 
 type ReturnDraft = { quantity: string; condition: OrderReturnCondition; notes: string };
 
@@ -254,31 +254,31 @@ export default function OrderFinancePanel({
     <div className="space-y-4">
       <Panel title="Payment Summary">
         {loadError ? (
-          <p className="text-xs text-red-300">{loadError}</p>
+          <p className="text-xs" style={{ color: "#eeb4a8" }}>{loadError}</p>
         ) : !financials ? (
-          <div className="flex items-center gap-2 py-3 text-xs text-[#D6B79A]/50">
+          <div className="flex items-center gap-2 py-3 text-xs admin-muted">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading payment data…
           </div>
         ) : (
           <>
             {order.status === "delivered" && financials.remaining > 0 && (
-              <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-[11px] font-semibold text-amber-300">
+              <div className="mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: "rgba(227,182,115,0.10)", border: "1px solid rgba(227,182,115,0.30)", color: "#e3b673" }}>
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                 Delivered with an outstanding balance — {egp(financials.remaining)} remaining.
               </div>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <SummaryStat label="Order total" value={egp(financials.total)} />
-              <SummaryStat label="Paid" value={egp(financials.paidTotal)} tone="#4ade80" />
+              <SummaryStat label="Paid" value={egp(financials.paidTotal)} tone="#8fcf9a" />
               <SummaryStat
                 label="Remaining"
                 value={egp(financials.remaining)}
-                tone={financials.remaining > 0 ? "#fbbf24" : "#4ade80"}
+                tone={financials.remaining > 0 ? "#e3b673" : "#8fcf9a"}
               />
               <SummaryStat
                 label="Refunded"
                 value={egp(financials.refundedTotal)}
-                tone={financials.refundedTotal > 0 ? "#f87171" : undefined}
+                tone={financials.refundedTotal > 0 ? "#e39a8c" : undefined}
               />
             </div>
           </>
@@ -289,7 +289,7 @@ export default function OrderFinancePanel({
         <Panel title="Record Payment" icon={<ArrowDownCircle className="h-3.5 w-3.5 text-emerald-300/70" />}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Amount (EGP)</span>
+              <span className={fieldLabelClass}>Amount (EGP)</span>
               <input
                 type="number"
                 min={0}
@@ -302,12 +302,11 @@ export default function OrderFinancePanel({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Method</span>
+              <span className={fieldLabelClass}>Method</span>
               <select
                 value={payMethod}
                 onChange={(event) => setPayMethod(event.target.value as PaymentMovementMethod)}
-                className={inputClass}
-                style={{ colorScheme: "dark" }}
+                className="admin-select !text-sm"
               >
                 {MOVEMENT_METHODS.map((method) => (
                   <option key={method} value={method}>
@@ -317,7 +316,7 @@ export default function OrderFinancePanel({
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Reference (optional)</span>
+              <span className={fieldLabelClass}>Reference (optional)</span>
               <input
                 type="text"
                 maxLength={160}
@@ -328,7 +327,7 @@ export default function OrderFinancePanel({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Notes (optional)</span>
+              <span className={fieldLabelClass}>Notes (optional)</span>
               <input
                 type="text"
                 maxLength={1000}
@@ -343,12 +342,13 @@ export default function OrderFinancePanel({
               type="button"
               disabled={paySaving}
               onClick={() => void submitPayment()}
-              className="rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-400/16 disabled:cursor-not-allowed disabled:opacity-45"
+              className="admin-btn !px-3 !py-2 !text-xs"
+              style={{ color: "#8fcf9a", background: "rgba(143,207,154,0.10)", borderColor: "rgba(143,207,154,0.30)" }}
             >
               {paySaving ? "Saving…" : "Record payment"}
             </button>
             {payMsg && (
-              <p className="text-xs text-[#D6B79A]/65" role="status">
+              <p className="text-xs admin-faint" role="status">
                 {payMsg}
               </p>
             )}
@@ -360,7 +360,7 @@ export default function OrderFinancePanel({
         <Panel title="Record Refund" icon={<ArrowUpCircle className="h-3.5 w-3.5 text-red-300/70" />}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Amount (EGP)</span>
+              <span className={fieldLabelClass}>Amount (EGP)</span>
               <input
                 type="number"
                 min={0}
@@ -372,12 +372,11 @@ export default function OrderFinancePanel({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Method</span>
+              <span className={fieldLabelClass}>Method</span>
               <select
                 value={refMethod}
                 onChange={(event) => setRefMethod(event.target.value as PaymentMovementMethod)}
-                className={inputClass}
-                style={{ colorScheme: "dark" }}
+                className="admin-select !text-sm"
               >
                 {MOVEMENT_METHODS.map((method) => (
                   <option key={method} value={method}>
@@ -387,7 +386,7 @@ export default function OrderFinancePanel({
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Reference (optional)</span>
+              <span className={fieldLabelClass}>Reference (optional)</span>
               <input
                 type="text"
                 maxLength={160}
@@ -397,7 +396,7 @@ export default function OrderFinancePanel({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Notes (optional)</span>
+              <span className={fieldLabelClass}>Notes (optional)</span>
               <input
                 type="text"
                 maxLength={1000}
@@ -407,7 +406,7 @@ export default function OrderFinancePanel({
               />
             </label>
           </div>
-          <p className="mt-2 text-[11px] text-[#D6B79A]/42">
+          <p className="mt-2 text-[11px] admin-faint">
             Refunds move the payment balance only — subtotal, delivery, discount, stock, and COGS are unchanged. A refund is separate from a return.
           </p>
           <div className="mt-3 flex items-center gap-3">
@@ -415,12 +414,12 @@ export default function OrderFinancePanel({
               type="button"
               disabled={refSaving}
               onClick={() => void submitRefund()}
-              className="rounded-lg border border-red-400/25 bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-400/16 disabled:cursor-not-allowed disabled:opacity-45"
+              className="admin-btn admin-btn-danger !px-3 !py-2 !text-xs"
             >
               {refSaving ? "Saving…" : "Record refund"}
             </button>
             {refMsg && (
-              <p className="text-xs text-[#D6B79A]/65" role="status">
+              <p className="text-xs admin-faint" role="status">
                 {refMsg}
               </p>
             )}
@@ -431,7 +430,7 @@ export default function OrderFinancePanel({
       {canReturn && (
         <Panel title="Create Return" icon={<RotateCcw className="h-3.5 w-3.5 text-[#D6A373]/70" />}>
           {returnableItems.length === 0 ? (
-            <p className="text-xs text-[#D6B79A]/45">All lines on this order have been fully returned.</p>
+            <p className="text-xs text-[#D6B79A]/65">All lines on this order have been fully returned.</p>
           ) : (
             <>
               <div className="space-y-2.5">
@@ -441,18 +440,18 @@ export default function OrderFinancePanel({
                   return (
                     <div
                       key={item.id}
-                      className="grid gap-2 rounded-lg border border-[#B6885E]/10 bg-[#0B0806]/40 p-3 sm:grid-cols-[1fr_80px_150px]"
+                      className="admin-surface !shadow-none grid gap-2 p-3 sm:grid-cols-[1fr_80px_150px]"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-[#F5E6D8]/85" data-admin-no-translate>
+                        <p className="truncate text-xs font-semibold admin-text" data-admin-no-translate>
                           {language === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.nameAr}
                         </p>
-                        <p className="text-[10.5px] text-[#D6B79A]/45">
+                        <p className="text-[10.5px] admin-faint">
                           {[item.variantSize, item.kind].filter(Boolean).join(" · ")} · {item.remaining} of {item.quantity} returnable
                         </p>
                       </div>
                       <label className="block">
-                        <span className="mb-1 block text-[9px] uppercase tracking-wide text-[#D6B79A]/40">Qty</span>
+                        <span className={`${fieldLabelClass} !text-[9px]`}>Qty</span>
                         <input
                           type="number"
                           min={0}
@@ -466,15 +465,14 @@ export default function OrderFinancePanel({
                         />
                       </label>
                       <label className="block">
-                        <span className="mb-1 block text-[9px] uppercase tracking-wide text-[#D6B79A]/40">Condition</span>
+                        <span className={`${fieldLabelClass} !text-[9px]`}>Condition</span>
                         <select
                           value={draft?.condition ?? "sellable"}
                           disabled={disabled}
                           onChange={(event) =>
                             setDraft(item.id, { condition: event.target.value as OrderReturnCondition })
                           }
-                          className={inputClass}
-                          style={{ colorScheme: "dark" }}
+                          className="admin-select !text-sm"
                         >
                           {RETURN_CONDITIONS.map((condition) => (
                             <option key={condition} value={condition}>
@@ -488,7 +486,7 @@ export default function OrderFinancePanel({
                 })}
               </div>
               <label className="mt-3 block">
-                <span className="mb-1 block text-[10px] uppercase tracking-wide text-[#D6B79A]/45">Return reason (optional)</span>
+                <span className={fieldLabelClass}>Return reason (optional)</span>
                 <input
                   type="text"
                   maxLength={500}
@@ -498,7 +496,7 @@ export default function OrderFinancePanel({
                   className={inputClass}
                 />
               </label>
-              <p className="mt-2 text-[11px] text-[#D6B79A]/42">
+              <p className="mt-2 text-[11px] admin-faint">
                 Sellable returns restock through the order&apos;s original FIFO lots (coffee) or bean lots (espresso). Flavor lines and damaged/other conditions never restock. Recording a return does not refund money.
               </p>
               <div className="mt-3 flex items-center gap-3">
@@ -506,12 +504,12 @@ export default function OrderFinancePanel({
                   type="button"
                   disabled={returnSaving}
                   onClick={() => void submitReturn()}
-                  className="rounded-lg border border-[#D6A373]/25 bg-[#D6A373]/10 px-3 py-2 text-xs font-semibold text-[#D6A373] hover:bg-[#D6A373]/16 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="admin-btn admin-btn-primary !px-3 !py-2 !text-xs"
                 >
                   {returnSaving ? "Saving…" : "Record return"}
                 </button>
                 {returnMsg && (
-                  <p className="text-xs text-[#D6B79A]/65" role="status">
+                  <p className="text-xs admin-faint" role="status">
                     {returnMsg}
                   </p>
                 )}
@@ -534,14 +532,14 @@ export default function OrderFinancePanel({
                     <span>
                       <span className="font-semibold text-emerald-300">Payment</span>{" "}
                       <span className="text-[#F5E6D8]/72">{egp(p.amount)}</span>
-                      <span className="text-[#D6B79A]/45">
+                      <span className="text-[#D6B79A]/65">
                         {" "}· {ADMIN_PAYMENT_MOVEMENT_METHOD_LABELS[p.method]}
                         {p.reference ? ` · ${p.reference}` : ""}
                       </span>
-                      {p.notes && <span className="block text-[#D6B79A]/50">{p.notes}</span>}
+                      {p.notes && <span className="block text-[#D6B79A]/65">{p.notes}</span>}
                     </span>
                   </span>
-                  <span className="whitespace-nowrap text-right text-[10.5px] text-[#D6B79A]/42">
+                  <span className="whitespace-nowrap text-right text-[10.5px] text-[#D6B79A]/65">
                     {formatDateTime(p.paidAt)}
                     {p.createdBy ? ` · ${p.createdBy}` : ""}
                   </span>
@@ -554,14 +552,14 @@ export default function OrderFinancePanel({
                     <span>
                       <span className="font-semibold text-red-300">Refund</span>{" "}
                       <span className="text-[#F5E6D8]/72">{egp(r.amount)}</span>
-                      <span className="text-[#D6B79A]/45">
+                      <span className="text-[#D6B79A]/65">
                         {" "}· {ADMIN_PAYMENT_MOVEMENT_METHOD_LABELS[r.method]}
                         {r.reference ? ` · ${r.reference}` : ""}
                       </span>
-                      {r.notes && <span className="block text-[#D6B79A]/50">{r.notes}</span>}
+                      {r.notes && <span className="block text-[#D6B79A]/65">{r.notes}</span>}
                     </span>
                   </span>
-                  <span className="whitespace-nowrap text-right text-[10.5px] text-[#D6B79A]/42">
+                  <span className="whitespace-nowrap text-right text-[10.5px] text-[#D6B79A]/65">
                     {formatDateTime(r.refundedAt)}
                     {r.createdBy ? ` · ${r.createdBy}` : ""}
                   </span>
@@ -579,7 +577,7 @@ export default function OrderFinancePanel({
                       {ret.restockedKg > 0 && (
                         <span className="text-emerald-300/70"> · restocked {ret.restockedKg} kg</span>
                       )}
-                      <span className="block text-[#D6B79A]/50">
+                      <span className="block text-[#D6B79A]/65">
                         {ret.items
                           .map((i) => {
                             const conditionLabel =
@@ -595,7 +593,7 @@ export default function OrderFinancePanel({
                       </span>
                     </span>
                   </span>
-                  <span className="whitespace-nowrap text-right text-[10.5px] text-[#D6B79A]/42">
+                  <span className="whitespace-nowrap text-right text-[10.5px] text-[#D6B79A]/65">
                     {formatDateTime(ret.createdAt)}
                     {ret.createdBy ? ` · ${ret.createdBy}` : ""}
                   </span>
@@ -619,17 +617,17 @@ export default function OrderFinancePanel({
             type="button"
             disabled={noteSaving || noteDraft === (order.adminNote ?? "")}
             onClick={() => void submitNote()}
-            className="rounded-lg border border-[#B6885E]/20 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-[#D6B79A]/80 hover:border-[#D6A373]/30 hover:text-[#D6A373] disabled:cursor-not-allowed disabled:opacity-45"
+            className="admin-btn !px-3 !py-2 !text-xs"
           >
             {noteSaving ? "Saving…" : "Save note"}
           </button>
           {noteMsg && (
-            <p className="text-xs text-[#D6B79A]/65" role="status">
+            <p className="text-xs admin-faint" role="status">
               {noteMsg}
             </p>
           )}
         </div>
-        <p className="mt-2 text-[11px] text-[#D6B79A]/42">
+        <p className="mt-2 text-[11px] admin-faint">
           Item and price editing are intentionally disabled — they would corrupt FIFO, allocations, promo, or COGS. Use returns/refunds instead. Delivery-fee edits are available before delivery.
         </p>
       </Panel>
@@ -639,9 +637,9 @@ export default function OrderFinancePanel({
 
 function SummaryStat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-lg border border-[#B6885E]/10 bg-[#0B0806]/40 p-3">
-      <p className="text-[9px] font-bold uppercase tracking-wide text-[#D6B79A]/42">{label}</p>
-      <p className="mt-1 text-sm font-bold" style={{ color: tone ?? "#F5E6D8" }}>
+    <div className="admin-surface !shadow-none p-3">
+      <p className="admin-label !text-[9px]">{label}</p>
+      <p className="mt-1 text-sm font-bold" style={{ color: tone ?? "var(--admin-heading)" }}>
         {value}
       </p>
     </div>

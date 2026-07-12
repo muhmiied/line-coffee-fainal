@@ -43,8 +43,8 @@ function DetailCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-[#B6885E]/12 bg-white/[0.018] p-4">
-      <h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/65">
+    <section className="admin-surface p-4">
+      <h3 className="admin-label !text-[10px] mb-3" style={{ color: "var(--admin-hazelnut)" }}>
         {title}
       </h3>
       {children}
@@ -56,8 +56,8 @@ function ValueRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex items-start justify-between gap-4 text-xs">
-      <span className="text-[#D6B79A]/48">{label}</span>
-      <span className="text-right text-[#F5E6D8]/78">{value}</span>
+      <span className="admin-faint">{label}</span>
+      <span className="text-right admin-text">{value}</span>
     </div>
   );
 }
@@ -127,7 +127,7 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
               {addressLine && <p>{addressLine}</p>}
               {cityLine && <p>{cityLine}</p>}
               {order.address.landmark && (
-                <p className="text-[#D6B79A]/48">Landmark: {order.address.landmark}</p>
+                <p className="text-[#D6B79A]/65">Landmark: {order.address.landmark}</p>
               )}
               {googleMapsUrl && (
                 <a
@@ -164,7 +164,7 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
                 <p className="text-sm font-semibold text-[#F5E6D8]/88" data-admin-no-translate>
                   {language === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.nameAr}
                 </p>
-                <p className="mt-0.5 text-xs text-[#D6B79A]/48">
+                <p className="mt-0.5 text-xs text-[#D6B79A]/65">
                   {[item.variantSize, item.detailEn, item.sku].filter(Boolean).join(" · ")}
                 </p>
               </div>
@@ -202,7 +202,7 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
             </dd>
           </div>
           {order.deliveryNote && (
-            <p className="text-[11px] leading-4 text-[#D6B79A]/42">{order.deliveryNote}</p>
+            <p className="text-[11px] leading-4 text-[#D6B79A]/65">{order.deliveryNote}</p>
           )}
           {order.discountTotal > 0 && (
             <div className="flex justify-between text-emerald-300/80">
@@ -210,9 +210,9 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
               <dd>-{order.discountTotal.toLocaleString()} EGP</dd>
             </div>
           )}
-          <div className="flex justify-between border-t border-[#B6885E]/12 pt-2 text-sm font-bold text-[#F5E6D8]">
+          <div className="flex justify-between pt-2 text-sm font-bold" style={{ borderTop: "1px solid var(--admin-border)", color: "var(--admin-heading)" }}>
             <dt>Total</dt>
-            <dd className="text-[#D6A373]">{order.total.toLocaleString()} EGP</dd>
+            <dd style={{ color: "var(--admin-hazelnut)" }}>{order.total.toLocaleString()} EGP</dd>
           </div>
         </dl>
       </DetailCard>
@@ -222,13 +222,13 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
           <div className="space-y-3 text-xs leading-5">
             {order.customerNote && (
               <div>
-                <p className="text-[#D6B79A]/45">Customer</p>
+                <p className="text-[#D6B79A]/65">Customer</p>
                 <p className="text-[#F5E6D8]/72">{order.customerNote}</p>
               </div>
             )}
             {order.adminNote && (
               <div>
-                <p className="text-[#D6B79A]/45">Admin</p>
+                <p className="text-[#D6B79A]/65">Admin</p>
                 <p className="text-[#F5E6D8]/72">{order.adminNote}</p>
               </div>
             )}
@@ -238,22 +238,22 @@ export default function OrderDetails({ order }: { order: AdminOrderDetail }) {
 
       <DetailCard title="Timeline">
         {order.events.length === 0 ? (
-          <p className="text-xs text-[#D6B79A]/45">No status events recorded.</p>
+          <p className="text-xs text-[#D6B79A]/65">No status events recorded.</p>
         ) : (
           <ol className="space-y-3">
             {order.events.map((event, index) => (
               <li key={event.id} className="relative flex gap-3">
                 <div className="flex flex-col items-center">
-                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#D6A373]" />
+                  <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ background: "var(--admin-hazelnut)", boxShadow: "0 0 6px rgb(198 153 116 / 0.5)" }} />
                   {index < order.events.length - 1 && (
-                    <span className="mt-1 h-full min-h-8 w-px bg-[#B6885E]/20" />
+                    <span className="mt-1 h-full min-h-8 w-px" style={{ background: "var(--admin-border)" }} />
                   )}
                 </div>
                 <div className="pb-1">
                   <p className="text-xs font-semibold text-[#F5E6D8]/82">
                     {ADMIN_ORDER_STATUS_LABELS[event.status]}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-[#D6B79A]/44">
+                  <p className="mt-0.5 text-[11px] text-[#D6B79A]/65">
                     {formatDateTime(event.changedAt)}
                     {event.changedBy ? ` · ${event.changedBy}` : ""}
                   </p>

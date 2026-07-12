@@ -33,15 +33,15 @@ function CustomTooltip({
     <div
       className="px-3 py-2 rounded-lg text-sm"
       style={{
-        background: "#1a1209",
-        border: "1px solid rgba(182,136,94,0.20)",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.40)",
+        background: "var(--admin-surface-2)",
+        border: "1px solid var(--admin-border-strong)",
+        boxShadow: "var(--admin-shadow), var(--admin-inset)",
       }}
     >
-      <p className="text-[11px] mb-0.5" style={{ color: "var(--cream-dim)" }}>
+      <p className="text-[11px] mb-0.5 admin-muted">
         {label ? t(label) : label}
       </p>
-      <p dir="ltr" className="text-[14px] font-semibold tabular-nums" style={{ color: "var(--gold)" }}>
+      <p dir="ltr" className="text-[14px] font-semibold tabular-nums" style={{ color: "var(--admin-hazelnut)" }}>
         {payload[0].value.toLocaleString("en-EG")} {currency}
       </p>
     </div>
@@ -85,31 +85,24 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
     <div className="admin-surface p-5 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-2">
-        <p
-          className="text-sm font-semibold"
-          style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
-        >
+        <p className="admin-card-title font-serif">
           {t("Sales Overview")}
         </p>
 
         {/* Period toggle */}
-        <div
-          className="flex p-0.5 rounded-lg"
-          style={{ background: "rgba(255,255,255,0.04)" }}
-        >
-          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className="px-3 py-1 rounded-md text-[11.5px] font-medium transition-all duration-150"
-              style={{
-                color:      p === period ? "var(--gold)" : "var(--cream-dim)",
-                background: p === period ? "rgba(182,136,94,0.12)" : "transparent",
-              }}
-            >
-              {t(PERIOD_LABELS[p])}
-            </button>
-          ))}
+        <div className="admin-tabs !gap-0.5 !p-0.5 rounded-lg" style={{ background: "rgb(5 3 2 / 0.35)" }}>
+          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => {
+            const active = p === period;
+            return (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`admin-tab !px-3 !py-1 !text-[11.5px] !font-medium${active ? " admin-tab-active" : ""}`}
+              >
+                {t(PERIOD_LABELS[p])}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -124,20 +117,20 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
           >
             <defs>
               <linearGradient id="adminSalesGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#b6885e" stopOpacity={0.28} />
-                <stop offset="95%" stopColor="#b6885e" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#c69974" stopOpacity={0.34} />
+                <stop offset="95%" stopColor="#c69974" stopOpacity={0} />
               </linearGradient>
             </defs>
 
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.04)"
+              stroke="rgba(227,210,184,0.06)"
               vertical={false}
             />
 
             <XAxis
               dataKey="label"
-              tick={{ fill: "var(--cream-dim)", fontSize: 11, opacity: 0.7 }}
+              tick={{ fill: "rgba(214,187,159,0.72)", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               dy={6}
@@ -145,7 +138,7 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
             />
 
             <YAxis
-              tick={{ fill: "var(--cream-dim)", fontSize: 10, opacity: 0.5 }}
+              tick={{ fill: "rgba(214,187,159,0.5)", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) =>
@@ -157,7 +150,7 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
             <Tooltip
               content={<CustomTooltip />}
               cursor={{
-                stroke: "rgba(182,136,94,0.20)",
+                stroke: "rgba(198,153,116,0.28)",
                 strokeWidth: 1,
                 strokeDasharray: "4 4",
               }}
@@ -166,11 +159,11 @@ export default function SalesChart({ data: trend }: { data: DashboardSalesTrend 
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#b6885e"
+              stroke="#c69974"
               strokeWidth={2}
               fill="url(#adminSalesGrad)"
               dot={false}
-              activeDot={{ r: 4, fill: "#d6a373", stroke: "#1a1209", strokeWidth: 2 }}
+              activeDot={{ r: 4, fill: "#e3d2b8", stroke: "#191309", strokeWidth: 2 }}
             />
           </AreaChart>
         ) : (

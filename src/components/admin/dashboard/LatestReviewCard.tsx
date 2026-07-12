@@ -11,16 +11,13 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
       {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: "1px solid rgba(182,136,94,0.08)" }}
+        style={{ borderBottom: "1px solid var(--admin-border)" }}
       >
         <div>
-          <p
-            className="text-sm font-semibold"
-            style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
-          >
+          <p className="admin-card-title font-serif">
             {t("Latest Review")}
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
+          <p className="text-[11px] mt-0.5 admin-faint">
             {review
               ? language === "ar"
                 ? <><bdi dir="ltr">{review.avgRating}/5</bdi> متوسط · <bdi dir="ltr">{review.totalReviews}</bdi> مقبول</>
@@ -28,11 +25,7 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
               : t("Approved reviews only")}
           </p>
         </div>
-        <Link
-          href="/admin/cms"
-          className="flex items-center gap-1 text-[12px] font-medium transition-colors hover:opacity-80"
-          style={{ color: "var(--gold)" }}
-        >
+        <Link href="/admin/cms" className="admin-link flex items-center gap-1 text-[12px]">
           {t("View all")}
           <ArrowRight size={12} className={dir === "rtl" ? "rotate-180" : undefined} />
         </Link>
@@ -40,9 +33,9 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
 
       {/* Review content / empty state */}
       {!review ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 px-5 py-10">
-          <MessageSquare size={26} style={{ color: "var(--cream-dim)", opacity: 0.25 }} />
-          <p className="text-[12.5px] text-center" style={{ color: "var(--cream-dim)", opacity: 0.45 }}>
+        <div className="admin-empty-state m-4 flex-1">
+          <span className="admin-empty-icon"><MessageSquare size={22} /></span>
+          <p className="text-[12.5px] text-center admin-muted">
             {t("No approved reviews yet")}
           </p>
         </div>
@@ -54,15 +47,15 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
               <Star
                 key={i}
                 size={14}
-                style={{ color: "var(--gold)", fill: "var(--gold)" }}
+                style={{ color: "var(--admin-hazelnut)", fill: "var(--admin-hazelnut)" }}
               />
             ))}
           </div>
 
           {/* Quote */}
           <blockquote
-            className="text-[13px] leading-relaxed italic flex-1"
-            style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
+            className="text-[13.5px] leading-relaxed italic flex-1"
+            style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}
             data-admin-no-translate
           >
             &ldquo;{review.text}&rdquo;
@@ -74,25 +67,21 @@ export default function LatestReviewCard({ review }: { review: DashboardLatestRe
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
               style={{
-                background: "linear-gradient(135deg, #a8744e, #d6a373)",
-                color: "var(--coffee-black)",
+                background: "linear-gradient(150deg, #dcab7b, #a16e41)",
+                color: "var(--admin-button-text)",
+                boxShadow: "0 3px 8px rgb(5 3 2 / 0.4)",
               }}
             >
               {review.initials || "—"}
             </div>
             <div>
               <p
-                className="text-[12.5px] font-semibold leading-tight"
-                style={{ color: "var(--cream)" }}
+                className="text-[12.5px] font-semibold leading-tight admin-text"
                 data-admin-no-translate
               >
                 {review.author}
               </p>
-              <p
-                className="text-[11px] leading-tight"
-                style={{ color: "var(--cream-dim)", opacity: 0.55 }}
-                data-admin-no-translate
-              >
+              <p className="text-[11px] leading-tight admin-faint" data-admin-no-translate>
                 {review.product} · {review.date}
               </p>
             </div>

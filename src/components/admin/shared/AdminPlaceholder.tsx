@@ -25,7 +25,7 @@ export default function AdminPlaceholder({
           border: "1px solid rgba(182,136,94,0.15)",
         }}
       >
-        <Icon size={28} style={{ color: "var(--gold)" }} />
+        <Icon size={28} style={{ color: "var(--admin-hazelnut)" }} />
       </div>
 
       {/* Phase badge */}
@@ -42,13 +42,13 @@ export default function AdminPlaceholder({
 
       <h1
         className="text-2xl font-semibold mb-2"
-        style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
+        style={{ color: "var(--admin-heading)", fontFamily: "var(--font-playfair)" }}
       >
         {title}
       </h1>
       <p
         className="text-sm max-w-sm leading-relaxed mb-6"
-        style={{ color: "var(--cream-dim)" }}
+        style={{ color: "var(--admin-muted)" }}
       >
         {description}
       </p>
@@ -70,7 +70,7 @@ export default function AdminPlaceholder({
               <li
                 key={item}
                 className="flex items-center gap-2 text-[13px]"
-                style={{ color: "var(--cream-dim)" }}
+                style={{ color: "var(--admin-muted)" }}
               >
                 <span
                   className="w-1 h-1 rounded-full flex-shrink-0"

@@ -217,8 +217,8 @@ function AddressFormPanel({
     e: React.ChangeEvent<HTMLInputElement>,
   ) => setForm((p) => ({ ...p, [name]: e.target.value }));
 
-  const inputCls =
-    "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-3 py-2.5 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 focus:border-[#B6885E]/40 focus:outline-none";
+  const inputCls = "line-input !py-2.5 text-sm";
+  const selectCls = "line-select !py-2.5 text-sm";
   const labelCls = "mb-1 block text-xs font-medium text-[#D6B79A]/70";
   const row2 = "grid grid-cols-2 gap-3";
   const selectedGovernorate = GOVS.find(
@@ -267,7 +267,7 @@ function AddressFormPanel({
                 manualArea: "",
               }))
             }
-            className={inputCls}
+            className={selectCls}
           >
             <option value="">{t({ en: "Select governorate", ar: "اختر المحافظة" })}</option>
             {!selectedGovernorate && form.governorate && (
@@ -293,7 +293,7 @@ function AddressFormPanel({
                   e.target.value === "Other" ? current.manualArea : "",
               }))
             }
-            className={`${inputCls} disabled:cursor-not-allowed disabled:opacity-45`}
+            className={`${selectCls} disabled:cursor-not-allowed disabled:opacity-45`}
           >
             <option value="">
               {selectedGovernorate

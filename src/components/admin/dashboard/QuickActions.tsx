@@ -27,10 +27,7 @@ export default function QuickActions() {
 
   return (
     <div className="admin-surface p-5 flex flex-col h-full">
-      <p
-        className="text-sm font-semibold mb-4"
-        style={{ color: "var(--cream)", fontFamily: "var(--font-playfair)" }}
-      >
+      <p className="admin-card-title font-serif mb-4">
         {t("Quick Actions")}
       </p>
 
@@ -41,43 +38,28 @@ export default function QuickActions() {
             <Link
               key={action.label}
               href={action.href}
-              className="group flex flex-col justify-between p-3.5 rounded-xl transition-all duration-150 hover:-translate-y-px"
-              style={{
-                background: "rgba(182,136,94,0.05)",
-                border: "1px solid rgba(182,136,94,0.10)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(182,136,94,0.09)";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(182,136,94,0.22)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(182,136,94,0.05)";
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(182,136,94,0.10)";
-              }}
+              className="admin-card group flex flex-col justify-between p-3.5 !rounded-xl"
             >
               {/* Top: icon + arrow */}
               <div className="flex items-start justify-between mb-3">
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ background: "rgba(182,136,94,0.12)" }}
-                >
-                  <Icon size={14} style={{ color: "var(--gold)" }} />
-                </div>
+                <span className="admin-icon-chip !w-7 !h-7 !rounded-lg">
+                  <Icon size={14} />
+                </span>
                 <ArrowUpRight
                   size={13}
-                  className={`opacity-0 group-hover:opacity-60 transition-opacity ${
+                  className={`opacity-0 group-hover:opacity-70 transition-opacity ${
                     dir === "rtl" ? "-rotate-90" : ""
                   }`}
-                  style={{ color: "var(--gold)" }}
+                  style={{ color: "var(--admin-hazelnut)" }}
                 />
               </div>
 
               {/* Bottom: label + sublabel */}
               <div>
-                <p className="text-[12.5px] font-semibold leading-tight mb-0.5" style={{ color: "var(--cream)" }}>
+                <p className="text-[12.5px] font-semibold leading-tight mb-0.5 admin-text">
                   {t(action.label)}
                 </p>
-                <p className="text-[11px] leading-tight" style={{ color: "var(--cream-dim)", opacity: 0.55 }}>
+                <p className="text-[11px] leading-tight admin-faint">
                   {t(action.sublabel)}
                 </p>
               </div>

@@ -354,10 +354,7 @@ export default function ContactPage() {
                             value={form.subject}
                             onChange={handleChange}
                             required
-                            className={cn(
-                              "line-input w-full appearance-none bg-[#120D09]",
-                              isRtl ? "pl-9" : "pr-9",
-                            )}
+                            className="line-select w-full"
                           >
                             <option value="" disabled>
                               {t({ en: "Select a topic", ar: "اختر موضوعاً" })}
@@ -368,12 +365,6 @@ export default function ContactPage() {
                             <option value="custom">{t({ en: "Custom blend", ar: "خلطة خاصة" })}</option>
                             <option value="other">{t({ en: "Other", ar: "أخرى" })}</option>
                           </select>
-                          <ChevronDown
-                            className={cn(
-                              "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6A373]/80",
-                              isRtl ? "left-3" : "right-3",
-                            )}
-                          />
                         </div>
                       </div>
 

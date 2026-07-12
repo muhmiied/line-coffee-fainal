@@ -34,10 +34,10 @@ function initials(name: string) {
 }
 
 function avatarBg(c: AdminCustomerSummary, segs: CustomerSegment[]): string {
-  if (segs.includes("vip"))     return "linear-gradient(135deg,#a8744e,#d6a373)";
-  if (c.type === "registered")  return "linear-gradient(135deg,#3b82f6,#60a5fa)";
-  if (segs.includes("inactive") || segs.includes("at-risk")) return "linear-gradient(135deg,#4b5563,#6b7280)";
-  return "linear-gradient(135deg,#d97706,#fbbf24)";
+  if (segs.includes("vip"))     return "linear-gradient(135deg,#a8744e,var(--admin-hazelnut))";
+  if (c.type === "registered")  return "linear-gradient(135deg,#8fb0d9,#8fb0d9)";
+  if (segs.includes("inactive") || segs.includes("at-risk")) return "linear-gradient(135deg,#4b5563,#a8927e)";
+  return "linear-gradient(135deg,#d97706,#e3b673)";
 }
 
 // ── Filter / sort types ────────────────────────────────────────────────────────
@@ -73,23 +73,23 @@ function sortCustomers(list: AdminCustomerSummary[], sort: SortKey): AdminCustom
 // ── Segment badge ──────────────────────────────────────────────────────────────
 
 const SEG_STYLE: Record<CustomerSegment, { color: string; bg: string; label: string }> = {
-  vip:                   { color: "var(--gold)",  bg: "rgba(182,136,94,0.12)",  label: "VIP" },
-  repeat:                { color: "#4ade80",       bg: "rgba(74,222,128,0.10)", label: "Repeat" },
-  new:                   { color: "#fbbf24",       bg: "rgba(251,191,36,0.10)", label: "New" },
-  inactive:              { color: "#f87171",       bg: "rgba(248,113,113,0.10)", label: "Inactive" },
+  vip:                   { color: "var(--admin-hazelnut)",  bg: "var(--admin-border)",  label: "VIP" },
+  repeat:                { color: "#8fcf9a",       bg: "rgba(74,222,128,0.10)", label: "Repeat" },
+  new:                   { color: "#e3b673",       bg: "rgba(251,191,36,0.10)", label: "New" },
+  inactive:              { color: "#e39a8c",       bg: "rgba(248,113,113,0.10)", label: "Inactive" },
   "at-risk":             { color: "#fb923c",       bg: "rgba(251,146,60,0.10)", label: "At Risk" },
   "wholesale-potential": { color: "#c084fc",       bg: "rgba(192,132,252,0.10)", label: "Wholesale" },
 };
 
 const STATUS_DOT: Record<string, string> = {
-  active:   "#4ade80",
-  inactive: "#f87171",
-  new:      "#fbbf24",
+  active:   "#8fcf9a",
+  inactive: "#e39a8c",
+  new:      "#e3b673",
 };
 
 const TYPE_CFG: Record<string, { color: string; bg: string; label: string }> = {
-  registered: { color: "#60a5fa", bg: "rgba(96,165,250,0.12)",  label: "Registered" },
-  guest:      { color: "#fbbf24", bg: "rgba(251,191,36,0.12)",  label: "Guest" },
+  registered: { color: "#8fb0d9", bg: "rgba(96,165,250,0.12)",  label: "Registered" },
+  guest:      { color: "#e3b673", bg: "rgba(251,191,36,0.12)",  label: "Guest" },
 };
 
 // ── Module-level sub-components ────────────────────────────────────────────────
@@ -102,9 +102,9 @@ function TableHeader() {
         gridTemplateColumns: "2.8fr 1.4fr 1fr 1.2fr 0.8fr 1fr 0.9fr 0.9fr 0.8fr 1.1fr",
         padding: "10px 16px",
         fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
-        color: "var(--cream-dim)", opacity: 0.45,
-        background: "rgba(182,136,94,0.04)",
-        borderBottom: "1px solid rgba(182,136,94,0.08)",
+        color: "var(--admin-muted)", opacity: 0.45,
+        background: "var(--admin-border)",
+        borderBottom: "1px solid var(--admin-border)",
       }}
     >
       <span>Customer</span>
@@ -148,7 +148,7 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
         tabIndex={0}
         onClick={() => onOpen(customer.id)}
         onKeyDown={handleRowKeyDown}
-        className="hidden lg:grid w-full text-left hover:bg-white/[0.02] transition-colors"
+        className="hidden lg:grid w-full text-left hover:bg-[rgb(227_210_184_/_0.035)] transition-colors"
         style={{
           gridTemplateColumns: "2.8fr 1.4fr 1fr 1.2fr 0.8fr 1fr 0.9fr 0.9fr 0.8fr 1.1fr",
           padding: "13px 16px", alignItems: "center", gap: 0,
@@ -162,17 +162,17 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              {isDuplicate && <AlertTriangle size={11} style={{ color: "#fbbf24", flexShrink: 0 }} aria-label="Possible duplicate customer" />}
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--cream)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{customer.name}</span>
+              {isDuplicate && <AlertTriangle size={11} style={{ color: "#e3b673", flexShrink: 0 }} aria-label="Possible duplicate customer" />}
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--admin-white-coffee)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{customer.name}</span>
             </div>
-            <span style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.4, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <span style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.4, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {customer.email ?? "No email"}
             </span>
           </div>
         </div>
 
         {/* Phone */}
-        <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.6, fontFamily: "monospace" }}>{customer.phone ?? "—"}</span>
+        <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.6, fontFamily: "monospace" }}>{customer.phone ?? "—"}</span>
 
         {/* Type */}
         <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: tc.bg, color: tc.color, display: "inline-block" }}>
@@ -186,26 +186,26 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
               {SEG_STYLE[s].label}
             </span>
           ))}
-          {segs.length > 2 && <span style={{ fontSize: 9.5, color: "var(--cream-dim)", opacity: 0.35 }}>+{segs.length - 2}</span>}
-          {segs.length === 0 && <span style={{ fontSize: 11, color: "var(--cream-dim)", opacity: 0.25 }}>—</span>}
+          {segs.length > 2 && <span style={{ fontSize: 9.5, color: "var(--admin-muted)", opacity: 0.35 }}>+{segs.length - 2}</span>}
+          {segs.length === 0 && <span style={{ fontSize: 11, color: "var(--admin-muted)", opacity: 0.25 }}>—</span>}
         </div>
 
         {/* Orders */}
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>{customer.ordersCount}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--admin-white-coffee)" }}>{customer.ordersCount}</span>
 
         {/* Spent */}
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--gold)" }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--admin-hazelnut)" }}>
           {customer.totalSpent > 0 ? `${fmt(customer.totalSpent)}` : <span style={{ opacity: 0.3 }}>—</span>}
-          {customer.totalSpent > 0 && <span style={{ fontSize: 9.5, fontWeight: 400, color: "var(--cream-dim)", opacity: 0.5, marginLeft: 2 }}>EGP</span>}
+          {customer.totalSpent > 0 && <span style={{ fontSize: 9.5, fontWeight: 400, color: "var(--admin-muted)", opacity: 0.5, marginLeft: 2 }}>EGP</span>}
         </span>
 
         {/* Avg order */}
-        <span style={{ fontSize: 12, color: "var(--cream-dim)", opacity: 0.65 }}>
+        <span style={{ fontSize: 12, color: "var(--admin-muted)", opacity: 0.65 }}>
           {customer.ordersCount > 0 ? `${fmt(avgOrder)} EGP` : <span style={{ opacity: 0.35 }}>—</span>}
         </span>
 
         {/* Last order */}
-        <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.5 }}>
+        <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.5 }}>
           {customer.lastOrderDate ? relativeDays(customer.daysSinceLastOrder) : <span style={{ opacity: 0.35, fontStyle: "italic" }}>No orders</span>}
         </span>
 
@@ -220,14 +220,15 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
           <button
             type="button"
             onClick={() => onOpen(customer.id)}
-            style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, background: "rgba(182,136,94,0.08)", color: "var(--gold)", border: "1px solid rgba(182,136,94,0.15)", cursor: "pointer", whiteSpace: "nowrap" }}
+            className="admin-btn admin-btn-sm !whitespace-nowrap"
           >
             Profile
           </button>
           <a
             href={`https://wa.me/${customer.whatsapp.replace(/\D/g, "")}`}
             target="_blank" rel="noreferrer"
-            style={{ display: "flex", alignItems: "center", padding: "4px 6px", borderRadius: 6, background: "rgba(37,211,102,0.08)", color: "#25d366", border: "1px solid rgba(37,211,102,0.15)" }}
+            className="admin-btn admin-btn-sm !p-1.5"
+            style={{ color: "#25d366" }}
             title="WhatsApp"
           >
             <MessageCircle size={12} />
@@ -235,7 +236,8 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
           <button
             type="button"
             onClick={() => onOpen(customer.id)}
-            style={{ display: "flex", alignItems: "center", padding: "4px 6px", borderRadius: 6, background: "rgba(96,165,250,0.08)", color: "#60a5fa", border: "1px solid rgba(96,165,250,0.15)", cursor: "pointer" }}
+            className="admin-btn admin-btn-sm !p-1.5"
+            style={{ color: "#8fb0d9" }}
             title="View Orders"
           >
             <ShoppingBag size={12} />
@@ -249,7 +251,7 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
         tabIndex={0}
         onClick={() => onOpen(customer.id)}
         onKeyDown={handleRowKeyDown}
-        className="lg:hidden w-full text-left flex items-center gap-3 px-4 py-4 hover:bg-white/[0.02] transition-colors"
+        className="lg:hidden w-full text-left flex items-center gap-3 px-4 py-4 hover:bg-[rgb(227_210_184_/_0.035)] transition-colors"
         style={{ background: "none", border: "none", cursor: "pointer" }}
       >
         <div style={{ width: 38, height: 38, borderRadius: "50%", background: avatarBg(customer, segs), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#0b0806", flexShrink: 0 }}>
@@ -257,15 +259,15 @@ function TableRow({ customer, isDuplicate, onOpen }: TableRowProps) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--cream)" }}>{customer.name}</span>
-            {isDuplicate && <AlertTriangle size={11} style={{ color: "#fbbf24" }} />}
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--admin-white-coffee)" }}>{customer.name}</span>
+            {isDuplicate && <AlertTriangle size={11} style={{ color: "#e3b673" }} />}
             {segs.slice(0, 1).map(s => (
               <span key={s} style={{ fontSize: 9.5, fontWeight: 600, padding: "2px 6px", borderRadius: 10, background: SEG_STYLE[s].bg, color: SEG_STYLE[s].color }}>
                 {SEG_STYLE[s].label}
               </span>
             ))}
           </div>
-          <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.45 }}>
+          <span style={{ fontSize: 11.5, color: "var(--admin-muted)", opacity: 0.45 }}>
             {customer.ordersCount} orders · {customer.totalSpent > 0 ? `${fmt(customer.totalSpent)} EGP` : "No orders yet"} · {tc.label}
           </span>
         </div>
@@ -408,12 +410,12 @@ export default function CustomersPage() {
 
   // ── KPI cards config ────────────────────────────────────────────────────────
   const KPI_CARDS: Array<{ label: string; value: number; color: string; icon: React.ReactNode; filter: FilterKey }> = [
-    { label: "Total Customers", value: kpiCounts.total,      color: "var(--cream)",  icon: <Users size={16} />,      filter: "all" },
-    { label: "Registered",      value: kpiCounts.registered, color: "#60a5fa",       icon: <UserCheck size={16} />,  filter: "registered" },
-    { label: "Guest",           value: kpiCounts.guest,      color: "#fbbf24",       icon: <UserX size={16} />,      filter: "guest" },
-    { label: "Repeat Customers",value: kpiCounts.repeat,     color: "#4ade80",       icon: <Repeat2 size={16} />,    filter: "repeat" },
-    { label: "VIP",             value: kpiCounts.vip,        color: "var(--gold)",   icon: <Star size={16} />,       filter: "vip" },
-    { label: "Inactive (>90d)", value: kpiCounts.inactive,   color: "#f87171",       icon: <UserMinus size={16} />,  filter: "inactive" },
+    { label: "Total Customers", value: kpiCounts.total,      color: "var(--admin-white-coffee)",  icon: <Users size={16} />,      filter: "all" },
+    { label: "Registered",      value: kpiCounts.registered, color: "#8fb0d9",       icon: <UserCheck size={16} />,  filter: "registered" },
+    { label: "Guest",           value: kpiCounts.guest,      color: "#e3b673",       icon: <UserX size={16} />,      filter: "guest" },
+    { label: "Repeat Customers",value: kpiCounts.repeat,     color: "#8fcf9a",       icon: <Repeat2 size={16} />,    filter: "repeat" },
+    { label: "VIP",             value: kpiCounts.vip,        color: "var(--admin-hazelnut)",   icon: <Star size={16} />,       filter: "vip" },
+    { label: "Inactive (>90d)", value: kpiCounts.inactive,   color: "#e39a8c",       icon: <UserMinus size={16} />,  filter: "inactive" },
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -421,30 +423,30 @@ export default function CustomersPage() {
     <div className="space-y-5">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+      <div className="admin-page-header !mb-0">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--cream)", fontFamily: "var(--font-playfair)", margin: 0 }}>
+          <h1 className="admin-page-title !text-[20px]">
             Customers
           </h1>
-          <p style={{ fontSize: 12.5, color: "var(--cream-dim)", opacity: 0.5, marginTop: 3 }}>
+          <p className="admin-page-subtitle">
             Real customer + order data ·{" "}
-            <span style={{ color: "var(--gold)" }}>{fmt(totalRevenue)} EGP</span> lifetime revenue
+            <span style={{ color: "var(--admin-hazelnut)" }}>{fmt(totalRevenue)} EGP</span> lifetime revenue
           </p>
         </div>
         <button
           type="button"
           onClick={() => void loadCustomers()}
           disabled={loading}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, fontSize: 12.5, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream-dim)", cursor: loading ? "default" : "pointer", transition: "all 200ms", flexShrink: 0 }}
+          className="admin-btn flex items-center gap-1.5 !px-3.5 !py-2 !text-[12.5px] flex-shrink-0"
         >
           {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Refresh
         </button>
       </div>
 
       {loadError && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)" }}>
-          <AlertTriangle size={14} style={{ color: "#f87171", flexShrink: 0 }} />
-          <span style={{ fontSize: 12.5, color: "#f87171" }}>{loadError}</span>
+        <div className="flex items-center gap-2 rounded-lg px-3.5 py-2.5" style={{ background: "rgba(227,154,140,0.08)", border: "1px solid rgba(227,154,140,0.24)" }}>
+          <AlertTriangle size={14} style={{ color: "#e39a8c", flexShrink: 0 }} />
+          <span className="text-[12.5px]" style={{ color: "#e39a8c" }}>{loadError}</span>
         </div>
       )}
 
@@ -460,7 +462,7 @@ export default function CustomersPage() {
               className="admin-kpi-card text-left"
               style={{
                 padding: "14px 16px", cursor: "pointer",
-                border: active ? `1px solid ${card.color}40` : "1px solid rgba(182,136,94,0.08)",
+                border: active ? `1px solid ${card.color}40` : "1px solid var(--admin-border)",
                 outline: "none", background: active ? `${card.color}08` : undefined,
                 transform: active ? "scale(1.01)" : undefined,
                 transition: "all 200ms",
@@ -470,7 +472,7 @@ export default function CustomersPage() {
                 <span style={{ color: card.color, opacity: 0.7 }}>{card.icon}</span>
               </div>
               <p style={{ fontSize: 22, fontWeight: 700, color: card.color, lineHeight: 1 }}>{card.value}</p>
-              <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cream-dim)", opacity: 0.4, marginTop: 4 }}>
+              <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--admin-muted)", opacity: 0.4, marginTop: 4 }}>
                 {card.label}
               </p>
             </button>
@@ -481,18 +483,13 @@ export default function CustomersPage() {
       {/* ── Search + Sort ────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1 }}>
-          <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--cream-dim)", opacity: 0.35, pointerEvents: "none" }} />
+          <Search size={13} className="admin-faint" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
           <input
             type="text"
             placeholder="Search by name, phone, email, ID or order code…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{
-              width: "100%", paddingLeft: 34, paddingRight: 14, paddingTop: 10, paddingBottom: 10,
-              borderRadius: 10, fontSize: 12.5,
-              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)",
-              color: "var(--cream)", outline: "none",
-            }}
+            className="admin-input !pl-9 !pr-3.5 !py-2.5 !rounded-xl !text-[12.5px]"
           />
         </div>
 
@@ -501,19 +498,20 @@ export default function CustomersPage() {
           <button
             type="button"
             onClick={() => setSortOpen(v => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 10, fontSize: 12.5, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(182,136,94,0.12)", color: "var(--cream-dim)", cursor: "pointer", whiteSpace: "nowrap" }}
+            className="admin-btn flex items-center gap-1.5 !px-3.5 !py-2.5 !rounded-xl !text-[12.5px] !whitespace-nowrap"
           >
             {SORT_OPTIONS.find(s => s.key === sort)?.label ?? "Sort"}
             <ChevronDown size={12} style={{ opacity: 0.5, transform: sortOpen ? "rotate(180deg)" : undefined, transition: "transform 150ms" }} />
           </button>
           {sortOpen && (
-            <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--coffee-surface)", border: "1px solid rgba(182,136,94,0.15)", borderRadius: 10, padding: "6px 0", zIndex: 50, minWidth: 170, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+            <div className="admin-drawer-surface" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, borderRadius: 10, padding: "6px 0", zIndex: 50, minWidth: 170 }}>
               {SORT_OPTIONS.map(opt => (
                 <button
                   key={opt.key}
                   type="button"
                   onClick={() => { setSort(opt.key); setSortOpen(false); }}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 14px", fontSize: 12.5, background: sort === opt.key ? "rgba(182,136,94,0.08)" : "none", color: sort === opt.key ? "var(--gold)" : "var(--cream-dim)", border: "none", cursor: "pointer" }}
+                  className="block w-full text-left px-3.5 py-2 text-[12.5px] transition-colors hover:bg-[rgb(227_210_184_/_0.05)]"
+                  style={{ background: sort === opt.key ? "rgb(227 210 184 / 0.06)" : "none", color: sort === opt.key ? "var(--admin-hazelnut)" : "var(--admin-muted)" }}
                 >
                   {opt.label}
                 </button>
@@ -524,7 +522,7 @@ export default function CustomersPage() {
       </div>
 
       {/* ── Filter Tabs ──────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 2 }}>
+      <div className="admin-tabs overflow-x-auto flex-nowrap pb-0.5">
         {FILTERS.map(f => {
           const active = activeFilter === f.key;
           return (
@@ -532,14 +530,7 @@ export default function CustomersPage() {
               key={f.key}
               type="button"
               onClick={() => setActiveFilter(f.key)}
-              style={{
-                display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 20,
-                fontSize: 12, fontWeight: 500, whiteSpace: "nowrap", cursor: "pointer",
-                background: active ? "rgba(182,136,94,0.12)" : "rgba(255,255,255,0.03)",
-                color:      active ? "var(--gold)" : "var(--cream-dim)",
-                border:     active ? "1px solid rgba(182,136,94,0.22)" : "1px solid rgba(182,136,94,0.06)",
-                transition: "all 150ms",
-              }}
+              className={`admin-chip${active ? " admin-chip-active" : ""}`}
             >
               {f.label}
               <span style={{ fontSize: 10.5, opacity: 0.7, fontWeight: 600 }}>{tabCounts[f.key]}</span>
@@ -549,23 +540,23 @@ export default function CustomersPage() {
       </div>
 
       {/* ── Table ───────────────────────────────────────────────────────────── */}
-      <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(182,136,94,0.10)" }}>
+      <div className="admin-table-wrap">
         <TableHeader />
         {loading && customers.length === 0 ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "48px 20px", color: "var(--cream-dim)", opacity: 0.5 }}>
+          <div className="flex items-center justify-center gap-2 admin-muted" style={{ padding: "48px 20px" }}>
             <Loader2 size={16} className="animate-spin" /> Loading customers…
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 20px" }}>
-            <Users size={32} style={{ color: "var(--cream-dim)", opacity: 0.15, margin: "0 auto 12px" }} />
-            <p style={{ fontSize: 14, color: "var(--cream-dim)", opacity: 0.35 }}>No customers match your search</p>
-            <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }} style={{ marginTop: 10, fontSize: 12, color: "var(--gold)", background: "none", border: "none", cursor: "pointer", opacity: 0.7 }}>
+          <div className="admin-empty-state !border-0 !rounded-none">
+            <span className="admin-empty-icon"><Users size={26} /></span>
+            <p className="text-sm admin-muted">No customers match your search</p>
+            <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }} className="admin-link mt-1 !text-xs">
               Clear filters
             </button>
           </div>
         ) : (
           filtered.map((c, i) => (
-            <div key={c.id} style={i < filtered.length - 1 ? { borderBottom: "1px solid rgba(182,136,94,0.06)" } : undefined}>
+            <div key={c.id} style={i < filtered.length - 1 ? { borderBottom: "1px solid var(--admin-border)" } : undefined}>
               <TableRow
                 customer={c}
                 isDuplicate={duplicateIds.has(c.id)}
@@ -577,12 +568,12 @@ export default function CustomersPage() {
 
         {/* Footer */}
         {filtered.length > 0 && (
-          <div style={{ padding: "10px 16px", borderTop: "1px solid rgba(182,136,94,0.06)", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11.5, color: "var(--cream-dim)", opacity: 0.35 }}>
+          <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: "1px solid var(--admin-border)" }}>
+            <span className="text-[11.5px] admin-faint">
               Showing {filtered.length} of {customers.length} customers
             </span>
             {activeFilter !== "all" || search ? (
-              <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }} style={{ fontSize: 11, color: "var(--gold)", background: "none", border: "none", cursor: "pointer", opacity: 0.6 }}>
+              <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }} className="admin-link !text-[11px]">
                 · Clear filters
               </button>
             ) : null}
@@ -592,9 +583,9 @@ export default function CustomersPage() {
 
       {/* ── Duplicate note ───────────────────────────────────────────────────── */}
       {duplicateIds.size > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.15)" }}>
-          <AlertTriangle size={12} style={{ color: "#fbbf24", flexShrink: 0 }} />
-          <span style={{ fontSize: 11.5, color: "#fbbf24" }}>
+        <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: "rgba(227,182,115,0.06)", border: "1px solid rgba(227,182,115,0.20)" }}>
+          <AlertTriangle size={12} style={{ color: "#e3b673", flexShrink: 0 }} />
+          <span className="text-[11.5px]" style={{ color: "#e3b673" }}>
             {customers.filter(c => duplicateIds.has(c.id)).length} customer record{customers.filter(c => duplicateIds.has(c.id)).length > 1 ? "s" : ""} share a phone number with another record — marked with{" "}
             <AlertTriangle size={10} style={{ display: "inline", verticalAlign: "middle" }} /> in the table.
           </span>

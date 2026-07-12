@@ -105,7 +105,7 @@ export function HeroSection() {
   return (
     <>
       <section
-        className="arabic-body -mt-[6.4rem] relative flex min-h-[100svh] items-center overflow-hidden bg-[#0B0806] pb-6 pt-[calc(6.4rem+3rem)] sm:-mt-[7.2rem] sm:pb-8 sm:pt-[calc(7.2rem+3.25rem)] md:-mt-[8.9rem] md:min-h-screen md:max-h-[900px] md:pb-10 md:pt-[calc(8.9rem+3.75rem)]"
+        className="arabic-body -mt-[6.4rem] relative flex min-h-[100svh] items-center overflow-hidden bg-[#0B0806] pb-6 pt-[calc(6.4rem+3rem)] sm:-mt-[7.2rem] sm:pb-8 sm:pt-[calc(7.2rem+3.25rem)] md:-mt-[7.9rem] md:min-h-screen md:max-h-[820px] md:pb-8 md:pt-[calc(7.9rem+3rem)]"
       >
       {/* Decorative coffee-leaf watermark */}
       <div className="pointer-events-none absolute bottom-28 left-6 z-20 hidden opacity-[0.15] sm:bottom-32 sm:block">
@@ -154,18 +154,18 @@ export function HeroSection() {
           )}
         >
           <div className="hero-title-layer">
-            <h1 className="arabic-display max-w-[11.5em] pb-2 font-serif text-[2.85rem] font-extrabold leading-[1.01] text-[#F5E6D8] [text-shadow:0_2px_24px_rgba(0,0,0,0.85)] sm:text-[3.85rem] md:text-[4.55rem] lg:text-[4.95rem] xl:text-[5.15rem]">
+            <h1 className="arabic-display max-w-[11.5em] pb-2 font-serif text-[2.85rem] font-extrabold leading-[1.01] text-[#F5E6D8] [text-shadow:0_2px_24px_rgba(0,0,0,0.85)] sm:text-[3.7rem] md:text-[4.1rem] lg:text-[4.4rem] xl:text-[4.6rem]">
               {t(slide.title)}
             </h1>
           </div>
 
-          <div className="hero-subtitle-layer mt-5 max-w-[38rem] md:mt-6">
+          <div className="hero-subtitle-layer mt-5 max-w-[38rem] md:mt-5">
             <p className="text-base leading-7 text-[#D6B79A]/95 md:text-[1.05rem] md:leading-8">
               {t(slide.subtitle)}
             </p>
           </div>
 
-          <div className="hero-actions-layer mt-8 flex flex-col gap-3.5 sm:flex-row">
+          <div className="hero-actions-layer mt-7 flex flex-col gap-3.5 sm:flex-row">
             <Link
               href={slide.primaryHref}
               className="premium-button group inline-flex min-w-[9.5rem] items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold tracking-wide"
@@ -189,7 +189,7 @@ export function HeroSection() {
 
           {/* ── Stats ─────────────────────────────────────────────────── */}
           <div
-            className="hero-stats-layer mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-7 md:mt-11 lg:gap-10"
+            className="hero-stats-layer mt-9 grid w-full grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-7 md:mt-9 lg:gap-10"
             dir={dir}
           >
             {heroStats.map((stat, i) => {

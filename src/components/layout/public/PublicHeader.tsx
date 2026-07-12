@@ -1012,7 +1012,7 @@ export function PublicHeader() {
         )}
 
         <div className="relative z-10 mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
-          <div className="relative flex h-14 items-center justify-between sm:h-16 md:h-24">
+          <div className="relative flex h-14 items-center justify-between sm:h-16 md:h-20">
             {!isScrolled && (
               <div className="absolute bottom-0 left-1/2 h-px w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-[#B6885E]/30 to-transparent" />
             )}
@@ -1020,13 +1020,13 @@ export function PublicHeader() {
             {/* Logo */}
             <Link href="/" className="flex min-w-0 items-center">
               <span className="sr-only">Line Coffee</span>
-              <span className="relative block h-10 w-28 sm:h-12 sm:w-36 md:h-20 md:w-[15rem]">
+              <span className="relative block h-10 w-28 sm:h-12 sm:w-36 md:h-16 md:w-[12rem]">
                 <Image
                   src="/brand/logo-white.svg"
                   alt="Line Coffee"
                   fill
                   priority
-                  sizes="(min-width: 768px) 15rem, (min-width: 640px) 9rem, 7rem"
+                  sizes="(min-width: 768px) 12rem, (min-width: 640px) 9rem, 7rem"
                   className="object-contain object-center"
                 />
               </span>
