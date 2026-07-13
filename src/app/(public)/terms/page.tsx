@@ -93,6 +93,7 @@ const sections: LegalSection[] = [
 export default function TermsPage() {
   return (
     <LegalPageLayout
+      pageType="terms"
       heroTitle={{ en: "Terms of Use", ar: "شروط الاستخدام" }}
       heroSubtitle={{
         en: "Please read these terms carefully before using our website or placing an order.",

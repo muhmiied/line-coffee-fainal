@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { resolvePostLoginDestination } from "@/lib/auth/admin";
+import { safePostLoginPath } from "@/lib/auth/safe-redirect";
 import { AuthCard } from "@/components/layout/auth/AuthCard";
 
 // Resolve where a (possibly already-authenticated) visitor should land. A
@@ -14,8 +15,7 @@ import { AuthCard } from "@/components/layout/auth/AuthCard";
 // resolvePostLoginDestination gates on real admin_users membership.
 function resolveNextParam() {
   if (typeof window === "undefined") return "/";
-  const next = new URLSearchParams(window.location.search).get("next");
-  return next && next.startsWith("/") && !next.startsWith("/admin") ? next : "/";
+  return safePostLoginPath(new URLSearchParams(window.location.search).get("next"));
 }
 
 export default function LoginPage() {

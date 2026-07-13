@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { useCart } from "@/lib/context/cart";
 import {
@@ -19,8 +19,9 @@ import {
 import { useLanguage } from "@/lib/context/language";
 import { cn } from "@/lib/utils/cn";
 import { MixedNumeric } from "@/components/shared/MixedNumeric";
+import { listPublicEspressoBeans } from "@/lib/builders/public-builders";
 import {
-  espressoBeans,
+  espressoBeans as fallbackEspressoBeans,
   metricLabels,
   type EspressoBean,
   type EspressoMetricKey,
@@ -81,6 +82,7 @@ function getFamilyLabel(family: EspressoBean["family"]) {
 export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLanguage();
   const { addItem } = useCart();
+  const [catalog, setCatalog] = useState<EspressoBean[]>(fallbackEspressoBeans);
   const [selectedIds, setSelectedIds] = useLocalStorage<string[]>("espresso-studio-beans", []);
   const [blendMode, setBlendMode] = useLocalStorage<BlendMode>("espresso-studio-mode", "smart");
   const [manualRatios, setManualRatios] = useLocalStorage<Record<string, string>>("espresso-studio-ratios", {});
@@ -99,14 +101,31 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
     robusta: false,
   });
 
+  useEffect(() => {
+    let active = true;
+    void listPublicEspressoBeans()
+      .then((beans) => {
+        if (active && beans.length > 0) setCatalog(beans);
+      })
+      .catch(() => {
+        // The local catalog is intentionally retained when the public view is unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const selectedBeans = useMemo(
     () => selectedIds
-      .map((id) => espressoBeans.find((bean) => bean.id === id))
+      .map((id) => catalog.find((bean) => bean.id === id))
       .filter((bean): bean is EspressoBean => Boolean(bean)),
-    [selectedIds],
+    [catalog, selectedIds],
   );
 
-  const suggestedBlend = useMemo(() => recommendSuggestedBlend(preferences), [preferences]);
+  const suggestedBlend = useMemo(
+    () => recommendSuggestedBlend(preferences, catalog),
+    [catalog, preferences],
+  );
 
   const smartRatios = useMemo(
     () => suggestSmartRatios(selectedBeans, preferences, activeAdjustment),
@@ -224,12 +243,12 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
       const nextArabicaOnly = !current.arabicaOnly;
       if (nextArabicaOnly) {
         setSelectedIds((ids) =>
-          ids.filter((id) => espressoBeans.find((bean) => bean.id === id)?.family === "arabica"),
+          ids.filter((id) => catalog.find((bean) => bean.id === id)?.family === "arabica"),
         );
         setManualRatios((ratios) => {
           const next: Record<string, string> = {};
           Object.entries(ratios).forEach(([id, value]) => {
-            if (espressoBeans.find((bean) => bean.id === id)?.family === "arabica") next[id] = value;
+            if (catalog.find((bean) => bean.id === id)?.family === "arabica") next[id] = value;
           });
           return next;
         });
@@ -300,8 +319,8 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
 
   };
 
-  const arabicaBeans = espressoBeans.filter((bean) => bean.family === "arabica");
-  const robustaBeans = espressoBeans.filter((bean) => bean.family === "robusta");
+  const arabicaBeans = catalog.filter((bean) => bean.family === "arabica");
+  const robustaBeans = catalog.filter((bean) => bean.family === "robusta");
 
   return (
     <div className={cn("arabic-body text-[#F5E6D8]", !embedded && "min-h-screen overflow-x-hidden bg-[#0B0806]")}>

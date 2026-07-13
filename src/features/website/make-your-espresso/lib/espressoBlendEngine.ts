@@ -1,6 +1,5 @@
 import type { LocalizedValue } from "@/lib/context/language";
 import {
-  espressoBeans,
   type EspressoBean,
   type EspressoMetricKey,
   type EspressoMetrics,
@@ -548,13 +547,14 @@ function getCombinations<T>(items: T[], size: number) {
 
 export function recommendSuggestedBlend(
   preferences: BlendPreferences,
+  catalog: EspressoBean[],
 ): {
   beans: EspressoBean[];
   ratios: BlendRatio[];
   pricePerKg: number;
   profile: BlendProfile;
 } {
-  const candidates = espressoBeans.filter((bean) => !preferences.arabicaOnly || bean.family === "arabica");
+  const candidates = catalog.filter((bean) => !preferences.arabicaOnly || bean.family === "arabica");
   const profile = getProfile(preferences.profileId);
   const combos = [2, 3, 4].flatMap((size) => getCombinations(candidates, size));
   let best: RecommendationCandidate | undefined;

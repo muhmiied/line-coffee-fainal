@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import type { LocalizedValue } from "@/lib/context/language";
 import { cn } from "@/lib/utils/cn";
+import { getPublicLegalContent } from "@/lib/cms/public-legal";
+import type { LegalPageType } from "@/lib/types/cms";
 
 export type LegalSection = {
   title: LocalizedValue;
@@ -13,6 +16,7 @@ export type LegalSection = {
 };
 
 type Props = {
+  pageType: LegalPageType;
   heroTitle: LocalizedValue;
   heroSubtitle: LocalizedValue;
   lastUpdated: string;
@@ -20,12 +24,28 @@ type Props = {
 };
 
 export function LegalPageLayout({
+  pageType,
   heroTitle,
   heroSubtitle,
   lastUpdated,
   sections,
 }: Props) {
   const { t, dir } = useLanguage();
+  const [content, setContent] = useState({ heroTitle, lastUpdated, sections });
+
+  useEffect(() => {
+    let active = true;
+    void getPublicLegalContent(pageType)
+      .then((published) => {
+        if (active && published) setContent(published);
+      })
+      .catch(() => {
+        // The route's reviewed static policy remains visible on any CMS failure.
+      });
+    return () => {
+      active = false;
+    };
+  }, [pageType]);
 
   return (
     <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">
@@ -52,7 +72,7 @@ export function LegalPageLayout({
             {t({ en: "Line Coffee", ar: "لاين كوفي" })}
           </p>
           <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
-            {t(heroTitle)}
+            {t(content.heroTitle)}
           </h1>
           <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-[#D6B79A]/85">
             {t(heroSubtitle)}
@@ -64,11 +84,11 @@ export function LegalPageLayout({
       <section className="cinematic-section section-bg-warm py-14 md:py-20">
         <div className="relative z-10 mx-auto max-w-3xl px-4">
           <p className="mb-10 text-xs text-[#D6B79A]/60" dir="ltr">
-            {`Last updated: ${lastUpdated}`}
+            {`Last updated: ${content.lastUpdated}`}
           </p>
 
           <div className="space-y-14">
-            {sections.map((section, i) => (
+            {content.sections.map((section, i) => (
               <div key={i}>
                 <h2 className="mb-4 font-serif text-xl font-bold text-[#F5E6D8] sm:text-2xl">
                   {t(section.title)}

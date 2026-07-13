@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import { useCart } from "@/lib/context/cart";
 import {
@@ -16,9 +16,10 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { cn } from "@/lib/utils/cn";
+import { listPublicFlavorCatalog } from "@/lib/builders/public-builders";
 import {
-  flavorBases,
-  flavorItems,
+  flavorBases as fallbackFlavorBases,
+  flavorItems as fallbackFlavorItems,
   flavorPresets,
   metricLabels,
   packageWeights,
@@ -65,23 +66,43 @@ const METRIC_ORDER: FlavorMetricKey[] = [
 export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLanguage();
   const { addItem } = useCart();
+  const [catalog, setCatalog] = useState({
+    bases: fallbackFlavorBases,
+    items: fallbackFlavorItems,
+  });
   const [selectedBaseId, setSelectedBaseId] = useLocalStorage<string | null>("flavor-studio-base", null);
   const [selectedFlavorIds, setSelectedFlavorIds] = useLocalStorage<string[]>("flavor-studio-flavors", []);
   const [selectedWeight, setSelectedWeight] = useLocalStorage<PackageWeight>("flavor-studio-weight", "250g");
   const [quantity, setQuantity] = useLocalStorage<number>("flavor-studio-qty", 1);
   const [activeTab, setActiveTab] = useState<ActiveTab>("all");
 
+  useEffect(() => {
+    let active = true;
+    void listPublicFlavorCatalog()
+      .then((nextCatalog) => {
+        if (active && nextCatalog.bases.length > 0 && nextCatalog.items.length > 0) {
+          setCatalog(nextCatalog);
+        }
+      })
+      .catch(() => {
+        // The local catalog is intentionally retained when the public views are unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const selectedBase = useMemo(
-    () => flavorBases.find((b) => b.id === selectedBaseId) ?? null,
-    [selectedBaseId],
+    () => catalog.bases.find((b) => b.id === selectedBaseId) ?? null,
+    [catalog.bases, selectedBaseId],
   );
 
   const selectedFlavors = useMemo(
     () =>
       selectedFlavorIds
-        .map((id) => flavorItems.find((f) => f.id === id))
+        .map((id) => catalog.items.find((f) => f.id === id))
         .filter((f): f is FlavorItem => f !== undefined),
-    [selectedFlavorIds],
+    [catalog.items, selectedFlavorIds],
   );
 
   const pricePerKg = computePricePerKg(selectedBase, selectedFlavors);
@@ -128,8 +149,8 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
   };
 
   const visibleFlavors = useMemo(
-    () => (activeTab === "all" ? flavorItems : flavorItems.filter((f) => f.category === activeTab)),
-    [activeTab],
+    () => (activeTab === "all" ? catalog.items : catalog.items.filter((f) => f.category === activeTab)),
+    [activeTab, catalog.items],
   );
 
   const handleToggleFlavor = (flavor: FlavorItem) => {
@@ -143,8 +164,10 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
 
   const handleApplyPreset = (preset: FlavorPreset) => {
 
-    if (!selectedBaseId) setSelectedBaseId(preset.defaultBaseId);
-    setSelectedFlavorIds(preset.flavorIds);
+    if (!selectedBaseId && catalog.bases.some((base) => base.id === preset.defaultBaseId)) {
+      setSelectedBaseId(preset.defaultBaseId);
+    }
+    setSelectedFlavorIds(preset.flavorIds.filter((id) => catalog.items.some((item) => item.id === id)));
   };
 
   const handleSelectBase = (baseId: string) => {
@@ -218,6 +241,7 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
         {/* Left col row 1 — Base Selector first, then Guide Me */}
         <div className="space-y-4 lg:col-start-1 lg:row-start-1">
           <BaseSelector
+            bases={catalog.bases}
             selectedBaseId={selectedBaseId}
             onSelect={handleSelectBase}
           />
@@ -263,9 +287,11 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
 // ─── BaseSelector ─────────────────────────────────────────────────────────────
 
 function BaseSelector({
+  bases,
   selectedBaseId,
   onSelect,
 }: {
+  bases: FlavorBase[];
   selectedBaseId: string | null;
   onSelect: (id: string) => void;
 }) {
@@ -283,7 +309,7 @@ function BaseSelector({
       </div>
 
       <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 sm:p-5">
-        {flavorBases.map((base) => {
+        {bases.map((base) => {
           const active = selectedBaseId === base.id;
           return (
             <button

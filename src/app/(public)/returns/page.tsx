@@ -88,6 +88,7 @@ const sections: LegalSection[] = [
 export default function ReturnsPage() {
   return (
     <LegalPageLayout
+      pageType="returns"
       heroTitle={{ en: "Returns Policy", ar: "سياسة الإرجاع" }}
       heroSubtitle={{
         en: "Our commitment to quality means every cup should meet your expectations.",

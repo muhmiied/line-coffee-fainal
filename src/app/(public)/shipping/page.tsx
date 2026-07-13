@@ -83,6 +83,7 @@ const sections: LegalSection[] = [
 export default function ShippingPage() {
   return (
     <LegalPageLayout
+      pageType="shipping"
       heroTitle={{ en: "Shipping Policy", ar: "سياسة الشحن" }}
       heroSubtitle={{
         en: "Delivery areas, times, fees, and our freshness guarantee.",

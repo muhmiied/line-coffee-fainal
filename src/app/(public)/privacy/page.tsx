@@ -100,6 +100,7 @@ const sections: LegalSection[] = [
 export default function PrivacyPage() {
   return (
     <LegalPageLayout
+      pageType="privacy"
       heroTitle={{ en: "Privacy Policy", ar: "سياسة الخصوصية" }}
       heroSubtitle={{
         en: "How we collect, use, and protect your personal information.",
