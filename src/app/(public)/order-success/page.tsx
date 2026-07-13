@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle, MessageCircle } from "lucide-react";
 import {
@@ -11,12 +19,38 @@ import {
   whatsappOpenedStorageKey,
   type CheckoutOrderResult,
 } from "@/lib/checkout";
+import {
+  getCustomerOrderDetail,
+  type CustomerOrderDetail,
+} from "@/lib/account/customer-account";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { useLanguage } from "@/lib/context/language";
 import { cn } from "@/lib/utils/cn";
 
 const RECEIPT_LOADING = "__receipt_loading__";
 const subscribeToNothing = () => () => {};
 const getLoadingSnapshot = () => RECEIPT_LOADING;
+
+const PAYMENT_METHOD_LABEL: Record<string, { en: string; ar: string }> = {
+  cash_on_delivery: { en: "Cash on Delivery", ar: "الدفع عند الاستلام" },
+  instapay: { en: "InstaPay", ar: "إنستا باي" },
+  wallet: { en: "Wallet", ar: "المحفظة الإلكترونية" },
+};
+
+// Phase 10-11: payment_status is ledger-derived and can move past "pending"
+// by the time a receipt is recovered (e.g. an admin already recorded a
+// payment), so recovered orders must show the real value, not an assumption.
+const PAYMENT_STATUS_LABEL: Record<string, { en: string; ar: string }> = {
+  pending: { en: "Pending", ar: "قيد الانتظار" },
+  pending_review: { en: "Pending Review", ar: "قيد المراجعة" },
+  unpaid: { en: "Unpaid", ar: "غير مدفوع" },
+  partially_paid: { en: "Partially Paid", ar: "مدفوع جزئياً" },
+  paid: { en: "Paid", ar: "مدفوع" },
+  refunded: { en: "Refunded", ar: "مسترد" },
+  failed: { en: "Failed", ar: "فشل" },
+};
+
+type ReceiptRecoveryState = "idle" | "loading" | "found" | "unavailable";
 
 function isMobileDevice() {
   const navigatorWithUserAgentData = navigator as Navigator & {
@@ -38,6 +72,7 @@ function OrderSuccessContent() {
   const orderId = searchParams.get("id");
   const fallbackCode = searchParams.get("order");
   const { t, dir } = useLanguage();
+  const { isLoggedIn } = useAuth();
   const getStoredResult = useCallback(() => {
     if (!orderId) return null;
     try {
@@ -82,20 +117,62 @@ function OrderSuccessContent() {
     window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   }, [orderId, whatsappUrl]);
 
+  // Resilience: the sessionStorage receipt only survives in the browser tab
+  // that placed the order. If it's missing (another tab/device, cleared
+  // storage, revisit later) but the order code is still in the URL, recover
+  // the receipt through the same ownership-scoped RPC the account Orders
+  // pages use — resolved by auth.uid() for signed-in customers or the device
+  // guest_id for guests, never by the raw order id alone. This never touches
+  // Telegram and never creates/mutates the order.
+  const recoveryAttempted = useRef(false);
+  const [recoveryState, setRecoveryState] = useState<ReceiptRecoveryState>("idle");
+  const [recovered, setRecovered] = useState<CustomerOrderDetail | null>(null);
+
+  useEffect(() => {
+    if (result || !fallbackCode || rawResult === RECEIPT_LOADING) return;
+    if (recoveryAttempted.current) return;
+    recoveryAttempted.current = true;
+
+    let active = true;
+    setRecoveryState("loading");
+    getCustomerOrderDetail(fallbackCode)
+      .then((detail) => {
+        if (!active) return;
+        setRecovered(detail);
+        setRecoveryState(detail ? "found" : "unavailable");
+      })
+      .catch(() => {
+        if (!active) return;
+        setRecovered(null);
+        setRecoveryState("unavailable");
+      });
+    return () => {
+      active = false;
+    };
+  }, [result, fallbackCode, rawResult]);
+
   if (rawResult === RECEIPT_LOADING) {
     return <div className="min-h-screen bg-[#0B0806]" />;
   }
 
-  const orderCode = result?.code ?? fallbackCode;
-  const paymentMethod = result
-    ? {
-        cash_on_delivery: t({ en: "Cash on Delivery", ar: "الدفع عند الاستلام" }),
-        instapay: t({ en: "InstaPay", ar: "إنستا باي" }),
-        wallet: t({ en: "Wallet", ar: "المحفظة الإلكترونية" }),
-      }[result.payment_method]
+  const orderCode = result?.code ?? recovered?.code ?? fallbackCode;
+  const paymentMethodKey = result?.payment_method ?? recovered?.paymentMethod ?? null;
+  const paymentMethod = paymentMethodKey
+    ? t(PAYMENT_METHOD_LABEL[paymentMethodKey] ?? { en: paymentMethodKey, ar: paymentMethodKey })
     : null;
-  // Phase 1 (Decision 12): every order starts with payment_status "pending".
-  const paymentStatus = result ? t({ en: "Pending", ar: "قيد الانتظار" }) : null;
+  // Phase 1 (Decision 12): every order starts with payment_status "pending" —
+  // true at the moment of the original in-session receipt. A recovered order
+  // may have moved on (Phase 10-11 ledger-derived status), so it uses the
+  // real stored value instead of assuming "pending".
+  const paymentStatusKey = result ? "pending" : recovered?.paymentStatus ?? null;
+  const paymentStatus = paymentStatusKey
+    ? t(PAYMENT_STATUS_LABEL[paymentStatusKey] ?? { en: paymentStatusKey, ar: paymentStatusKey })
+    : null;
+  const itemCount = result?.item_count ?? recovered?.itemCount ?? null;
+  const totalAmount = result?.total ?? recovered?.total ?? null;
+  const hasOrderData = Boolean(result) || Boolean(recovered);
+  const isRecovering = recoveryState === "loading";
+  const recoveryFailed = recoveryState === "unavailable";
 
   return (
     <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">
@@ -142,7 +219,7 @@ function OrderSuccessContent() {
 
             <div className="mb-8 h-px bg-gradient-to-r from-transparent via-[#B6885E]/25 to-transparent" />
 
-            {result ? (
+            {hasOrderData ? (
               <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5">
                 <h2 className="mb-4 font-serif text-lg font-bold text-[#F5E6D8]">
                   {t({ en: "Order Summary", ar: "ملخص الطلب" })}
@@ -150,7 +227,7 @@ function OrderSuccessContent() {
                 <dl className="space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-4">
                     <dt className="text-[#D6B79A]/80">{t({ en: "Items", ar: "عدد القطع" })}</dt>
-                    <dd className="arabic-number font-semibold text-[#F5E6D8]">{result.item_count}</dd>
+                    <dd className="arabic-number font-semibold text-[#F5E6D8]">{itemCount}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <dt className="text-[#D6B79A]/80">{t({ en: "Payment method", ar: "طريقة الدفع" })}</dt>
@@ -163,10 +240,57 @@ function OrderSuccessContent() {
                   <div className="flex items-center justify-between gap-4 border-t border-[#B6885E]/12 pt-3">
                     <dt className="font-semibold text-[#F5E6D8]">{t({ en: "Total", ar: "الإجمالي" })}</dt>
                     <dd className="arabic-number font-serif text-xl font-bold text-[#D6A373]">
-                      {result.total} {t({ en: "EGP", ar: "ج.م" })}
+                      {totalAmount} {t({ en: "EGP", ar: "ج.م" })}
                     </dd>
                   </div>
                 </dl>
+                {!result && recovered && isLoggedIn && (
+                  <Link
+                    href={`/account/orders/${encodeURIComponent(recovered.code)}`}
+                    className="mt-4 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#D6A373] transition-colors hover:text-[#F5E6D8]"
+                  >
+                    {t({ en: "View full details in My Orders", ar: "عرض التفاصيل الكاملة في طلباتي" })}
+                    <ArrowRight className={cn("h-3.5 w-3.5", dir === "rtl" && "rotate-180")} />
+                  </Link>
+                )}
+              </div>
+            ) : isRecovering ? (
+              <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5 text-center">
+                <p className="text-sm leading-6 text-[#D6B79A]/75">
+                  {t({
+                    en: "Loading your order details…",
+                    ar: "جارٍ تحميل تفاصيل طلبك…",
+                  })}
+                </p>
+              </div>
+            ) : recoveryFailed ? (
+              <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5 text-center">
+                <p className="text-sm leading-6 text-[#D6B79A]/75">
+                  {t({
+                    en: "We couldn't load this order's details on this device.",
+                    ar: "تعذر تحميل تفاصيل هذا الطلب على هذا الجهاز.",
+                  })}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-[#D6B79A]/55">
+                  {isLoggedIn
+                    ? t({
+                        en: "Check My Orders for the full receipt, or contact us with your order number.",
+                        ar: "راجع صفحة طلباتي للحصول على الإيصال الكامل، أو تواصل معنا برقم طلبك.",
+                      })
+                    : t({
+                        en: "Sign in to view it in My Orders, or contact us with your order number.",
+                        ar: "سجّل الدخول لعرضه في طلباتي، أو تواصل معنا برقم طلبك.",
+                      })}
+                </p>
+                {isLoggedIn && orderCode && (
+                  <Link
+                    href={`/account/orders/${encodeURIComponent(orderCode)}`}
+                    className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[#D6A373] transition-colors hover:text-[#F5E6D8]"
+                  >
+                    {t({ en: "Go to My Orders", ar: "الذهاب إلى طلباتي" })}
+                    <ArrowRight className={cn("h-3.5 w-3.5", dir === "rtl" && "rotate-180")} />
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5 text-center">

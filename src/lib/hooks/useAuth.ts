@@ -162,6 +162,20 @@ export function useAuth() {
     }
   }, []);
 
+  // Real "sign out of every device" — scope: "global" revokes the refresh
+  // token for every session (including this one), not just the local copy.
+  // Unlike signOut() above, failures are NOT swallowed: the caller needs to
+  // know the revoke did not happen so it can show an honest error instead of
+  // claiming every session was signed out when it may not have been.
+  const signOutEverywhere = useCallback(async () => {
+    const { error } = await supabase.auth.signOut({ scope: "global" });
+    if (error) throw error;
+    clearLegacyMockAuth();
+    setUser(null);
+    setSessionPresenceCookie(false);
+    notifyAuthOwnerChanged(null);
+  }, []);
+
   return {
     user,
     isLoading,
@@ -169,5 +183,6 @@ export function useAuth() {
     signIn,
     signUp,
     signOut,
+    signOutEverywhere,
   };
 }

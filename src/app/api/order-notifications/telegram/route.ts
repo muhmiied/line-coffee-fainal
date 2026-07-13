@@ -37,6 +37,11 @@ type TrustedOrder = {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ATTEMPT_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
+// The real payload is just { orderId, checkoutAttemptId } — a few hundred bytes
+// at most. 2KB leaves generous headroom without letting an oversized body be
+// buffered/parsed before validation runs. This is a fast-path rejection, not a
+// substitute for the hosting platform's own request-size ceiling.
+const MAX_BODY_BYTES = 2048;
 const DEDUPE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_DEDUPE_ENTRIES = 500;
 const NOTIFICATION_CHANNEL = "telegram";
@@ -279,11 +284,24 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, warning: "Request origin rejected." }, { status: 403 });
   }
 
+  // Fast-path size rejection when the client reports Content-Length; the
+  // hosting platform's own request-size ceiling is the real backstop for a
+  // lying/absent header, this just avoids buffering+parsing an obviously
+  // oversized body for such a small expected payload.
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return Response.json({ ok: false, warning: "Request body too large." }, { status: 413 });
+  }
+
   let notificationRequest: NotificationRequest | null = null;
   try {
-    notificationRequest = parseRequest(await request.json());
+    const rawBody = await request.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return Response.json({ ok: false, warning: "Request body too large." }, { status: 413 });
+    }
+    notificationRequest = parseRequest(JSON.parse(rawBody));
   } catch {
-    // Invalid JSON receives the same safe validation response as an invalid shape.
+    // Invalid/oversized JSON receives the same safe validation response as an invalid shape.
   }
   if (!notificationRequest) {
     return Response.json({ ok: false, warning: "Invalid notification request." }, { status: 400 });

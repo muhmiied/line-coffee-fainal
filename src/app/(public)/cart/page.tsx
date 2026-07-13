@@ -10,9 +10,6 @@ export default function CartPage() {
   const { t, dir } = useLanguage();
   const { items, total, removeItem, updateQty, clearCart } = useCart();
 
-  const deliveryFee = total >= 500 ? 0 : 50;
-  const grandTotal = total + deliveryFee;
-
   return (
     <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">
 
@@ -169,7 +166,7 @@ export default function CartPage() {
                   <div className="space-y-3 border-b border-[#B6885E]/12 pb-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-[#D6B79A]/85">
-                        {t({ en: "Subtotal", ar: "المجموع الجزئي" })}
+                        {t({ en: "Items subtotal", ar: "مجموع المنتجات" })}
                       </span>
                       <span className="arabic-number font-semibold text-[#F5E6D8]">
                         {total} {t({ en: "EGP", ar: "ج.م" })}
@@ -179,37 +176,32 @@ export default function CartPage() {
                       <span className="text-[#D6B79A]/85">
                         {t({ en: "Delivery", ar: "التوصيل" })}
                       </span>
-                      <span
-                        className={cn(
-                          "arabic-number font-semibold",
-                          deliveryFee === 0
-                            ? "text-emerald-400"
-                            : "text-[#F5E6D8]",
-                        )}
-                      >
-                        {deliveryFee === 0
-                          ? t({ en: "Free", ar: "مجاني" })
-                          : `${deliveryFee} ${t({ en: "EGP", ar: "ج.م" })}`}
+                      <span className="text-[#D6B79A]/85">
+                        {t({ en: "Calculated at checkout", ar: "يُحسب عند إتمام الطلب" })}
                       </span>
                     </div>
-                    {deliveryFee > 0 && (
-                      <p className="text-[10px] text-[#D6B79A]/38">
-                        {t({
-                          en: "Free delivery on orders 500 EGP+",
-                          ar: "توصيل مجاني للطلبات فوق 500 ج.م",
-                        })}
-                      </p>
-                    )}
+                    <p className="text-[10px] leading-4 text-[#D6B79A]/50">
+                      {t({
+                        en: "Delivery depends on your governorate and area, and is added to your total during checkout.",
+                        ar: "رسوم التوصيل تعتمد على محافظتك ومنطقتك، وتُضاف لإجمالي طلبك أثناء إتمام الطلب.",
+                      })}
+                    </p>
                   </div>
 
                   <div className="mt-4 flex items-center justify-between">
                     <span className="text-sm font-bold text-[#F5E6D8]">
-                      {t({ en: "Total", ar: "الإجمالي" })}
+                      {t({ en: "Estimated subtotal", ar: "المجموع الجزئي التقديري" })}
                     </span>
                     <span className="arabic-number font-serif text-xl font-bold text-[#D6A373]">
-                      {grandTotal} {t({ en: "EGP", ar: "ج.م" })}
+                      {total} {t({ en: "EGP", ar: "ج.م" })}
                     </span>
                   </div>
+                  <p className="mt-1 text-[10px] text-[#D6B79A]/45">
+                    {t({
+                      en: "Before delivery. Final total is confirmed at checkout.",
+                      ar: "قبل التوصيل. سيتم تأكيد الإجمالي النهائي عند إتمام الطلب.",
+                    })}
+                  </p>
 
                   <Link
                     href="/checkout"

@@ -10,8 +10,8 @@ const sections: LegalSection[] = [
     title: { en: "Delivery Areas", ar: "مناطق التوصيل" },
     paragraphs: [
       {
-        en: "We currently deliver to all governorates within Greater Cairo (Cairo, Giza, Qalyubia), as well as Alexandria, Mansoura, Tanta, Asyut, and Fayoum. Deliveries to other governorates are available on request — please contact us via WhatsApp before placing your order.",
-        ar: "نوصّل حالياً إلى جميع محافظات القاهرة الكبرى (القاهرة والجيزة والقليوبية)، فضلاً عن الإسكندرية والمنصورة وطنطا وأسيوط والفيوم. التوصيل إلى المحافظات الأخرى متاح عند الطلب — يرجى التواصل معنا عبر واتساب قبل تقديم طلبك.",
+        en: "We deliver to all governorates across Egypt — simply choose your governorate and area at checkout. Cairo and Giza are served by our own delivery zones. For governorates outside Cairo and Giza, your order is handed to a courier partner and the delivery fee is settled directly with the courier on arrival, separately from your Line Coffee order total.",
+        ar: "نوصّل إلى جميع محافظات مصر — يكفي اختيار محافظتك ومنطقتك عند إتمام الطلب. القاهرة والجيزة تُخدَّمان عبر مناطق التوصيل الخاصة بنا. أما المحافظات خارج القاهرة والجيزة، فيُسلَّم طلبك لشريك شحن، ويتم تحصيل رسوم التوصيل مباشرة من المندوب عند الوصول، بشكل منفصل عن إجمالي طلبك في لاين كوفي.",
       },
     ],
   },
@@ -19,12 +19,8 @@ const sections: LegalSection[] = [
     title: { en: "Delivery Times", ar: "أوقات التوصيل" },
     paragraphs: [
       {
-        en: "Standard delivery within Greater Cairo takes 1–2 business days from the time your order is confirmed. Deliveries to other cities typically take 3–5 business days.",
-        ar: "يستغرق التوصيل القياسي داخل القاهرة الكبرى من 1 إلى 2 يوم عمل من وقت تأكيد طلبك. يستغرق التوصيل إلى المدن الأخرى عادةً من 3 إلى 5 أيام عمل.",
-      },
-      {
-        en: "Express delivery (same-day or next-day) is available in select Cairo districts for orders placed before 12:00 PM. An additional fee applies — see Delivery Fees below.",
-        ar: "التوصيل السريع (في نفس اليوم أو في اليوم التالي) متاح في أحياء مختارة من القاهرة للطلبات المقدمة قبل الساعة 12:00 ظهراً. تُطبق رسوم إضافية — راجع رسوم التوصيل أدناه.",
+        en: "Standard delivery within Greater Cairo typically takes 1–2 business days from the time your order is confirmed. Deliveries to other governorates typically take longer and depend on the courier partner serving your area.",
+        ar: "يستغرق التوصيل القياسي داخل القاهرة الكبرى عادةً من 1 إلى 2 يوم عمل من وقت تأكيد طلبك. يستغرق التوصيل إلى المحافظات الأخرى وقتاً أطول عادةً، ويعتمد على شريك الشحن الذي يخدم منطقتك.",
       },
       {
         en: "All delivery times are estimates and may be affected by high demand periods, weather conditions, or logistical delays outside our control.",
@@ -36,12 +32,16 @@ const sections: LegalSection[] = [
     title: { en: "Delivery Fees", ar: "رسوم التوصيل" },
     paragraphs: [
       {
-        en: "Standard delivery is free for orders of 500 EGP or more within Greater Cairo. For orders below 500 EGP, a flat fee of 50 EGP applies.",
-        ar: "التوصيل القياسي مجاني للطلبات بقيمة 500 ج.م أو أكثر داخل القاهرة الكبرى. للطلبات أقل من 500 ج.م، تُطبق رسوم ثابتة قدرها 50 ج.م.",
+        en: "Your exact delivery fee is calculated automatically from your governorate and area once you enter your address at checkout — you'll always see it before placing your order.",
+        ar: "يتم احتساب رسوم التوصيل الخاصة بك تلقائياً بناءً على محافظتك ومنطقتك بمجرد إدخال عنوانك عند إتمام الطلب — ستظهر لك الرسوم دائماً قبل تأكيد الطلب.",
       },
       {
-        en: "Express delivery carries a fixed fee of 80 EGP regardless of order value. Delivery to other cities is calculated based on your location and order weight — exact fees are communicated at checkout.",
-        ar: "يحمل التوصيل السريع رسوماً ثابتة قدرها 80 ج.م بغض النظر عن قيمة الطلب. يتم احتساب التوصيل إلى المدن الأخرى بناءً على موقعك ووزن الطلب — يتم إبلاغك بالرسوم الدقيقة عند الدفع.",
+        en: "El-Shorouk and Madinaty: 30 EGP. Haram, 6th of October, and Sheikh Zayed: 100 EGP. The rest of Cairo and Giza: 50 EGP.",
+        ar: "الشروق ومدينتي: 30 ج.م. الهرم و6 أكتوبر والشيخ زايد: 100 ج.م. باقي القاهرة والجيزة: 50 ج.م.",
+      },
+      {
+        en: "For all other governorates, delivery is handled by a courier partner and its fee is not included in your Line Coffee order total — you pay the courier directly on delivery.",
+        ar: "بالنسبة لباقي المحافظات، يتم التوصيل عبر شريك شحن، ولا تُدرَج رسومه ضمن إجمالي طلبك في لاين كوفي — يتم دفع الرسوم للمندوب مباشرة عند الاستلام.",
       },
     ],
   },
@@ -49,8 +49,8 @@ const sections: LegalSection[] = [
     title: { en: "Order Tracking", ar: "تتبع الطلب" },
     paragraphs: [
       {
-        en: "Once your order is dispatched, our team will send you a confirmation via WhatsApp or phone call with an estimated delivery window. You can reach us at any time during business hours to inquire about your order status.",
-        ar: "بمجرد شحن طلبك، سيرسل فريقنا تأكيداً عبر واتساب أو مكالمة هاتفية بنافذة التوصيل المقدّرة. يمكنك التواصل معنا في أي وقت خلال ساعات العمل للاستفسار عن حالة طلبك.",
+        en: "After you place your order, you can follow its status from your account's Orders page, and our team may reach out via WhatsApp with updates. You can contact us at any time to ask about your order status.",
+        ar: "بعد تقديم طلبك، يمكنك متابعة حالته من صفحة الطلبات في حسابك، وقد يتواصل فريقنا معك عبر واتساب لتحديثك بمستجدات الطلب. يمكنك التواصل معنا في أي وقت للاستفسار عن حالة طلبك.",
       },
     ],
   },
@@ -61,8 +61,8 @@ const sections: LegalSection[] = [
     },
     paragraphs: [
       {
-        en: "If a delivery attempt fails due to an incorrect address or the recipient being unavailable, our courier will contact you to arrange a re-delivery. A re-delivery fee of 30 EGP may apply for a second attempt.",
-        ar: "إذا فشلت محاولة توصيل بسبب عنوان غير صحيح أو غياب المستلم، سيتواصل مندوبنا معك لترتيب إعادة توصيل. قد تُطبق رسوم إعادة توصيل بقيمة 30 ج.م للمحاولة الثانية.",
+        en: "If a delivery attempt fails due to an incorrect address or the recipient being unavailable, our team or courier will contact you to arrange another attempt.",
+        ar: "إذا فشلت محاولة توصيل بسبب عنوان غير صحيح أو غياب المستلم، سيتواصل معك فريقنا أو المندوب لترتيب محاولة أخرى.",
       },
     ],
   },
@@ -89,7 +89,7 @@ export default function ShippingPage() {
         en: "Delivery areas, times, fees, and our freshness guarantee.",
         ar: "مناطق التوصيل والأوقات والرسوم وضمان الطزاجة.",
       }}
-      lastUpdated="2026-06-01"
+      lastUpdated="2026-07-13"
       sections={sections}
     />
   );

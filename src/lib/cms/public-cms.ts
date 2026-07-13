@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase/client";
+import { getOrCreateGuestId } from "@/lib/checkout";
 
 export type PublicReview = {
   id: string;
@@ -72,6 +73,7 @@ export async function submitContactMessage(input: ContactMessageInput): Promise<
       message: input.message,
       source: input.source,
     },
+    p_guest_id: getOrCreateGuestId(),
   });
 
   if (error || typeof data !== "string") {
