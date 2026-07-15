@@ -1,139 +1,93 @@
 "use client";
 
-import type { LocalizedValue } from "@/lib/context/language";
+// Browser-bound public blog fetcher. Types + row-mapping logic live in
+// public-blog-shared.ts (no Supabase import) so the server-side SSR fetcher
+// (server-blog.ts) can reuse the exact same mapping without duplicating it.
+
 import { supabase } from "@/lib/supabase/client";
+import {
+  PUBLIC_BLOG_COLUMNS,
+  PUBLIC_BLOG_SUMMARY_COLUMNS,
+  mapPost,
+  mapPostSummary,
+  type BlogPostRow,
+} from "@/lib/cms/public-blog-shared";
 
-export type PublicBlogBodyBlock = {
-  type: "heading" | "paragraph";
-  text: LocalizedValue;
-};
+export type { PublicBlogBodyBlock, PublicBlogPost } from "@/lib/cms/public-blog-shared";
 
-export type PublicBlogPost = {
-  id: string;
-  slug: string;
-  title: LocalizedValue;
-  excerpt: LocalizedValue;
-  image: string;
-  heroImage: string;
-  category: LocalizedValue;
-  date: string;
-  readTime: LocalizedValue;
-  featured: boolean;
-  tags: LocalizedValue[];
-  body: PublicBlogBodyBlock[];
-};
-
-type BlogPostRow = {
-  id: string;
-  slug: string;
-  title_en: string;
-  title_ar: string;
-  excerpt_en: string;
-  excerpt_ar: string;
-  content_en: string;
-  content_ar: string;
-  category_en: string;
-  category_ar: string;
-  featured: boolean;
-  published_at: string;
-  read_time_en: string;
-  read_time_ar: string;
-  tags: unknown;
-  hero_image: string | null;
-  card_image: string | null;
-};
-
-const PUBLIC_BLOG_COLUMNS = `
-  id,
-  slug,
-  title_en,
-  title_ar,
-  excerpt_en,
-  excerpt_ar,
-  content_en,
-  content_ar,
-  category_en,
-  category_ar,
-  featured,
-  published_at,
-  read_time_en,
-  read_time_ar,
-  tags,
-  hero_image,
-  card_image
-`;
-
-function localizedTags(value: unknown): LocalizedValue[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const row = item as Record<string, unknown>;
-    const en = typeof row.en === "string" ? row.en : "";
-    const ar = typeof row.ar === "string" ? row.ar : en;
-    return en ? [{ en, ar }] : [];
-  });
+function devWarn(message: string) {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(`[public-blog] ${message}`);
+  }
 }
 
-function contentChunks(value: string) {
-  return value
-    .split(/\r?\n\s*\r?\n/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean);
-}
+export type BlogListPage = { posts: import("@/lib/cms/public-blog-shared").PublicBlogPost[]; totalCount: number };
 
-function parseBody(contentEn: string, contentAr: string): PublicBlogBodyBlock[] {
-  const enChunks = contentChunks(contentEn);
-  const arChunks = contentChunks(contentAr);
-  const length = Math.max(enChunks.length, arChunks.length);
+/**
+ * Phase 2: paginated summary read (no body content transferred — the list
+ * view never renders it) for the client "Load More" control on /blog.
+ */
+export async function listPublishedBlogPostsPage(range: { from: number; to: number }): Promise<BlogListPage> {
+  const [countResult, rowsResult] = await Promise.all([
+    supabase
+      .from("blog_posts")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .lte("published_at", new Date().toISOString()),
+    supabase
+      .from("blog_posts")
+      .select(PUBLIC_BLOG_SUMMARY_COLUMNS)
+      .eq("status", "published")
+      .lte("published_at", new Date().toISOString())
+      .order("featured", { ascending: false })
+      .order("published_at", { ascending: false })
+      .range(range.from, range.to),
+  ]);
 
-  return Array.from({ length }, (_, index) => {
-    const enChunk = enChunks[index] ?? "";
-    const arChunk = arChunks[index] ?? "";
-    const heading = enChunk.startsWith("## ") || arChunk.startsWith("## ");
-    return {
-      type: heading ? "heading" as const : "paragraph" as const,
-      text: {
-        en: heading ? enChunk.replace(/^##\s+/, "") : enChunk,
-        ar: heading ? arChunk.replace(/^##\s+/, "") : arChunk,
-      },
-    };
-  }).filter((block) => block.text.en || block.text.ar);
-}
-
-function mapPost(row: BlogPostRow): PublicBlogPost {
-  const fallbackImage = "/assets/story/roastery.png";
-  return {
-    id: row.id,
-    slug: row.slug,
-    title: { en: row.title_en, ar: row.title_ar },
-    excerpt: { en: row.excerpt_en, ar: row.excerpt_ar },
-    image: row.card_image ?? row.hero_image ?? fallbackImage,
-    heroImage: row.hero_image ?? row.card_image ?? fallbackImage,
-    category: { en: row.category_en, ar: row.category_ar },
-    date: row.published_at.slice(0, 10),
-    readTime: { en: row.read_time_en, ar: row.read_time_ar },
-    featured: row.featured,
-    tags: localizedTags(row.tags),
-    body: parseBody(row.content_en, row.content_ar),
-  };
-}
-
-export async function listPublishedBlogPosts(): Promise<PublicBlogPost[]> {
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .select(PUBLIC_BLOG_COLUMNS)
-    .eq("status", "published")
-    .lte("published_at", new Date().toISOString())
-    .order("featured", { ascending: false })
-    .order("published_at", { ascending: false })
-    .limit(200);
-
-  if (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(`[public-blog] ${error.message}`);
-    }
+  if (countResult.error) {
+    devWarn(countResult.error.message);
+    throw new Error("Could not load published articles.");
+  }
+  if (rowsResult.error) {
+    devWarn(rowsResult.error.message);
     throw new Error("Could not load published articles.");
   }
 
-  return ((data ?? []) as BlogPostRow[]).map(mapPost);
+  const rows = (rowsResult.data ?? []) as Omit<BlogPostRow, "content_en" | "content_ar">[];
+  return { posts: rows.map(mapPostSummary), totalCount: countResult.count ?? rows.length };
+}
+
+/** Fetches one published post directly by slug — never the whole table. */
+export async function getPublishedBlogPostBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select(PUBLIC_BLOG_COLUMNS)
+    .eq("slug", slug)
+    .eq("status", "published")
+    .lte("published_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (error) {
+    devWarn(error.message);
+    throw new Error("Could not load this article.");
+  }
+  return data ? mapPost(data as BlogPostRow) : null;
+}
+
+/** Lightweight related-articles read: 2 other published posts, no body. */
+export async function getRelatedBlogPosts(excludeSlug: string, limit = 2) {
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select(PUBLIC_BLOG_SUMMARY_COLUMNS)
+    .eq("status", "published")
+    .lte("published_at", new Date().toISOString())
+    .neq("slug", excludeSlug)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    devWarn(error.message);
+    return [];
+  }
+  return ((data ?? []) as Omit<BlogPostRow, "content_en" | "content_ar">[]).map(mapPostSummary);
 }

@@ -341,12 +341,14 @@ function money(value: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function mapSummary(row: OrderRow): AdminOrderSummary {
+function mapSummary(row: OrderRow, itemCountOverride?: number): AdminOrderSummary {
   const customer = record(row.customer_snapshot);
-  const itemCount = (row.order_items ?? []).reduce(
-    (sum, item) => sum + Math.max(0, Number(item.quantity) || 0),
-    0,
-  );
+  const itemCount =
+    itemCountOverride ??
+    (row.order_items ?? []).reduce(
+      (sum, item) => sum + Math.max(0, Number(item.quantity) || 0),
+      0,
+    );
 
   return {
     id: row.id,
@@ -476,7 +478,69 @@ export async function getAdminOrders(): Promise<AdminOrderSummary[]> {
     .limit(250);
 
   if (error) throw readError("orders", error.message);
-  return ((data ?? []) as unknown as OrderRow[]).map(mapSummary);
+  return ((data ?? []) as unknown as OrderRow[]).map((row) => mapSummary(row));
+}
+
+// =====================================================================
+// Phase 2 — real server-side pagination for the Admin Orders list
+// =====================================================================
+// Replaces the 250-row client cap: search/status filtering and the status
+// count chips now run in SQL over the COMPLETE `orders` table
+// (`list_admin_orders_v1`), and only the current page of rows is returned.
+
+export type AdminOrdersPageParams = {
+  search?: string;
+  status?: AdminOrderStatus | null;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminOrdersPage = {
+  rows: AdminOrderSummary[];
+  totalCount: number;
+  statusCounts: Record<AdminOrderStatus, number>;
+  page: number;
+  pageSize: number;
+};
+
+type OrderPageRow = OrderRow & { item_count: number };
+
+type OrdersRpcResult = {
+  rows: OrderPageRow[];
+  totalCount: number;
+  statusCounts: Partial<Record<AdminOrderStatus, number>>;
+  page: number;
+  pageSize: number;
+};
+
+const EMPTY_ORDER_STATUS_COUNTS: Record<AdminOrderStatus, number> = {
+  pending: 0, preparing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0,
+};
+
+export async function getAdminOrdersPage(
+  params: AdminOrdersPageParams = {},
+): Promise<AdminOrdersPage> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 30)));
+
+  const { data, error } = await supabase.rpc("list_admin_orders_v1", {
+    p_search: params.search?.trim() || null,
+    p_status: params.status ?? null,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+
+  if (error) throw readError("orders-page", error.message);
+  const result = data as OrdersRpcResult | null;
+  if (!result) throw readError("orders-page", "Empty response.");
+
+  return {
+    rows: result.rows.map((row) => mapSummary(row, row.item_count)),
+    totalCount: result.totalCount,
+    statusCounts: { ...EMPTY_ORDER_STATUS_COUNTS, ...result.statusCounts },
+    page: result.page,
+    pageSize: result.pageSize,
+  };
 }
 
 export async function getAdminOrderOverview(): Promise<AdminOrderOverview> {

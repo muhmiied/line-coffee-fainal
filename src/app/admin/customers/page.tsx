@@ -4,16 +4,22 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search, Users, UserCheck, UserX,
   Repeat2, Star, UserMinus, MessageCircle, ChevronDown,
+  ChevronLeft, ChevronRight,
   AlertTriangle, ShoppingBag, RefreshCw, Loader2,
 } from "lucide-react";
 import {
-  getAdminCustomers,
+  getAdminCustomersPage,
   getCustomerSegments,
   getCustomerLifecycleStatus,
   type AdminCustomerSummary,
+  type AdminCustomersKpis,
+  type AdminCustomersSort,
   type CustomerSegment,
 } from "@/lib/admin/admin-customers";
 import CustomerDrawer from "@/components/admin/customers/CustomerDrawer";
+
+const PAGE_SIZE = 30;
+const SEARCH_DEBOUNCE_MS = 300;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -43,31 +49,18 @@ function avatarBg(c: AdminCustomerSummary, segs: CustomerSegment[]): string {
 // ── Filter / sort types ────────────────────────────────────────────────────────
 
 type FilterKey = "all" | "registered" | "guest" | "vip" | "repeat" | "new" | "inactive" | "at-risk" | "wholesale";
-type SortKey   = "most-spent" | "most-orders" | "recently-active" | "oldest-inactive";
+type SortKey   = AdminCustomersSort;
 
-function matchesFilter(c: AdminCustomerSummary, segs: CustomerSegment[], filter: FilterKey): boolean {
+/** Maps a filter tab to the RPC's {type, segment} parameters (Phase 2: the
+ * classification itself now runs in SQL over the complete dataset). */
+function filterToRpcParams(filter: FilterKey): { type: "registered" | "guest" | null; segment: CustomerSegment | null } {
   switch (filter) {
-    case "all":         return true;
-    case "registered":  return c.type === "registered";
-    case "guest":       return c.type === "guest";
-    case "vip":         return segs.includes("vip");
-    case "repeat":      return c.ordersCount >= 2;
-    case "new":         return segs.includes("new");
-    case "inactive":    return segs.includes("inactive");
-    case "at-risk":     return segs.includes("at-risk");
-    case "wholesale":   return segs.includes("wholesale-potential");
+    case "all":        return { type: null, segment: null };
+    case "registered": return { type: "registered", segment: null };
+    case "guest":      return { type: "guest", segment: null };
+    case "wholesale":  return { type: null, segment: "wholesale-potential" };
+    default:           return { type: null, segment: filter };
   }
-}
-
-function sortCustomers(list: AdminCustomerSummary[], sort: SortKey): AdminCustomerSummary[] {
-  return [...list].sort((a, b) => {
-    switch (sort) {
-      case "most-spent":        return b.totalSpent - a.totalSpent;
-      case "most-orders":       return b.ordersCount - a.ordersCount;
-      case "recently-active":   return new Date(b.lastOrderDate ?? "2000-01-01").getTime() - new Date(a.lastOrderDate ?? "2000-01-01").getTime();
-      case "oldest-inactive":   return new Date(a.lastOrderDate ?? "2099-01-01").getTime() - new Date(b.lastOrderDate ?? "2099-01-01").getTime();
-    }
-  });
 }
 
 // ── Segment badge ──────────────────────────────────────────────────────────────
@@ -305,40 +298,87 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: "oldest-inactive", label: "Oldest Inactive" },
 ];
 
+const EMPTY_KPIS: AdminCustomersKpis = {
+  total: 0, registered: 0, guest: 0, repeat: 0, vip: 0, inactive: 0, new: 0, atRisk: 0, wholesale: 0,
+};
+
 export default function CustomersPage() {
-  // ── Data state ──────────────────────────────────────────────────────────────
+  // ── Data state (Phase 2: server-paginated — see admin-customers.ts) ────────
   const [customers, setCustomers] = useState<AdminCustomerSummary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalSpend, setTotalSpend] = useState(0);
+  const [kpis, setKpis] = useState<AdminCustomersKpis>(EMPTY_KPIS);
   const [loading,    setLoading]    = useState(true);
   const [loadError,  setLoadError]  = useState<string | null>(null);
 
   // ── Core state ──────────────────────────────────────────────────────────────
+  const [searchInput,    setSearchInput]    = useState("");
   const [search,         setSearch]         = useState("");
   const [activeFilter,   setActiveFilter]   = useState<FilterKey>("all");
   const [sort,           setSort]           = useState<SortKey>("most-spent");
   const [sortOpen,       setSortOpen]       = useState(false);
+  const [page,           setPage]           = useState(1);
   const [drawerCustomerId, setDrawerCustomerId] = useState<string | null>(null);
+
+  // Debounce the search box so every keystroke doesn't fire a request. Page
+  // resets to 1 here too (inside the timer callback), and again directly in
+  // the filter/sort selectors below — never in a standalone effect body.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  function selectFilter(filter: FilterKey) {
+    setActiveFilter(filter);
+    setPage(1);
+  }
+
+  function selectSort(nextSort: SortKey) {
+    setSort(nextSort);
+    setPage(1);
+  }
 
   const loadCustomers = useCallback(async () => {
     setLoading(true);
-    setLoadError(null);
     try {
-      const data = await getAdminCustomers();
-      setCustomers(data);
+      const { type, segment } = filterToRpcParams(activeFilter);
+      const result = await getAdminCustomersPage({
+        search: search || undefined,
+        type,
+        segment,
+        sort,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+      setCustomers(result.rows);
+      setTotalCount(result.totalCount);
+      setTotalSpend(result.totalSpend);
+      setKpis(result.kpis);
+      setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Could not load customers.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, activeFilter, sort, page]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial + refresh data fetch
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch driven by filter/sort/page state
   useEffect(() => { void loadCustomers(); }, [loadCustomers]);
 
-  function handleCustomerUpdated(customerId: string, tags: string[]) {
-    setCustomers(prev => prev.map(c => (c.id === customerId ? { ...c, tags } : c)));
+  function handleCustomerUpdated() {
+    // A tags edit can change segment membership (e.g. "Wholesale Potential"),
+    // so re-run the same query rather than patching potentially-stale state.
+    void loadCustomers();
   }
 
-  // Duplicate lookup: same real phone number on more than one customer row.
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // Duplicate lookup is scoped to the customers currently on screen (a
+  // whole-dataset duplicate scan is a separate, documented follow-up — see
+  // the Phase 2 report).
   const duplicateIds = useMemo(() => {
     const byPhone = new Map<string, string[]>();
     customers.forEach(c => {
@@ -354,49 +394,27 @@ export default function CustomersPage() {
     return ids;
   }, [customers]);
 
-  // Search filter
-  const searchFiltered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return customers;
-    return customers.filter(c => {
-      return (
-        c.name.toLowerCase().includes(q) ||
-        (c.phone?.includes(q)) ||
-        c.whatsapp.includes(q) ||
-        (c.email?.toLowerCase().includes(q)) ||
-        c.id.toLowerCase().includes(q) ||
-        c.orderCodes.some(code => code.toLowerCase().includes(q))
-      );
-    });
-  }, [customers, search]);
-
-  // KPI counts use searchFiltered (before filter tab)
-  const kpiCounts = useMemo(() => ({
-    total:      searchFiltered.length,
-    registered: searchFiltered.filter(c => c.type === "registered").length,
-    guest:      searchFiltered.filter(c => c.type === "guest").length,
-    repeat:     searchFiltered.filter(c => c.ordersCount >= 2 && !getCustomerSegments(c).includes("vip")).length,
-    vip:        searchFiltered.filter(c => getCustomerSegments(c).includes("vip")).length,
-    inactive:   searchFiltered.filter(c => getCustomerSegments(c).includes("inactive")).length,
-  }), [searchFiltered]);
-
-  // Filter tab + sort
-  const filtered = useMemo(() => {
-    const f = searchFiltered.filter(c => matchesFilter(c, getCustomerSegments(c), activeFilter));
-    return sortCustomers(f, sort);
-  }, [searchFiltered, activeFilter, sort]);
-
-  // Tab counts
-  const tabCounts = useMemo(() => {
-    const counts: Record<FilterKey, number> = { all: 0, registered: 0, guest: 0, vip: 0, repeat: 0, new: 0, inactive: 0, "at-risk": 0, wholesale: 0 };
-    searchFiltered.forEach(c => {
-      const segs = getCustomerSegments(c);
-      FILTERS.forEach(f => { if (matchesFilter(c, segs, f.key)) counts[f.key]++; });
-    });
-    return counts;
-  }, [searchFiltered]);
-
-  const totalRevenue = useMemo(() => customers.reduce((s, c) => s + c.totalSpent, 0), [customers]);
+  const filtered = customers;
+  const tabCounts: Record<FilterKey, number> = {
+    all: kpis.total,
+    registered: kpis.registered,
+    guest: kpis.guest,
+    vip: kpis.vip,
+    repeat: kpis.repeat,
+    new: kpis.new,
+    inactive: kpis.inactive,
+    "at-risk": kpis.atRisk,
+    wholesale: kpis.wholesale,
+  };
+  const kpiCounts = {
+    total: kpis.total,
+    registered: kpis.registered,
+    guest: kpis.guest,
+    repeat: kpis.repeat,
+    vip: kpis.vip,
+    inactive: kpis.inactive,
+  };
+  const totalRevenue = totalSpend;
 
   const duplicateOf = useMemo(() => {
     if (!drawerCustomerId) return null;
@@ -458,7 +476,7 @@ export default function CustomersPage() {
             <button
               key={card.label}
               type="button"
-              onClick={() => setActiveFilter(card.filter)}
+              onClick={() => selectFilter(card.filter)}
               className="admin-kpi-card text-left"
               style={{
                 padding: "14px 16px", cursor: "pointer",
@@ -486,9 +504,9 @@ export default function CustomersPage() {
           <Search size={13} className="admin-faint" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
           <input
             type="text"
-            placeholder="Search by name, phone, email, ID or order code…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, phone, email, or WhatsApp…"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
             className="admin-input !pl-9 !pr-3.5 !py-2.5 !rounded-xl !text-[12.5px]"
           />
         </div>
@@ -509,7 +527,7 @@ export default function CustomersPage() {
                 <button
                   key={opt.key}
                   type="button"
-                  onClick={() => { setSort(opt.key); setSortOpen(false); }}
+                  onClick={() => { selectSort(opt.key); setSortOpen(false); }}
                   className="block w-full text-left px-3.5 py-2 text-[12.5px] transition-colors hover:bg-[rgb(227_210_184_/_0.05)]"
                   style={{ background: sort === opt.key ? "rgb(227 210 184 / 0.06)" : "none", color: sort === opt.key ? "var(--admin-hazelnut)" : "var(--admin-muted)" }}
                 >
@@ -529,7 +547,7 @@ export default function CustomersPage() {
             <button
               key={f.key}
               type="button"
-              onClick={() => setActiveFilter(f.key)}
+              onClick={() => selectFilter(f.key)}
               className={`admin-chip${active ? " admin-chip-active" : ""}`}
             >
               {f.label}
@@ -550,7 +568,7 @@ export default function CustomersPage() {
           <div className="admin-empty-state !border-0 !rounded-none">
             <span className="admin-empty-icon"><Users size={26} /></span>
             <p className="text-sm admin-muted">No customers match your search</p>
-            <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }} className="admin-link mt-1 !text-xs">
+            <button type="button" onClick={() => { setSearchInput(""); setSearch(""); selectFilter("all"); }} className="admin-link mt-1 !text-xs">
               Clear filters
             </button>
           </div>
@@ -568,15 +586,35 @@ export default function CustomersPage() {
 
         {/* Footer */}
         {filtered.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: "1px solid var(--admin-border)" }}>
-            <span className="text-[11.5px] admin-faint">
-              Showing {filtered.length} of {customers.length} customers
-            </span>
-            {activeFilter !== "all" || search ? (
-              <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }} className="admin-link !text-[11px]">
-                · Clear filters
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5" style={{ borderTop: "1px solid var(--admin-border)" }}>
+            <div className="flex items-center gap-2">
+              <span className="text-[11.5px] admin-faint">
+                Page {page} of {totalPages} · {totalCount} matching customer{totalCount === 1 ? "" : "s"}
+              </span>
+              {activeFilter !== "all" || search ? (
+                <button type="button" onClick={() => { setSearchInput(""); setSearch(""); selectFilter("all"); }} className="admin-link !text-[11px]">
+                  · Clear filters
+                </button>
+              ) : null}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="admin-btn admin-btn-sm flex items-center gap-1"
+                disabled={page <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </button>
-            ) : null}
+              <button
+                type="button"
+                className="admin-btn admin-btn-sm flex items-center gap-1"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         )}
       </div>

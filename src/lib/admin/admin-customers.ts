@@ -60,6 +60,9 @@ function devWarn(scope: string, message: string) {
 
 function readError(scope: string, message: string) {
   devWarn(scope, message);
+  if (message.includes("Admin access required")) {
+    return new AdminCustomersError("Admin permission is required.");
+  }
   return new AdminCustomersError("Could not load customer data. Please try again.");
 }
 
@@ -363,6 +366,140 @@ export async function getAdminCustomers(): Promise<AdminCustomerSummary[]> {
       daysSinceLastOrder: agg?.lastOrderDate ? diffDays(now, agg.lastOrderDate) : null,
     };
   });
+}
+
+// =====================================================================
+// Phase 2 — real server-side pagination for the Admin Customers list
+// =====================================================================
+// Replaces the 1,000-row client cap + a 5,000-row orders scan used only to
+// attach each customer's order count/spend. Search, type/segment filtering,
+// sorting, and the KPI/lifetime-revenue totals now run in SQL over the
+// COMPLETE customers+orders join (`list_admin_customers_v1`), so a filter or
+// headline number can never silently miss rows past an old scan cap.
+
+export type AdminCustomersSort = "most-spent" | "most-orders" | "recently-active" | "oldest-inactive";
+
+export type AdminCustomersPageParams = {
+  search?: string;
+  type?: AdminCustomerType | null;
+  segment?: CustomerSegment | null;
+  sort?: AdminCustomersSort | null;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminCustomersKpis = {
+  total: number;
+  registered: number;
+  guest: number;
+  repeat: number;
+  vip: number;
+  inactive: number;
+  new: number;
+  atRisk: number;
+  wholesale: number;
+};
+
+export type AdminCustomersPage = {
+  rows: AdminCustomerSummary[];
+  totalCount: number;
+  totalSpend: number;
+  kpis: AdminCustomersKpis;
+  page: number;
+  pageSize: number;
+};
+
+type CustomerPageRpcRow = {
+  id: string;
+  authUserId: string | null;
+  type: string;
+  status: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  whatsapp: string;
+  marketingOptIn: boolean | null;
+  tags: string[] | null;
+  joinedAt: string;
+  createdAt: string;
+  ordersCount: number;
+  totalSpent: number | string;
+  lastOrderDate: string | null;
+  lastOrderStatus: string | null;
+  lastOrderCode: string | null;
+  daysSinceJoined: number;
+  daysSinceLastOrder: number | null;
+};
+
+type CustomersRpcResult = {
+  rows: CustomerPageRpcRow[];
+  totalCount: number;
+  totalSpend: number | string;
+  kpis: AdminCustomersKpis;
+  page: number;
+  pageSize: number;
+};
+
+function mapPageRow(row: CustomerPageRpcRow): AdminCustomerSummary {
+  return {
+    id: row.id,
+    authUserId: row.authUserId,
+    name: row.name,
+    email: text(row.email),
+    phone: text(row.phone),
+    whatsapp: row.whatsapp,
+    type: normalizeType(row.type),
+    status: normalizeStatus(row.status),
+    marketingOptIn: Boolean(row.marketingOptIn),
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    joinedAt: row.joinedAt,
+    createdAt: row.createdAt,
+    ordersCount: row.ordersCount,
+    totalSpent: money(row.totalSpent),
+    lastOrderDate: row.lastOrderDate,
+    lastOrderStatus: row.lastOrderStatus as OrderStatus | null,
+    lastOrderCode: row.lastOrderCode,
+    // Order-code search moved server-side (Phase 2); the list view never
+    // displays this field, only the old client-side search used it.
+    orderCodes: [],
+    daysSinceJoined: row.daysSinceJoined,
+    daysSinceLastOrder: row.daysSinceLastOrder,
+  };
+}
+
+/** "wholesale" (the page's short filter-tab key) -> the RPC's segment value. */
+function toRpcSegment(segment: CustomerSegment | null | undefined): string | null {
+  if (!segment) return null;
+  return segment === "wholesale-potential" ? "wholesale-potential" : segment;
+}
+
+export async function getAdminCustomersPage(
+  params: AdminCustomersPageParams = {},
+): Promise<AdminCustomersPage> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 30)));
+
+  const { data, error } = await supabase.rpc("list_admin_customers_v1", {
+    p_search: params.search?.trim() || null,
+    p_type: params.type ?? null,
+    p_segment: toRpcSegment(params.segment),
+    p_page: page,
+    p_page_size: pageSize,
+    p_sort: params.sort ?? null,
+  });
+
+  if (error) throw readError("customers-page", error.message);
+  const result = data as CustomersRpcResult | null;
+  if (!result) throw readError("customers-page", "Empty response.");
+
+  return {
+    rows: result.rows.map(mapPageRow),
+    totalCount: result.totalCount,
+    totalSpend: money(result.totalSpend),
+    kpis: result.kpis,
+    page: result.page,
+    pageSize: result.pageSize,
+  };
 }
 
 // ── Detail (Customer drawer) ────────────────────────────────────────────────

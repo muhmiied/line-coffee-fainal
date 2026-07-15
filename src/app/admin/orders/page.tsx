@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Loader2,
@@ -17,11 +18,13 @@ import {
   ADMIN_ORDER_STATUS_LABELS,
   ADMIN_PAYMENT_METHOD_LABELS,
   ADMIN_PAYMENT_STATUS_LABELS,
-  getAdminOrders,
-  type AdminOrderDetail,
+  getAdminOrdersPage,
   type AdminOrderStatus,
   type AdminOrderSummary,
 } from "@/lib/admin/admin-orders";
+
+const PAGE_SIZE = 30;
+const SEARCH_DEBOUNCE_MS = 300;
 
 type StatusFilter = AdminOrderStatus | "all";
 
@@ -160,83 +163,70 @@ function OrderRow({
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<AdminOrderSummary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<AdminOrderStatus, number>>({
+    pending: 0, preparing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all");
+  const [page, setPage] = useState(1);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 
+  // Debounce the search box so every keystroke doesn't fire a request. Page
+  // resets to 1 here too (inside the timer callback, not a synchronous effect
+  // body) — otherwise a narrower search could land on a page beyond its own
+  // new result count.
   useEffect(() => {
-    let cancelled = false;
-    void getAdminOrders()
-      .then((nextOrders) => {
-        if (cancelled) return;
-        setOrders(nextOrders);
-        setLoadError(null);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setLoadError(error instanceof Error ? error.message : "Could not load orders.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  function selectStatus(status: StatusFilter) {
+    setActiveStatus(status);
+    setPage(1);
+  }
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getAdminOrdersPage({
+        search: debouncedSearch || undefined,
+        status: activeStatus === "all" ? null : activeStatus,
+        page,
+        pageSize: PAGE_SIZE,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      setOrders(result.rows);
+      setTotalCount(result.totalCount);
+      setStatusCounts(result.statusCounts);
+      setLoadError(null);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Could not load orders.");
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch, activeStatus, page]);
 
-  const searchFiltered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return orders;
-    return orders.filter((order) =>
-      [
-        order.code,
-        order.customerName,
-        order.customerEmail,
-        order.customerPhone,
-      ].some((value) => value.toLowerCase().includes(query)),
-    );
-  }, [orders, search]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch driven by filter/page state
+  useEffect(() => { void load(); }, [load]);
 
-  const filtered = useMemo(
-    () =>
-      searchFiltered.filter(
-        (order) => activeStatus === "all" || order.status === activeStatus,
-      ),
-    [activeStatus, searchFiltered],
+  const searchMatchedTotal = useMemo(
+    () => Object.values(statusCounts).reduce((sum, n) => sum + n, 0),
+    [statusCounts],
   );
+  const counts: Record<StatusFilter, number> = { all: searchMatchedTotal, ...statusCounts };
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const counts = useMemo(() => {
-    const next: Record<StatusFilter, number> = {
-      all: searchFiltered.length,
-      pending: 0,
-      preparing: 0,
-      shipped: 0,
-      delivered: 0,
-      cancelled: 0,
-      returned: 0,
-    };
-    searchFiltered.forEach((order) => {
-      next[order.status] += 1;
-    });
-    return next;
-  }, [searchFiltered]);
-
-  function handleOrderUpdated(order: AdminOrderDetail) {
-    setOrders((current) =>
-      current.map((item) =>
-        item.id === order.id
-          ? {
-              ...item,
-              status: order.status,
-              paymentStatus: order.paymentStatus,
-              paymentMethod: order.paymentMethod,
-              itemCount: order.itemCount,
-            }
-          : item,
-      ),
-    );
+  function handleOrderUpdated() {
+    // A status/payment change can shift which page/filter this order now
+    // belongs to (e.g. it may no longer match the active status chip), so
+    // re-run the same paginated query rather than patching stale local state.
+    void load();
   }
 
   const kpis = [
@@ -254,7 +244,7 @@ export default function OrdersPage() {
         <header>
           <h1 className="admin-page-title">Orders</h1>
           <p className="admin-page-subtitle">
-            {orders.length} real Supabase orders
+            {totalCount} real Supabase order{totalCount === 1 ? "" : "s"}
           </p>
         </header>
 
@@ -267,7 +257,7 @@ export default function OrdersPage() {
               Icon={Icon}
               color={color}
               active={activeStatus === filter}
-              onClick={() => setActiveStatus(filter)}
+              onClick={() => selectStatus(filter)}
             />
           ))}
         </div>
@@ -276,8 +266,8 @@ export default function OrdersPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 admin-faint" />
           <input
             type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search by order code, customer, email, or phone…"
             className="admin-input w-full !py-2.5 !pl-9 !pr-4 !rounded-xl !text-sm"
           />
@@ -288,7 +278,7 @@ export default function OrdersPage() {
             <button
               key={status}
               type="button"
-              onClick={() => setActiveStatus(status)}
+              onClick={() => selectStatus(status)}
               className={`admin-chip${activeStatus === status ? " admin-chip-active" : ""}`}
             >
               {status === "all" ? "All" : ADMIN_ORDER_STATUS_LABELS[status]}{" "}
@@ -309,17 +299,43 @@ export default function OrdersPage() {
             </div>
           ) : loadError ? (
             <div className="px-5 py-12 text-center text-sm" style={{ color: "#e39a8c" }}>{loadError}</div>
-          ) : filtered.length === 0 ? (
+          ) : orders.length === 0 ? (
             <div className="admin-empty-state !border-0 !rounded-none">
               <span className="admin-empty-icon"><Package size={22} /></span>
               <p className="text-sm admin-muted">No real orders match these filters.</p>
             </div>
           ) : (
-            filtered.map((order) => (
+            orders.map((order) => (
               <OrderRow key={order.id} order={order} onOpen={setOpenOrderId} />
             ))
           )}
         </section>
+
+        {!loading && !loadError && totalCount > 0 && (
+          <div className="flex items-center justify-between gap-3 px-1 text-xs">
+            <span className="admin-faint">
+              Page {page} of {totalPages} · {totalCount} matching order{totalCount === 1 ? "" : "s"}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="admin-btn admin-btn-sm flex items-center gap-1"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" /> Previous
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-sm flex items-center gap-1"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <OrderDrawer
