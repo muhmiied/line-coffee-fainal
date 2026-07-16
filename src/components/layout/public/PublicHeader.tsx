@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
@@ -10,6 +10,7 @@ import {
   Heart,
   LayoutDashboard,
   LayoutList,
+  Loader2,
   LogOut,
   Menu,
   Minus,
@@ -23,12 +24,13 @@ import {
 import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
 import { useWishlist } from "@/lib/hooks/useWishlist";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth, type AuthUser } from "@/lib/hooks/useAuth";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
+import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
 import {
   formatAdminRole,
-  getAdminDisplayName,
   getAdminInitials,
+  type CurrentAdmin,
 } from "@/lib/auth/admin";
 import {
   getPublicProductsBySlugs,
@@ -62,7 +64,29 @@ const accountLinks = [
   { href: "/account/settings",      icon: Settings,  label: { en: "Settings",      ar: "الإعدادات"    } },
 ];
 
+const accountMenuInteractiveState =
+  "cursor-pointer outline-none ring-1 ring-inset transition-[background-color,color,box-shadow] hover:bg-[#B6885E]/14 hover:text-[#FFF0E2] hover:ring-[#D6A373]/30 hover:shadow-[0_0_18px_rgba(182,136,94,0.10)] focus-visible:bg-[#B6885E]/18 focus-visible:text-[#FFF0E2] focus-visible:ring-2 focus-visible:ring-[#D6A373]/60 focus-visible:shadow-[0_0_20px_rgba(214,163,115,0.16)]";
+
+const accountMenuCurrentState =
+  "bg-[#B6885E]/16 text-[#FFE1C7] ring-[#D6A373]/35 shadow-[0_0_16px_rgba(182,136,94,0.10)]";
+
+function isCurrentAccountRoute(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 type CommercePanel = "wishlist" | "cart";
+
+type AccountStatus = "signed_out" | "resolving" | "customer" | "admin" | "error";
+
+type ResolvedAccountState = {
+  status: AccountStatus;
+  user: AuthUser | null;
+  admin: CurrentAdmin | null;
+  displayName: string;
+  displayEmail: string;
+  avatarText: string;
+  error: string | null;
+};
 
 function cleanAccountName(name: string | null | undefined) {
   const trimmed = name?.trim() ?? "";
@@ -82,6 +106,10 @@ function getAccountInitials(name: string | null | undefined, fallback = "M") {
 
 function getAccountFirstName(name: string | null | undefined, fallback: string) {
   return cleanAccountName(name).split(/\s+/)[0] || fallback;
+}
+
+function getEmailUsername(email: string | null | undefined) {
+  return email?.trim().split("@")[0]?.trim() ?? "";
 }
 
 // ─── Notifications dropdown ───────────────────────────────────────────────────
@@ -112,7 +140,11 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
   const preview = items.slice(0, 5);
 
   return (
-    <div className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-80 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl">
+    <div
+      role="region"
+      aria-label={t({ en: "Notifications", ar: "الإشعارات" })}
+      className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-80 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl"
+    >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6A373]/35 to-transparent" />
 
       {/* Header */}
@@ -188,14 +220,15 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
 
 function UserMenu({
   onClose,
-  profileName,
+  account,
+  signOut,
 }: {
   onClose: () => void;
-  profileName: string | null;
+  account: ResolvedAccountState;
+  signOut: () => Promise<void>;
 }) {
   const { t } = useLanguage();
-  const { user, isLoggedIn, signOut } = useAuth();
-  const { isAdmin, admin } = useCurrentAdmin();
+  const pathname = usePathname();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -204,28 +237,32 @@ function UserMenu({
     router.replace("/");
   };
 
-  // When the signed-in user is an active admin, surface their real admin_users
-  // identity (display name, email, role) instead of the bare auth email.
-  const showAdmin = isAdmin && admin !== null;
-  const customerDisplayName =
-    cleanAccountName(profileName) ||
-    cleanAccountName(user?.name) ||
-    t({ en: "Customer", ar: "عميل لاين" });
-  const adminDisplayName = showAdmin
-    ? cleanAccountName(getAdminDisplayName(admin))
-    : "";
-  const displayName = showAdmin
-    ? adminDisplayName || customerDisplayName
-    : customerDisplayName;
-  const displayEmail = showAdmin ? admin.email : user?.email;
-  const avatarText = showAdmin
-    ? adminDisplayName
-      ? getAdminInitials(admin)
-      : getAccountInitials(displayName)
-    : getAccountInitials(displayName);
+  const isLoggedIn = account.user !== null;
+  const showAdmin = account.status === "admin" && account.admin !== null;
+  const isResolved = account.status === "customer" || showAdmin;
+
+  if (account.status === "resolving") {
+    return (
+      <div
+        role="region"
+        aria-label={t({ en: "Account menu", ar: "قائمة الحساب" })}
+        aria-busy="true"
+        className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-64 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 px-4 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl"
+      >
+        <div className="flex items-center gap-3 text-sm text-[#D6B79A]/75">
+          <Loader2 className="h-4 w-4 animate-spin text-[#D6A373]" />
+          {t({ en: "Checking your account…", ar: "جارٍ التحقق من حسابك…" })}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-64 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl">
+    <div
+      role="region"
+      aria-label={t({ en: "Account menu", ar: "قائمة الحساب" })}
+      className="absolute end-0 top-[calc(100%+0.85rem)] z-50 w-64 overflow-hidden rounded-2xl border border-[#D6A373]/22 bg-[#100B08]/90 shadow-[0_24px_64px_rgba(0,0,0,0.60)] backdrop-blur-2xl"
+    >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D6A373]/35 to-transparent" />
 
       {isLoggedIn ? (
@@ -234,55 +271,82 @@ function UserMenu({
           <div className="border-b border-[#B6885E]/12 px-4 py-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#B6885E]/18 text-sm font-bold text-[#D6A373]">
-                {avatarText}
+                {account.avatarText}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#F5E6D8]">{displayName}</p>
-                <p className="truncate text-xs text-[#B79B85]/80">{displayEmail}</p>
+                <p className="truncate text-sm font-semibold text-[#F5E6D8]">{account.displayName}</p>
+                <p className="truncate text-xs text-[#B79B85]/80">{account.displayEmail}</p>
                 {showAdmin && (
                   <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
-                    {formatAdminRole(admin.role)}
+                    {formatAdminRole(account.admin!.role)}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Admin Dashboard — only for active admins */}
-          {showAdmin && (
-            <div className="border-b border-[#B6885E]/10 py-2">
-              <Link
-                href="/admin/dashboard"
-                onClick={onClose}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#D6A373] transition-colors hover:bg-[#B6885E]/10"
-              >
-                <LayoutDashboard className="h-4 w-4 shrink-0" />
-                {t({ en: "Admin Dashboard", ar: "لوحة التحكم" })}
-              </Link>
-            </div>
+          {isResolved ? (
+            <>
+              {/* Admin Dashboard — only for active admins */}
+              {showAdmin && (
+                <div className="border-b border-[#B6885E]/10 py-2">
+                  <Link
+                    href="/admin/dashboard"
+                    onClick={onClose}
+                    aria-current={pathname.startsWith("/admin") ? "page" : undefined}
+                    className={cn(
+                      "group flex items-center gap-3 px-4 py-2.5 text-sm font-medium",
+                      accountMenuInteractiveState,
+                      pathname.startsWith("/admin")
+                        ? accountMenuCurrentState
+                        : "text-[#E2B78E] ring-transparent",
+                    )}
+                  >
+                    <LayoutDashboard className="h-4 w-4 shrink-0 text-[#D6A373] transition-colors group-hover:text-[#F0C69F] group-focus-visible:text-[#F0C69F]" />
+                    {t({ en: "Admin Dashboard", ar: "لوحة التحكم" })}
+                  </Link>
+                </div>
+              )}
+
+              <div className="py-2">
+                {accountLinks.map(({ href, icon: Icon, label }) => {
+                  const active = isCurrentAccountRoute(pathname, href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "group flex items-center gap-3 px-4 py-2.5 text-sm",
+                        accountMenuInteractiveState,
+                        active
+                          ? accountMenuCurrentState
+                          : "text-[#D6B79A]/90 ring-transparent",
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-[#C99A70] transition-colors group-hover:text-[#F0C69F] group-focus-visible:text-[#F0C69F]" />
+                      {t(label)}
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="border-b border-[#B6885E]/10 px-4 py-3 text-xs leading-relaxed text-[#D6B79A]/70">
+              {t({
+                en: "We couldn’t verify account access. Try again after refreshing.",
+                ar: "تعذر التحقق من صلاحيات الحساب. حاول مرة أخرى بعد تحديث الصفحة.",
+              })}
+            </p>
           )}
 
-          {/* Account links */}
-          <div className="py-2">
-            {accountLinks.map(({ href, icon: Icon, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={onClose}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#B79B85]/75 transition-colors hover:bg-[#B6885E]/08 hover:text-[#D6A373]"
-              >
-                <Icon className="h-4 w-4 shrink-0 text-[#B6885E]" />
-                {t(label)}
-              </Link>
-            ))}
-          </div>
-
           {/* Sign out */}
-          <div className="border-t border-[#B6885E]/10 px-4 py-3">
+          <div className="border-t border-[#B6885E]/10 px-4 py-1">
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-3 text-sm text-[#B79B85]/75 transition-colors hover:text-red-400/80"
+              className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-sm text-[#D6B79A]/85 outline-none ring-1 ring-inset ring-transparent transition-[background-color,color,box-shadow] hover:bg-red-400/[0.08] hover:text-red-300 hover:ring-red-300/20 focus-visible:bg-red-400/[0.10] focus-visible:text-red-200 focus-visible:ring-2 focus-visible:ring-red-300/45"
             >
               <LogOut className="h-4 w-4 shrink-0" />
               {t({ en: "Sign out", ar: "تسجيل الخروج" })}
@@ -326,14 +390,14 @@ function UserMenu({
 
 function MobileMenu({
   onClose,
-  profileName,
+  account,
+  signOut,
 }: {
   onClose: () => void;
-  profileName: string | null;
+  account: ResolvedAccountState;
+  signOut: () => Promise<void>;
 }) {
   const { t, dir } = useLanguage();
-  const { isLoggedIn, user, signOut } = useAuth();
-  const { isAdmin, admin } = useCurrentAdmin();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -343,26 +407,24 @@ function MobileMenu({
     router.replace("/");
   };
 
-  const showAdmin = isAdmin && admin !== null;
-  const customerDisplayName =
-    cleanAccountName(profileName) ||
-    cleanAccountName(user?.name) ||
-    t({ en: "Customer", ar: "عميل لاين" });
-  const adminDisplayName = showAdmin
-    ? cleanAccountName(getAdminDisplayName(admin))
-    : "";
-  const displayName = showAdmin
-    ? adminDisplayName || customerDisplayName
-    : customerDisplayName;
-  const displayEmail = showAdmin ? admin.email : user?.email;
-  const avatarText = showAdmin
-    ? adminDisplayName
-      ? getAdminInitials(admin)
-      : getAccountInitials(displayName)
-    : getAccountInitials(displayName);
+  const isLoggedIn = account.user !== null;
+  const isResolving = account.status === "resolving";
+  const showAdmin = account.status === "admin" && account.admin !== null;
+  const isResolved = account.status === "customer" || showAdmin;
+
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[60] flex" dir={dir}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t({ en: "Menu", ar: "القائمة" })}
+      className="fixed inset-0 z-[60] flex"
+      dir={dir}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-[#0B0806]/80 backdrop-blur-sm"
@@ -378,6 +440,7 @@ function MobileMenu({
             <Image src="/brand/logo-white.svg" alt="Line Coffee" fill sizes="7rem" className="object-contain object-left" />
           </span>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label={t({ en: "Close menu", ar: "إغلاق القائمة" })}
@@ -388,18 +451,26 @@ function MobileMenu({
         </div>
 
         {/* User section */}
-        {isLoggedIn ? (
+        {isResolving ? (
+          <div
+            aria-busy="true"
+            className="flex items-center gap-3 border-b border-[#B6885E]/10 px-5 py-4 text-sm text-[#D6B79A]/75"
+          >
+            <Loader2 className="h-4 w-4 animate-spin text-[#D6A373]" />
+            {t({ en: "Checking your account…", ar: "جارٍ التحقق من حسابك…" })}
+          </div>
+        ) : isLoggedIn ? (
           <div className="border-b border-[#B6885E]/10 px-5 py-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#B6885E]/15 text-sm font-bold text-[#D6A373]">
-                {avatarText}
+                {account.avatarText}
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#F5E6D8]">{displayName}</p>
-                <p className="text-xs text-[#B79B85]/75">{displayEmail}</p>
+                <p className="text-sm font-semibold text-[#F5E6D8]">{account.displayName}</p>
+                <p className="text-xs text-[#B79B85]/75">{account.displayEmail}</p>
                 {showAdmin && (
                   <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
-                    {formatAdminRole(admin.role)}
+                    {formatAdminRole(account.admin!.role)}
                   </span>
                 )}
               </div>
@@ -435,33 +506,65 @@ function MobileMenu({
           <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[#B6885E]/80">
             {t({ en: "Account", ar: "الحساب" })}
           </p>
-          {isLoggedIn ? (
+          {isResolving ? (
+            <p className="px-4 py-3 text-xs text-[#D6B79A]/70" aria-busy="true">
+              {t({ en: "Account options will appear once verification finishes.", ar: "ستظهر خيارات الحساب بعد اكتمال التحقق." })}
+            </p>
+          ) : isLoggedIn ? (
             <>
-              {showAdmin && (
-                <Link
-                  href="/admin/dashboard"
-                  onClick={onClose}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#D6A373] transition-colors hover:bg-[#B6885E]/10"
-                >
-                  <LayoutDashboard className="h-4 w-4 shrink-0" />
-                  {t({ en: "Admin Dashboard", ar: "لوحة التحكم" })}
-                </Link>
+              {isResolved ? (
+                <>
+                  {showAdmin && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={onClose}
+                      aria-current={pathname.startsWith("/admin") ? "page" : undefined}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold",
+                        accountMenuInteractiveState,
+                        pathname.startsWith("/admin")
+                          ? accountMenuCurrentState
+                          : "text-[#E2B78E] ring-transparent",
+                      )}
+                    >
+                      <LayoutDashboard className="h-4 w-4 shrink-0 text-[#D6A373] transition-colors group-hover:text-[#F0C69F] group-focus-visible:text-[#F0C69F]" />
+                      {t({ en: "Admin Dashboard", ar: "لوحة التحكم" })}
+                    </Link>
+                  )}
+                  {accountLinks.map(({ href, icon: Icon, label }) => {
+                    const active = isCurrentAccountRoute(pathname, href);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={onClose}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm",
+                          accountMenuInteractiveState,
+                          active
+                            ? accountMenuCurrentState
+                            : "text-[#D6B79A]/90 ring-transparent",
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-[#C99A70] transition-colors group-hover:text-[#F0C69F] group-focus-visible:text-[#F0C69F]" />
+                        {t(label)}
+                      </Link>
+                    );
+                  })}
+                </>
+              ) : (
+                <p className="px-4 py-3 text-xs leading-relaxed text-[#D6B79A]/70">
+                  {t({
+                    en: "We couldn’t verify account access. Refresh and try again.",
+                    ar: "تعذر التحقق من صلاحيات الحساب. حدّث الصفحة وحاول مرة أخرى.",
+                  })}
+                </p>
               )}
-              {accountLinks.map(({ href, icon: Icon, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={onClose}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-[#D6B79A]/80 transition-colors hover:text-[#F5E6D8]"
-                >
-                  <Icon className="h-4 w-4 shrink-0 text-[#B6885E]" />
-                  {t(label)}
-                </Link>
-              ))}
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-[#B79B85]/70 transition-colors hover:text-red-400/70"
+                className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-sm text-[#D6B79A]/85 outline-none ring-1 ring-inset ring-transparent transition-[background-color,color,box-shadow] hover:bg-red-400/[0.08] hover:text-red-300 hover:ring-red-300/20 focus-visible:bg-red-400/[0.10] focus-visible:text-red-200 focus-visible:ring-2 focus-visible:ring-red-300/45"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}
@@ -533,7 +636,11 @@ function CommercePopover({
   }, [isWishlist, wishlistIds, wishlistKey]);
 
   return (
-    <div className="absolute end-0 top-[calc(100%+2rem)] z-50 w-[min(30rem,calc(100vw-1rem))] overflow-hidden rounded-[1.65rem] border border-[#F5CFAE]/20 bg-[#100B08]/72 text-start shadow-[0_34px_96px_rgba(0,0,0,0.64),0_0_52px_rgba(182,136,94,0.16),inset_0_1px_0_rgba(245,230,216,0.08)] backdrop-blur-[30px]">
+    <div
+      role="region"
+      aria-label={t(isWishlist ? { en: "Wishlist", ar: "المفضلة" } : { en: "Cart", ar: "السلة" })}
+      className="absolute end-0 top-[calc(100%+2rem)] z-50 w-[min(30rem,calc(100vw-1rem))] overflow-hidden rounded-[1.65rem] border border-[#F5CFAE]/20 bg-[#100B08]/72 text-start shadow-[0_34px_96px_rgba(0,0,0,0.64),0_0_52px_rgba(182,136,94,0.16),inset_0_1px_0_rgba(245,230,216,0.08)] backdrop-blur-[30px]"
+    >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(214,163,115,0.18),transparent_36%),linear-gradient(145deg,rgba(245,230,216,0.08),transparent_42%,rgba(182,136,94,0.07))]" />
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#FFDCC2]/45 to-transparent" />
 
@@ -777,9 +884,16 @@ function CommercePopover({
 
 export function PublicHeader() {
   const { language, dir, toggleLanguage, t } = useLanguage();
+  const reducedMotion = usePrefersReducedMotion();
   const { count, isOpen, closeCart, openCart } = useCart();
   const { count: wishCount } = useWishlist();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isLoading: isAuthLoading, signOut } = useAuth();
+  const {
+    status: adminStatus,
+    admin,
+    error: adminError,
+    resolvedUserId: adminResolvedUserId,
+  } = useCurrentAdmin();
   const pathname = usePathname();
 
   const [isScrolled,          setIsScrolled]          = useState(false);
@@ -792,7 +906,11 @@ export function PublicHeader() {
   const [announcementVisible, setAnnouncementVisible] = useState(true);
   const [storefront,           setStorefront]           = useState<StorefrontSettings | null>(null);
   const [announcements,        setAnnouncements]        = useState<PublicAnnouncement[]>(DEFAULT_ANNOUNCEMENTS);
-  const [accountProfile,       setAccountProfile]       = useState<{ userId: string; name: string } | null>(null);
+  const [accountProfile,       setAccountProfile]       = useState<{
+    userId: string;
+    status: "loading" | "resolved";
+    name: string | null;
+  } | null>(null);
 
   const authUserId = user?.id;
   const closedNotice =
@@ -805,13 +923,115 @@ export function PublicHeader() {
     accountProfile && accountProfile.userId === authUserId
       ? accountProfile.name
       : null;
-  const headerAccountName =
-    cleanAccountName(accountProfileName) || cleanAccountName(user?.name);
+  const isAccountProfileResolved =
+    !user ||
+    (accountProfile?.userId === user.id && accountProfile.status === "resolved");
+  const genericAccountName = t({ en: "Account", ar: "حسابي" });
+  const authDisplayName = cleanAccountName(user?.name);
+  const customerDisplayName =
+    cleanAccountName(accountProfileName) ||
+    authDisplayName ||
+    getEmailUsername(user?.email) ||
+    genericAccountName;
+
+  let accountState: ResolvedAccountState;
+  if (isAuthLoading) {
+    accountState = {
+      status: "resolving",
+      user,
+      admin: null,
+      displayName: "",
+      displayEmail: user?.email ?? "",
+      avatarText: "L",
+      error: null,
+    };
+  } else if (!user) {
+    accountState = {
+      status: "signed_out",
+      user: null,
+      admin: null,
+      displayName: genericAccountName,
+      displayEmail: "",
+      avatarText: "L",
+      error: null,
+    };
+  } else if (
+    !isAccountProfileResolved ||
+    adminStatus === "loading" ||
+    adminStatus === "signed_out"
+  ) {
+    accountState = {
+      status: "resolving",
+      user,
+      admin: null,
+      displayName: customerDisplayName,
+      displayEmail: user.email,
+      avatarText: getAccountInitials(customerDisplayName, "L"),
+      error: null,
+    };
+  } else if (
+    adminStatus === "authorized" &&
+    admin &&
+    adminResolvedUserId === user.id &&
+    admin.authUserId === user.id
+  ) {
+    const authoritativeAdminName =
+      cleanAccountName(admin.displayName) || cleanAccountName(accountProfileName);
+    const adminDisplayName =
+      authoritativeAdminName ||
+      authDisplayName ||
+      getEmailUsername(admin.email || user.email) ||
+      genericAccountName;
+    accountState = {
+      status: "admin",
+      user,
+      admin,
+      displayName: adminDisplayName,
+      displayEmail: admin.email || user.email,
+      avatarText: authoritativeAdminName
+        ? getAdminInitials(admin)
+        : getAccountInitials(adminDisplayName, "L"),
+      error: null,
+    };
+  } else if (adminStatus === "forbidden" && adminResolvedUserId === user.id) {
+    accountState = {
+      status: "customer",
+      user,
+      admin: null,
+      displayName: customerDisplayName,
+      displayEmail: user.email,
+      avatarText: getAccountInitials(customerDisplayName, "L"),
+      error: null,
+    };
+  } else if (adminStatus === "error") {
+    accountState = {
+      status: "error",
+      user,
+      admin: null,
+      displayName: customerDisplayName,
+      displayEmail: user.email,
+      avatarText: getAccountInitials(customerDisplayName, "L"),
+      error: adminError,
+    };
+  } else {
+    // A result belonging to a previous auth owner is never role-safe.
+    accountState = {
+      status: "resolving",
+      user,
+      admin: null,
+      displayName: customerDisplayName,
+      displayEmail: user.email,
+      avatarText: getAccountInitials(customerDisplayName, "L"),
+      error: null,
+    };
+  }
+
+  const headerAccountName = accountState.displayName;
   const headerAccountLabel = getAccountFirstName(
     headerAccountName,
-    t({ en: "Account", ar: "حسابي" }),
+    genericAccountName,
   );
-  const headerAvatarText = getAccountInitials(headerAccountName, "L");
+  const headerAvatarText = accountState.avatarText;
 
   const closeAll = () => {
     setOpenCommercePanel(null);
@@ -819,6 +1039,23 @@ export function PublicHeader() {
     setIsNotifOpen(false);
     closeCart();
   };
+
+  // Click-outside-to-close for the wishlist/cart/notifications/user dropdowns.
+  // The ref covers every trigger button AND every popover (all rendered as
+  // descendants of the same "right actions" container below), so clicking a
+  // trigger button is always "inside" — the button's own onClick toggle logic
+  // runs normally with no close/reopen race against this listener.
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const anyPanelOpen = Boolean(openCommercePanel) || isUserMenuOpen || isNotifOpen;
+  useEffect(() => {
+    if (!anyPanelOpen) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) closeAll();
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anyPanelOpen]);
 
   // Sync external cart open state
   useEffect(() => {
@@ -839,9 +1076,10 @@ export function PublicHeader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Announcement cycle
+  // Announcement cycle — a nonessential motion effect; reduced-motion users
+  // simply see the first active announcement without auto-rotation.
   useEffect(() => {
-    if (storefront && !storefront.storeOpen) {
+    if (reducedMotion || (storefront && !storefront.storeOpen)) {
       return;
     }
 
@@ -854,7 +1092,7 @@ export function PublicHeader() {
       }, 350);
     }, 3800);
     return () => { clearInterval(cycle); clearTimeout(fadeTimer); };
-  }, [storefront, announcements.length]);
+  }, [reducedMotion, storefront, announcements.length]);
 
   useEffect(() => {
     let active = true;
@@ -904,10 +1142,16 @@ export function PublicHeader() {
       .then((profile) => {
         if (!active) return;
         const profileName = cleanAccountName(profile?.name);
-        setAccountProfile(profileName ? { userId, name: profileName } : null);
+        setAccountProfile({
+          userId,
+          status: "resolved",
+          name: profileName || null,
+        });
       })
       .catch(() => {
-        if (active) setAccountProfile(null);
+        if (active) {
+          setAccountProfile({ userId, status: "resolved", name: null });
+        }
       });
 
     return () => {
@@ -931,6 +1175,16 @@ export function PublicHeader() {
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
+  }, [isMobileMenuOpen]);
+
+  // Return focus to the hamburger button when the mobile menu closes (Escape,
+  // backdrop click, or a nav link inside it) — it moves focus into the panel
+  // on open via MobileMenu's own effect, so this completes the round trip.
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const wasMobileMenuOpen = useRef(false);
+  useEffect(() => {
+    if (wasMobileMenuOpen.current && !isMobileMenuOpen) hamburgerRef.current?.focus();
+    wasMobileMenuOpen.current = isMobileMenuOpen;
   }, [isMobileMenuOpen]);
 
   const handleCartToggle = () => {
@@ -1058,7 +1312,7 @@ export function PublicHeader() {
             </nav>
 
             {/* Right actions */}
-            <div className="relative flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+            <div ref={actionsRef} className="relative flex shrink-0 items-center gap-0.5 sm:gap-1.5">
               {/* Language toggle */}
               <button
                 type="button"
@@ -1136,9 +1390,13 @@ export function PublicHeader() {
                   )}
                   aria-label={t({ en: "Account", ar: "الحساب" })}
                   aria-expanded={isUserMenuOpen ? "true" : "false"}
+                  aria-busy={isLoggedIn && accountState.status === "resolving" ? "true" : undefined}
                 >
                   {isLoggedIn ? (
-                    <>
+                    accountState.status === "resolving" ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-[#D6A373]" />
+                    ) : (
+                      <>
                       <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#D6A373]/35 bg-[#D6A373]/18 text-[10px] font-bold leading-none text-[#FFE3CA]">
                         {headerAvatarText}
                         <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#120D09] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]" />
@@ -1146,14 +1404,16 @@ export function PublicHeader() {
                       <span className="max-w-[6.5rem] truncate text-xs font-semibold normal-case tracking-normal text-[#F5E6D8]">
                         {headerAccountLabel}
                       </span>
-                    </>
+                      </>
+                    )
                   ) : (
                     <User />
                   )}
                 </button>
                 {isUserMenuOpen && (
                   <UserMenu
-                    profileName={accountProfileName}
+                    account={accountState}
+                    signOut={signOut}
                     onClose={() => setIsUserMenuOpen(false)}
                   />
                 )}
@@ -1170,6 +1430,7 @@ export function PublicHeader() {
               {/* Mobile hamburger — wrapper ensures display:none on md+ regardless of header-icon-button specificity */}
               <div className="md:hidden">
                 <button
+                  ref={hamburgerRef}
                   type="button"
                   onClick={() => { closeAll(); setIsMobileMenuOpen((v) => !v); }}
                   className="header-icon-button"
@@ -1196,7 +1457,8 @@ export function PublicHeader() {
       {/* Mobile menu — rendered outside header to cover full viewport */}
       {isMobileMenuOpen && (
         <MobileMenu
-          profileName={accountProfileName}
+          account={accountState}
+          signOut={signOut}
           onClose={() => setIsMobileMenuOpen(false)}
         />
       )}

@@ -92,10 +92,11 @@ export default function SignupPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="signup-name" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Full name", ar: "الاسم الكامل" })}
           </label>
           <input
+            id="signup-name"
             type="text"
             required
             value={name}
@@ -106,10 +107,11 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="signup-email" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Email address", ar: "البريد الإلكتروني" })}
           </label>
           <input
+            id="signup-email"
             type="email"
             required
             dir="ltr"
@@ -121,11 +123,12 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="signup-password" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Password", ar: "كلمة المرور" })}
           </label>
           <div className="relative">
             <input
+              id="signup-password"
               type={showPass ? "text" : "password"}
               required
               dir="ltr"
@@ -138,7 +141,7 @@ export default function SignupPage() {
               type="button"
               onClick={() => setShowPass((v) => !v)}
               className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
-              aria-label="Toggle password visibility"
+              aria-label={showPass ? t({ en: "Hide password", ar: "إخفاء كلمة المرور" }) : t({ en: "Show password", ar: "إظهار كلمة المرور" })}
             >
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -151,11 +154,12 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="signup-confirm" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Confirm password", ar: "تأكيد كلمة المرور" })}
           </label>
           <div className="relative">
             <input
+              id="signup-confirm"
               type={showConfirm ? "text" : "password"}
               required
               dir="ltr"
@@ -168,7 +172,7 @@ export default function SignupPage() {
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
               className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
-              aria-label="Toggle confirm password visibility"
+              aria-label={showConfirm ? t({ en: "Hide confirm password", ar: "إخفاء تأكيد كلمة المرور" }) : t({ en: "Show confirm password", ar: "إظهار تأكيد كلمة المرور" })}
             >
               {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>

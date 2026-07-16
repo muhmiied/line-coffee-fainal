@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
+import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
 import { heroSlides, heroStats } from "@/lib/mock-data/visual-content";
 import { cn } from "@/lib/utils/cn";
 
@@ -24,25 +25,35 @@ const heroStatDetails = [
     },
   },
   {
-    title: { en: "Fresh Roast", ar: "تحميص طازج" },
+    title: { en: "Custom Builders", ar: "أدوات تخصيص" },
     description: {
-      en: "Packed close to roasting for warmer aroma.",
-      ar: "تعبئة قريبة من التحميص لرائحة أدفأ.",
+      en: "Blend your own espresso or flavor, exactly your way.",
+      ar: "صمّم إسبريسو أو نكهتك الخاصة، على ذوقك تماماً.",
     },
   },
   {
-    title: { en: "Arabica", ar: "أرابيكا" },
+    title: { en: "Categories", ar: "أنماط" },
     description: {
-      en: "Smooth body with a clean, balanced finish.",
-      ar: "قوام ناعم ونهاية نظيفة ومتوازنة.",
+      en: "From Turkish tradition to modern flavor coffee.",
+      ar: "من تقاليد القهوة التركية إلى قهوة النكهات العصرية.",
     },
   },
 ];
 
-function useCountUp() {
-  const [values, setValues] = useState(statTargets.map(() => "0"));
+function useCountUp(reducedMotion: boolean) {
+  const finalValues = statTargets.map(({ num, suffix }) => `${num}${suffix}`);
+  const [values, setValues] = useState(() => (reducedMotion ? finalValues : statTargets.map(() => "0")));
 
   useEffect(() => {
+    if (reducedMotion) {
+      // Reduced-motion preference is itself only known client-side (see
+      // usePrefersReducedMotion), so re-syncing the already-final values here
+      // mirrors that same necessary effect-time sync.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValues(finalValues);
+      return;
+    }
+
     const totalFrames = 36;
     const frameDuration = 1200 / totalFrames;
     let frame = 0;
@@ -54,12 +65,13 @@ function useCountUp() {
       setValues(statTargets.map(({ num, suffix }) => `${Math.round(num * eased)}${suffix}`));
       if (frame >= totalFrames) {
         clearInterval(id);
-        setValues(statTargets.map(({ num, suffix }) => `${num}${suffix}`));
+        setValues(finalValues);
       }
     }, frameDuration);
 
     return () => clearInterval(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reducedMotion]);
 
   return values;
 }
@@ -85,8 +97,9 @@ function NumericText({ value }: { value: string }) {
 
 export function HeroSection() {
   const { dir, t } = useLanguage();
+  const reducedMotion = usePrefersReducedMotion();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const displayValues = useCountUp();
+  const displayValues = useCountUp(reducedMotion);
 
   const slide = heroSlides[currentSlide] ?? heroSlides[0];
 
@@ -95,12 +108,15 @@ export function HeroSection() {
   const goPrev = () => goTo(currentSlide - 1);
   const goNext = () => goTo(currentSlide + 1);
 
+  // Auto-rotation is a nonessential motion effect; reduced-motion users still
+  // get the full slide set via the always-visible prev/next arrows and dots.
   useEffect(() => {
+    if (reducedMotion) return;
     const timer = window.setInterval(() => {
       setCurrentSlide((i) => (i + 1) % heroSlides.length);
     }, 5600);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <>

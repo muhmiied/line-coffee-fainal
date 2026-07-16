@@ -19,20 +19,20 @@ const INTRO = {
 };
 
 const PHILOSOPHY = {
-  eyebrow: { en: "Roasting Philosophy", ar: "فلسفة التحميص" },
-  heading: { en: "Slow Roast. Full Attention.", ar: "تحميص بطيء. انتباه كامل." },
+  eyebrow: { en: "Sourcing Philosophy", ar: "فلسفة الاختيار" },
+  heading: { en: "Careful Sourcing. Full Attention.", ar: "اختيار عناية. انتباه كامل." },
   body: {
-    en: "We don't rush the roast. Every profile is built around the bean — not a trend, not a shortcut. Our roasting window is 72 hours or less from sale. Freshness isn't a feature. It's a commitment.",
-    ar: "لا نتعجل التحميص. كل بروفايل مبني حول الحبة نفسها — لا حول صيحة ولا اختصار. نافذة تحميصنا 72 ساعة أو أقل من البيع. الطازجية ليست ميزة. إنها التزام.",
+    en: "Every profile is built around the bean — not a trend, not a shortcut. We hand-pick each batch and package it with care. Freshness isn't a feature. It's a commitment.",
+    ar: "كل بروفايل مبني حول الحبة نفسها — لا حول صيحة ولا اختصار. نختار كل دفعة بعناية ونعبئها بحرص. الطازجية ليست ميزة. إنها التزام.",
   },
   pillars: [
     {
-      label: { en: "Single-origin sourcing", ar: "مناشئ مفردة" },
-      value: { en: "Arabica only, traceable farms", ar: "أرابيكا فقط، مزارع محددة" },
+      label: { en: "Bean sourcing", ar: "اختيار الحبوب" },
+      value: { en: "Hand-picked Arabica and Robusta, traceable origins", ar: "أرابيكا وروبوستا مختارة بعناية، من مناشئ معروفة" },
     },
     {
-      label: { en: "Roast window", ar: "نافذة التحميص" },
-      value: { en: "72 h from roast to sale", ar: "72 ساعة من التحميص للبيع" },
+      label: { en: "Quality control", ar: "ضبط الجودة" },
+      value: { en: "Every batch checked before it's packed", ar: "فحص كل دفعة قبل التعبئة" },
     },
     {
       label: { en: "Blend control", ar: "ضبط الخلطة" },

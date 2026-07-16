@@ -73,8 +73,8 @@ const sections: LegalSection[] = [
     },
     paragraphs: [
       {
-        en: "All Line Coffee products are roasted within 72 hours of shipping. We package using one-way valve bags to preserve freshness during transit. If your order arrives in unsatisfactory condition, please contact us within 24 hours of receipt.",
-        ar: "يتم تحميص جميع منتجات لاين كوفي خلال 72 ساعة من الشحن. نستخدم أكياساً ذات صمام أحادي الاتجاه للحفاظ على الطزاجة أثناء النقل. إذا وصل طلبك في حالة غير مرضية، يرجى التواصل معنا خلال 24 ساعة من الاستلام.",
+        en: "Every order is hand-packed from freshly-checked stock and sealed in one-way valve bags to preserve freshness during transit. If your order arrives in unsatisfactory condition, please contact us within 24 hours of receipt.",
+        ar: "يتم تعبئة كل طلب يدوياً من مخزون تم فحصه حديثاً، ويُغلَق في أكياس ذات صمام أحادي الاتجاه للحفاظ على الطزاجة أثناء النقل. إذا وصل طلبك في حالة غير مرضية، يرجى التواصل معنا خلال 24 ساعة من الاستلام.",
       },
     ],
   },
@@ -89,7 +89,7 @@ export default function ShippingPage() {
         en: "Delivery areas, times, fees, and our freshness guarantee.",
         ar: "مناطق التوصيل والأوقات والرسوم وضمان الطزاجة.",
       }}
-      lastUpdated="2026-07-13"
+      lastUpdated="2026-07-15"
       sections={sections}
     />
   );

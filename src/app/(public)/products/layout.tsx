@@ -9,7 +9,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = pageMetadata({
   title: "Coffee Products",
   description:
-    "Browse the full Line Coffee range — Turkish blends, espresso blends, easy coffee, flavored coffee, coffee mix, cappuccino and hot chocolate. Freshly roasted specialty coffee delivered across Egypt.",
+    "Browse the full Line Coffee range — Turkish blends, espresso blends, easy coffee, flavored coffee, coffee mix, cappuccino and hot chocolate. Carefully sourced specialty coffee delivered across Egypt.",
   path: "/products",
 });
 

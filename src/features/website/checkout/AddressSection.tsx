@@ -208,6 +208,7 @@ export function AddressSection({
               onChange={(v) => update("governorate", v)}
               options={govOptions}
               placeholder={t({ en: "Select your governorate", ar: "اختر المحافظة" })}
+              label={t({ en: "Governorate", ar: "المحافظة" })}
               dir={dir}
             />
             {errors.governorate && <p className={errorClass}>{errors.governorate}</p>}
@@ -225,6 +226,7 @@ export function AddressSection({
                   : t({ en: "Select a governorate first", ar: "اختر المحافظة أولاً" })
               }
               disabled={!form.governorate}
+              label={t({ en: "Area / District", ar: "المنطقة / الحي" })}
               dir={dir}
             />
             {errors.area && <p className={errorClass}>{errors.area}</p>}

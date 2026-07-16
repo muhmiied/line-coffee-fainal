@@ -33,16 +33,22 @@ function setSessionPresenceCookie(present: boolean) {
 function mapUser(user: User | null): AuthUser | null {
   if (!user?.email) return null;
 
-  const metadataName =
-    typeof user.user_metadata?.name === "string"
-      ? user.user_metadata.name
-      : typeof user.user_metadata?.full_name === "string"
-        ? user.user_metadata.full_name
-        : "";
+  const metadata = user.user_metadata ?? {};
+  const firstAndLastName = [metadata.first_name, metadata.last_name]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+  const metadataName = [
+    metadata.full_name,
+    metadata.name,
+    firstAndLastName,
+    metadata.display_name,
+  ].find((value): value is string => typeof value === "string" && Boolean(value.trim()));
 
   return {
     id: user.id,
-    name: metadataName.trim() || user.email,
+    name: metadataName?.trim() || user.email,
     email: user.email,
   };
 }

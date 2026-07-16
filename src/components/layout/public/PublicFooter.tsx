@@ -138,8 +138,8 @@ export function PublicFooter() {
 
               <p className="mb-7 max-w-sm text-sm leading-relaxed text-[#B79B85]/75">
                 {t({
-                  en: "Freshly roasted coffee crafted for warm daily rituals, from Turkish blends to espresso and flavored favorites.",
-                  ar: "قهوة طازجة التحميص لطقوس يومية دافئة، من خلطات تركي إلى الإسبريسو والنكهات المميزة.",
+                  en: "Carefully sourced coffee crafted for warm daily rituals, from Turkish blends to espresso and flavored favorites.",
+                  ar: "قهوة مختارة بعناية لطقوس يومية دافئة، من خلطات تركي إلى الإسبريسو والنكهات المميزة.",
                 })}
               </p>
 

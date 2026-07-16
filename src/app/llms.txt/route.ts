@@ -29,15 +29,18 @@ export function GET(): Response {
     `# ${SITE_NAME} (${SITE_NAME_AR})`,
     "",
     `> ${SITE_NAME} is a premium Egyptian specialty coffee brand, family-run since ${FOUNDING_YEAR}. ` +
-      "We roast and sell coffee across Egypt — Turkish blends, espresso blends, easy coffee, flavored coffee, " +
+      "We source and sell coffee across Egypt — Turkish blends, espresso blends, easy coffee, flavored coffee, " +
       "coffee mix, cappuccino and hot chocolate — plus build-your-own custom coffee through Make Your Espresso " +
       "and Make Your Flavor.",
     "",
     "## About",
     `- Brand: ${SITE_NAME} (Arabic: ${SITE_NAME_AR})`,
     `- Type: premium boutique / specialty coffee, family brand since ${FOUNDING_YEAR}`,
-    "- Region served: Egypt (nationwide delivery)",
-    "- Freshness: coffee is roasted fresh (within roughly 72 hours of shipment)",
+    "- Region served: all Egyptian governorates. Cairo and Giza orders are delivered by Line Coffee's own " +
+      "delivery zones (fee shown at checkout); other governorates are handed to a courier partner whose fee " +
+      "is collected separately, on delivery.",
+    "- Sourcing: beans are hand-picked and blended (including single-origin Arabica and Robusta beans) for " +
+      "each house blend; custom blends are built to order through Make Your Espresso.",
     "",
     "## Product categories",
     ...categoryLines,

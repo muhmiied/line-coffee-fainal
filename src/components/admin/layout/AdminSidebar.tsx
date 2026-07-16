@@ -147,8 +147,6 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
         <div className="px-3 pb-2.5 flex-shrink-0">
           <Link
             href="/"
-            target="_blank"
-            rel="noopener noreferrer"
             className="admin-card flex items-center gap-3 rounded-2xl p-2.5"
           >
             <span

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,7 +21,7 @@ export function FieldLabel({ label, required }: { label: string; required?: bool
 }
 
 export function CustomSelect({
-  value, onChange, options, placeholder, disabled, dir,
+  value, onChange, options, placeholder, disabled, dir, label,
 }: {
   value:       string;
   onChange:    (v: string) => void;
@@ -29,9 +29,13 @@ export function CustomSelect({
   placeholder: string;
   disabled?:   boolean;
   dir:         string;
+  /** Accessible name for the listbox trigger (e.g. the field's own label text). */
+  label?:      string;
 }) {
   const [open, setOpen] = useState(false);
-  const ref             = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const ref    = useRef<HTMLDivElement>(null);
+  const listId = useId();
 
   useEffect(() => {
     function close(e: MouseEvent) {
@@ -42,13 +46,60 @@ export function CustomSelect({
   }, [open]);
 
   const selected = options.find((o) => o.value === value);
+  const selectedIndex = options.findIndex((o) => o.value === value);
+
+  const openAt = (index: number) => {
+    setOpen(true);
+    setActiveIndex(index >= 0 ? index : Math.max(0, selectedIndex));
+  };
+
+  const commit = (index: number) => {
+    const opt = options[index];
+    if (!opt) return;
+    onChange(opt.value);
+    setOpen(false);
+  };
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      openAt(selectedIndex);
+      return;
+    }
+    if (!open) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(options.length - 1, (i < 0 ? selectedIndex : i) + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(0, (i < 0 ? selectedIndex : i) - 1));
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      commit(activeIndex);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIndex(options.length - 1);
+    }
+  };
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open ? "true" : "false"}
+        aria-controls={listId}
+        aria-label={label}
+        onClick={() => !disabled && (open ? setOpen(false) : openAt(selectedIndex))}
+        onKeyDown={handleTriggerKeyDown}
         className={cn(
           inputClass,
           "flex items-center justify-between gap-2",
@@ -69,6 +120,9 @@ export function CustomSelect({
 
       {open && !disabled && (
         <div
+          id={listId}
+          role="listbox"
+          aria-label={label}
           style={{
             position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 60,
             background: "linear-gradient(135deg,#130E09 0%,#0F0A06 100%)",
@@ -77,18 +131,22 @@ export function CustomSelect({
             boxShadow: "0 16px 48px rgba(0,0,0,0.72), 0 0 0 1px rgba(182,136,94,0.10), 0 0 26px rgba(182,136,94,0.14)",
           }}
         >
-          {options.map((opt) => {
+          {options.map((opt, index) => {
             const isSel = opt.value === value;
+            const isActive = index === activeIndex;
             return (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => { onChange(opt.value); setOpen(false); }}
+                role="option"
+                aria-selected={isSel ? "true" : "false"}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => commit(index)}
                 className="w-full px-4 py-2.5 text-start transition-colors hover:bg-[#D6A373]/[0.08]"
                 style={{
                   fontSize: 13,
                   color:      isSel ? "var(--gold)"              : "var(--cream)",
-                  background: isSel ? "rgba(182,136,94,0.14)"    : "transparent",
+                  background: isActive ? "rgba(182,136,94,0.14)" : isSel ? "rgba(182,136,94,0.08)" : "transparent",
                   fontWeight: isSel ? 600                        : 400,
                   borderLeft:  isSel && dir === "ltr" ? "2px solid var(--gold)" : "none",
                   borderRight: isSel && dir === "rtl" ? "2px solid var(--gold)" : "none",

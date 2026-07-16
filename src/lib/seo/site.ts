@@ -35,7 +35,7 @@ export const DEFAULT_TITLE = "Line Coffee — Premium Egyptian Specialty Coffee"
 export const DEFAULT_DESCRIPTION =
   "Line Coffee is a premium Egyptian specialty coffee brand, family-run since 2015. " +
   "Shop Turkish blends, espresso blends, easy coffee, flavored coffee, coffee mix, cappuccino and hot chocolate, " +
-  "or build your own with Make Your Espresso and Make Your Flavor. Freshly roasted and delivered across Egypt.";
+  "or build your own with Make Your Espresso and Make Your Flavor. Carefully sourced and delivered across Egypt.";
 
 export const SITE_KEYWORDS = [
   "Line Coffee",
@@ -90,4 +90,22 @@ export function seoText(value: string | null | undefined, max = 160): string {
   const normalized = (value ?? "").replace(/\s+/g, " ").trim();
   if (normalized.length <= max) return normalized;
   return `${normalized.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
+ * Normalize a phone number to bare E.164 digits (no leading "+"), the same
+ * way src/lib/admin/admin-settings.ts's toInternationalPhoneDigits() does —
+ * duplicated here (rather than imported from that "use client" module) so
+ * this server-only SEO code has no dependency on the browser Supabase
+ * client. Egyptian local mobiles (01XXXXXXXXX) become 20XXXXXXXXXX; numbers
+ * already carrying the 20 country code pass through unchanged.
+ */
+export function toInternationalPhoneDigits(value: string): string | null {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+
+  if (/^01\d{9}$/.test(digits)) return `20${digits.slice(1)}`;
+  if (/^201\d{9}$/.test(digits)) return digits;
+
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
 }

@@ -18,6 +18,7 @@ import { useWishlist } from "@/lib/hooks/useWishlist";
 import type { PublicCatalogCategory, PublicCatalogProduct } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 import { MixedNumeric } from "@/components/shared/MixedNumeric";
+import { ProductCard } from "@/components/product/ProductCard";
 
 type WeightLabel = "250g" | "500g" | "1kg";
 
@@ -171,6 +172,7 @@ function ProductGallery({
   activeIndex: number;
   onActiveIndexChange: (index: number) => void;
 }) {
+  const { t } = useLanguage();
   const activeImage = images[activeIndex] ?? images[0] ?? "/assets/products/classic-pouch.png";
 
   return (
@@ -196,7 +198,9 @@ function ProductGallery({
             key={image}
             type="button"
             onClick={() => onActiveIndexChange(index)}
-            aria-label={`${productName} gallery image ${index + 1}`}
+            aria-label={t(
+              { en: `${productName} gallery image ${index + 1}`, ar: `صورة ${index + 1} من معرض ${productName}` },
+            )}
             className={cn(
               "relative aspect-square overflow-hidden rounded-xl border bg-[#120D09] transition-all",
               activeIndex === index
@@ -303,9 +307,10 @@ function QuantitySelector({
 export type ProductDetailClientProps = {
   product: PublicCatalogProduct;
   category?: PublicCatalogCategory;
+  relatedProducts?: PublicCatalogProduct[];
 };
 
-export default function ProductDetailClient({ product, category }: ProductDetailClientProps) {
+export default function ProductDetailClient({ product, category, relatedProducts = [] }: ProductDetailClientProps) {
   const { language, t } = useLanguage();
   const { addItem, openCart } = useCart();
   const { toggle: toggleWishlist, isWishlisted } = useWishlist();
@@ -403,12 +408,18 @@ export default function ProductDetailClient({ product, category }: ProductDetail
             </p>
 
             <div className="mt-6 rounded-2xl border border-[#B6885E]/14 bg-[#0B0806]/38 p-4">
-              <div className="mb-3 flex items-center justify-between gap-4">
+              <div className="mb-1 flex items-center justify-between gap-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D6A373]">
-                  {t({ en: "Taste Profile", ar: "بروفايل الطعم" })}
+                  {t({ en: "Estimated Taste Profile", ar: "ملف مذاق تقديري" })}
                 </p>
                 <Sparkles className="h-4 w-4 text-[#D6A373]/72" />
               </div>
+              <p className="mb-3 text-[11px] leading-5 text-[#D6B79A]/55">
+                {t({
+                  en: "A guide based on this blend's roast and origin — not a lab measurement.",
+                  ar: "دليل تقديري بناءً على تحميص هذه الخلطة ومنشئها — وليس قياساً معملياً.",
+                })}
+              </p>
               <div className="space-y-3">
                 {metrics.map((metric) => (
                   <MetricBar key={metric.label.en} metric={metric} />
@@ -511,6 +522,29 @@ export default function ProductDetailClient({ product, category }: ProductDetail
             </div>
           </aside>
         </section>
+
+        {relatedProducts.length > 0 && (
+          <section className="mt-14 sm:mt-16">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <h2 className="font-serif text-2xl font-bold text-[#F5E6D8]">
+                {t({ en: "You May Also Like", ar: "قد يعجبك أيضاً" })}
+              </h2>
+              {category && (
+                <Link
+                  href={`/products?category=${category.slug}`}
+                  className="shrink-0 text-xs font-semibold text-[#B6885E]/80 transition-colors hover:text-[#D6A373]"
+                >
+                  {t({ en: "View all →", ar: "← عرض الكل" })}
+                </Link>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {relatedProducts.map((related) => (
+                <ProductCard key={related.slug} product={related} />
+              ))}
+            </div>
+          </section>
+        )}
 
       </main>
     </div>

@@ -7,7 +7,7 @@ import { JsonLd, aboutPageJsonLd } from "@/lib/seo/jsonld";
 export const metadata: Metadata = pageMetadata({
   title: "About Line Coffee",
   description:
-    "Line Coffee is a family-run Egyptian specialty coffee brand, roasting with intention since 2015. Learn our story, our slow-roast philosophy, and our commitment to freshness.",
+    "Line Coffee is a family-run Egyptian specialty coffee brand, crafting blends with intention since 2015. Learn our story, our sourcing philosophy, and our commitment to freshness.",
   path: "/about",
 });
 

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import localFont from "next/font/local";
 import { Cairo, Tajawal } from "next/font/google";
-import { PublicFooter } from "@/components/layout/public/PublicFooter";
-import { PublicHeader } from "@/components/layout/public/PublicHeader";
 import { LanguageProvider, type Language } from "@/lib/context/language";
 import { CartProvider } from "@/lib/context/cart";
 import {
@@ -15,7 +13,8 @@ import {
   SITE_NAME,
   SITE_URL,
 } from "@/lib/seo/site";
-import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
+import { JsonLd, localBusinessJsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
+import { getSeoBusinessInfo } from "@/lib/seo/data";
 import "./globals.css";
 
 const playfairDisplay = localFont({
@@ -155,6 +154,7 @@ export default async function RootLayout({
   const cookieLanguage = cookieStore.get(LANGUAGE_COOKIE_NAME)?.value;
   const initialLanguage: Language = isLanguage(cookieLanguage) ? cookieLanguage : "en";
   const initialDir = initialLanguage === "ar" ? "rtl" : "ltr";
+  const businessInfo = await getSeoBusinessInfo();
 
   return (
     <html
@@ -164,15 +164,9 @@ export default async function RootLayout({
       className={`${playfairDisplay.variable} ${cairo.variable} ${tajawal.variable} ${aligarh.variable}`}
     >
       <body>
-        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd(), localBusinessJsonLd(businessInfo)]} />
         <LanguageProvider initialLanguage={initialLanguage}>
-          <CartProvider>
-            <PublicHeader />
-            <main className="flex-1 w-full pt-[6.4rem] sm:pt-[7.2rem] md:pt-[7.9rem]">
-              {children}
-            </main>
-            <PublicFooter />
-          </CartProvider>
+          <CartProvider>{children}</CartProvider>
         </LanguageProvider>
       </body>
     </html>

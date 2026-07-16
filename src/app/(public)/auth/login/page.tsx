@@ -76,10 +76,11 @@ export default function LoginPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="login-email" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Email address", ar: "البريد الإلكتروني" })}
           </label>
           <input
+            id="login-email"
             type="email"
             required
             dir="ltr"
@@ -91,11 +92,12 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="login-password" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Password", ar: "كلمة المرور" })}
           </label>
           <div className="relative">
             <input
+              id="login-password"
               type={showPass ? "text" : "password"}
               required
               dir="ltr"
@@ -108,7 +110,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setShowPass((v) => !v)}
               className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
-              aria-label={showPass ? "Hide password" : "Show password"}
+              aria-label={showPass ? t({ en: "Hide password", ar: "إخفاء كلمة المرور" }) : t({ en: "Show password", ar: "إظهار كلمة المرور" })}
             >
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>

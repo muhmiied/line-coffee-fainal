@@ -16,7 +16,7 @@ type LayoutProps = {
 function categoryDescription(category: SeoCategory): string {
   const base = seoText(category.description, 160);
   if (base) return base;
-  return `Shop ${category.name} from Line Coffee — premium Egyptian specialty coffee, freshly roasted and delivered across Egypt.`;
+  return `Shop ${category.name} from Line Coffee — premium Egyptian specialty coffee, carefully sourced and delivered across Egypt.`;
 }
 
 export async function generateMetadata({

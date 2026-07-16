@@ -358,8 +358,8 @@ function OrderSuccessContent() {
             </p>
             <p className="mt-2 text-sm text-[#D6B79A]/80">
               {t({
-                en: "Roasted within 72 hours of your order. Your coffee arrives at its most expressive.",
-                ar: "محمصة خلال 72 ساعة من طلبك. تصل قهوتك في أعلى مستويات نضارتها.",
+                en: "Hand-packed and sealed with care. Your coffee arrives at its most expressive.",
+                ar: "مُعبأة ومُغلقة بعناية يدوياً. تصل قهوتك في أعلى مستويات نضارتها.",
               })}
             </p>
           </div>

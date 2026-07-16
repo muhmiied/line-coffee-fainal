@@ -17,7 +17,7 @@ type LayoutProps = {
 function productDescription(product: SeoProduct): string {
   const base = seoText(product.description, 160);
   if (base) return base;
-  return `${product.name} — premium ${product.categoryName || "coffee"} from Line Coffee, freshly roasted and delivered across Egypt.`;
+  return `${product.name} — premium ${product.categoryName || "coffee"} from Line Coffee, carefully sourced and delivered across Egypt.`;
 }
 
 export async function generateMetadata({

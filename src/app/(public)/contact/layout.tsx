@@ -2,7 +2,8 @@
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
-import { JsonLd, contactPageJsonLd } from "@/lib/seo/jsonld";
+import { JsonLd, contactPageJsonLd, faqJsonLd } from "@/lib/seo/jsonld";
+import { CONTACT_FAQ_ITEMS } from "@/lib/content/contact-faq";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact Line Coffee",
@@ -11,10 +12,19 @@ export const metadata: Metadata = pageMetadata({
   path: "/contact",
 });
 
+// FAQPage schema is built from the exact same CONTACT_FAQ_ITEMS the client
+// page renders (English strings — the visible page is bilingual via the
+// cookie-driven language toggle, but structured data needs one fixed
+// language), so it can never list a question that isn't actually on the page.
 export default function ContactSeoLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <JsonLd data={contactPageJsonLd()} />
+      <JsonLd
+        data={[
+          contactPageJsonLd(),
+          faqJsonLd(CONTACT_FAQ_ITEMS.map((item) => ({ question: item.question.en, answer: item.answer.en }))),
+        ]}
+      />
       {children}
     </>
   );

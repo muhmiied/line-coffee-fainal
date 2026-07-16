@@ -352,11 +352,11 @@ export default function AdminTopBar({
                   <span className="flex-1">{t("Settings")}</span>
                 </Link>
 
-                {/* Website Preview */}
+                {/* Website Preview — same tab, same session, matching the
+                    sidebar's "View Store" link (no duplicate-tab navigation
+                    away from the admin session). */}
                 <Link
                   href="/"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   onClick={() => setProfileOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12.5px] admin-muted transition-colors hover:bg-[rgb(227_210_184_/_0.05)] hover:text-[var(--admin-white-coffee)]"
                 >

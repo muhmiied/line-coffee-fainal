@@ -156,11 +156,12 @@ export default function ResetPasswordPage() {
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* New password */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="reset-password" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "New password", ar: "كلمة المرور الجديدة" })}
           </label>
           <div className="relative">
             <input
+              id="reset-password"
               type={showPass ? "text" : "password"}
               required
               dir="ltr"
@@ -173,7 +174,7 @@ export default function ResetPasswordPage() {
               type="button"
               onClick={() => setShowPass((v) => !v)}
               className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
-              aria-label="Toggle visibility"
+              aria-label={showPass ? t({ en: "Hide password", ar: "إخفاء كلمة المرور" }) : t({ en: "Show password", ar: "إظهار كلمة المرور" })}
             >
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -187,11 +188,12 @@ export default function ResetPasswordPage() {
 
         {/* Confirm */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
+          <label htmlFor="reset-confirm" className="mb-1.5 block text-xs font-medium text-[#D6B79A]/80">
             {t({ en: "Confirm new password", ar: "تأكيد كلمة المرور" })}
           </label>
           <div className="relative">
             <input
+              id="reset-confirm"
               type={showConf ? "text" : "password"}
               required
               dir="ltr"
@@ -204,7 +206,7 @@ export default function ResetPasswordPage() {
               type="button"
               onClick={() => setShowConf((v) => !v)}
               className={`absolute top-1/2 -translate-y-1/2 text-[#B79B85]/70 hover:text-[#B6885E] ${isRtl ? "left-3" : "right-3"}`}
-              aria-label="Toggle visibility"
+              aria-label={showConf ? t({ en: "Hide confirm password", ar: "إخفاء تأكيد كلمة المرور" }) : t({ en: "Show confirm password", ar: "إظهار تأكيد كلمة المرور" })}
             >
               {showConf ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>

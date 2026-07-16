@@ -78,6 +78,10 @@ export type SeoProduct = {
   image: string;
   price: number | null;
   currency: string;
+  /** Derived from the real inventory_stock ledger — never a raw quantity. */
+  isAvailable: boolean;
+  /** ISO timestamp; always present (falls back to created_at in the view). */
+  updatedAt: string;
 };
 
 type SeoProductRow = {
@@ -93,6 +97,8 @@ type SeoProductRow = {
   notes_ar: string | null;
   category_slug: string | null;
   image_url: string | null;
+  is_available: boolean | null;
+  updated_at: string | null;
 };
 
 export const getSeoProduct = cache(async (slug: string): Promise<SeoProduct | null> => {
@@ -103,7 +109,7 @@ export const getSeoProduct = cache(async (slug: string): Promise<SeoProduct | nu
     const { data, error } = await client
       .from("public_products")
       .select(
-        "id, slug, name_en, name_ar, subtitle_en, subtitle_ar, description_en, description_ar, notes_en, notes_ar, category_slug, image_url",
+        "id, slug, name_en, name_ar, subtitle_en, subtitle_ar, description_en, description_ar, notes_en, notes_ar, category_slug, image_url, is_available, updated_at",
       )
       .eq("slug", slug)
       .maybeSingle();
@@ -142,22 +148,30 @@ export const getSeoProduct = cache(async (slug: string): Promise<SeoProduct | nu
       image: pickString(row.image_url, DEFAULT_OG_IMAGE),
       price,
       currency: "EGP",
+      isAvailable: row.is_available !== false,
+      updatedAt: pickString(row.updated_at),
     };
   } catch {
     return null;
   }
 });
 
-export async function getSeoProductSlugs(): Promise<string[]> {
+export type SeoSitemapEntry = { slug: string; lastModified: string };
+
+/** Every public product's slug + real last-modified, for the sitemap. */
+export async function getSeoProductEntries(): Promise<SeoSitemapEntry[]> {
   const client = getClient();
   if (!client) return [];
 
   try {
-    const { data, error } = await client.from("public_products").select("slug");
+    const { data, error } = await client.from("public_products").select("slug, updated_at");
     if (error || !Array.isArray(data)) return [];
     return data
-      .map((row) => (row as { slug: string | null }).slug)
-      .filter((slug): slug is string => Boolean(slug));
+      .map((row) => {
+        const typed = row as { slug: string | null; updated_at: string | null };
+        return typed.slug ? { slug: typed.slug, lastModified: pickString(typed.updated_at) } : null;
+      })
+      .filter((entry): entry is SeoSitemapEntry => entry !== null);
   } catch {
     return [];
   }
@@ -183,6 +197,8 @@ type SeoCategoryRow = {
   description_ar: string | null;
   image_url: string | null;
 };
+
+type SeoCategoryEntryRow = { slug: string | null; updated_at: string | null };
 
 export const getSeoCategory = cache(async (slug: string): Promise<SeoCategory | null> => {
   const fallbackName = categoryNameForSlug(slug);
@@ -216,19 +232,21 @@ export const getSeoCategory = cache(async (slug: string): Promise<SeoCategory | 
   }
 });
 
-export async function getSeoCategorySlugs(): Promise<string[]> {
+/** Every public category's slug + real last-modified, for the sitemap. */
+export async function getSeoCategoryEntries(): Promise<SeoSitemapEntry[]> {
   const client = getClient();
-  if (!client) return [...SITE_CATEGORY_SLUGS];
+  const fallback = SITE_CATEGORY_SLUGS.map((slug) => ({ slug, lastModified: "" }));
+  if (!client) return fallback;
 
   try {
-    const { data, error } = await client.from("public_categories").select("slug");
-    if (error || !Array.isArray(data)) return [...SITE_CATEGORY_SLUGS];
-    const slugs = data
-      .map((row) => (row as { slug: string | null }).slug)
-      .filter((slug): slug is string => Boolean(slug));
-    return slugs.length > 0 ? slugs : [...SITE_CATEGORY_SLUGS];
+    const { data, error } = await client.from("public_categories").select("slug, updated_at");
+    if (error || !Array.isArray(data)) return fallback;
+    const entries = (data as SeoCategoryEntryRow[])
+      .map((row) => (row.slug ? { slug: row.slug, lastModified: pickString(row.updated_at) } : null))
+      .filter((entry): entry is SeoSitemapEntry => entry !== null);
+    return entries.length > 0 ? entries : fallback;
   } catch {
-    return [...SITE_CATEGORY_SLUGS];
+    return fallback;
   }
 }
 
@@ -321,3 +339,70 @@ export async function getSeoBlogEntries(): Promise<Array<{ slug: string; lastMod
     return [];
   }
 }
+
+// ---------------------------------------------------------------------------
+// Business / contact info (for LocalBusiness JSON-LD)
+// ---------------------------------------------------------------------------
+//
+// Mirrors the exact same public-scoped read as getPublicSettings() in
+// src/lib/admin/admin-settings.ts (scope='public' AND is_public=true — RLS
+// still enforces this server-side, this is defense in depth), but through
+// this module's own server-safe anon client since admin-settings.ts is a
+// "use client" module bound to the browser Supabase client. Only the launch-
+// safe brand/contact/social_links rows are read; no admin-only key is ever
+// requested. Every field defaults to "" so a builder can omit it cleanly
+// rather than emit a blank/placeholder JSON-LD property.
+
+export type SeoBusinessInfo = {
+  storeName: string;
+  supportPhone: string;
+  whatsappNumber: string;
+  supportEmail: string;
+  businessAddress: string;
+  social: { facebook: string; instagram: string; tiktok: string; youtube: string };
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export const getSeoBusinessInfo = cache(async (): Promise<SeoBusinessInfo | null> => {
+  const client = getClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from("site_settings")
+      .select("key, value")
+      .eq("scope", "public")
+      .eq("is_public", true)
+      .in("key", ["brand", "contact", "social_links"]);
+
+    if (error || !Array.isArray(data)) return null;
+
+    const byKey = new Map<string, unknown>();
+    for (const row of data as Array<{ key: string; value: unknown }>) byKey.set(row.key, row.value);
+
+    const brand = asRecord(byKey.get("brand"));
+    const contact = asRecord(byKey.get("contact"));
+    const social = asRecord(byKey.get("social_links"));
+
+    return {
+      storeName: pickString(typeof brand.storeName === "string" ? brand.storeName : ""),
+      supportPhone: pickString(typeof contact.supportPhone === "string" ? contact.supportPhone : ""),
+      whatsappNumber: pickString(typeof contact.whatsappNumber === "string" ? contact.whatsappNumber : ""),
+      supportEmail: pickString(typeof contact.supportEmail === "string" ? contact.supportEmail : ""),
+      businessAddress: pickString(typeof contact.businessAddress === "string" ? contact.businessAddress : ""),
+      social: {
+        facebook: pickString(typeof social.facebook === "string" ? social.facebook : ""),
+        instagram: pickString(typeof social.instagram === "string" ? social.instagram : ""),
+        tiktok: pickString(typeof social.tiktok === "string" ? social.tiktok : ""),
+        youtube: pickString(typeof social.youtube === "string" ? social.youtube : ""),
+      },
+    };
+  } catch {
+    return null;
+  }
+});

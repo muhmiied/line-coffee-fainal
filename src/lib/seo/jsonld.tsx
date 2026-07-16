@@ -16,9 +16,10 @@ import {
   SITE_URL,
   SITE_WHATSAPP_PHONE,
   absoluteUrl,
+  toInternationalPhoneDigits,
 } from "@/lib/seo/site";
 import type { SeoBlogPost } from "@/lib/seo/data";
-import type { SeoCategory, SeoProduct } from "@/lib/seo/data";
+import type { SeoBusinessInfo, SeoCategory, SeoProduct } from "@/lib/seo/data";
 
 type JsonLdObject = Record<string, unknown>;
 
@@ -26,7 +27,7 @@ const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
 
 function telephone(): string | undefined {
-  const digits = SITE_WHATSAPP_PHONE.replace(/\D/g, "");
+  const digits = toInternationalPhoneDigits(SITE_WHATSAPP_PHONE);
   return digits ? `+${digits}` : undefined;
 }
 
@@ -103,7 +104,12 @@ export function productJsonLd(product: SeoProduct): JsonLdObject {
             "@type": "Offer",
             price: product.price,
             priceCurrency: product.currency,
-            availability: "https://schema.org/InStock",
+            // Derived from the real inventory_stock ledger (see
+            // public_products.is_available) — never hardcoded, so a
+            // genuinely out-of-stock product is never announced as InStock.
+            availability: product.isAvailable
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
             itemCondition: "https://schema.org/NewCondition",
             url,
             seller: { "@id": ORGANIZATION_ID },
@@ -196,6 +202,53 @@ export function aboutPageJsonLd(): JsonLdObject {
     url: absoluteUrl("/about"),
     isPartOf: { "@id": WEBSITE_ID },
     about: { "@id": ORGANIZATION_ID },
+  };
+}
+
+/**
+ * LocalBusiness (Store) — built only from real, admin-configured
+ * `site_settings` values (see getSeoBusinessInfo). No opening hours, geo
+ * coordinates, price range, or ratings are ever fabricated: those fields are
+ * simply omitted when the data doesn't exist. "Store" (not CafeOrCoffeeShop)
+ * because Line Coffee sells for delivery/pickup rather than operating a
+ * walk-in café — the roastery itself is appointment-only (see /contact FAQ).
+ */
+export function localBusinessJsonLd(info: SeoBusinessInfo | null): JsonLdObject {
+  const phoneDigits = toInternationalPhoneDigits(info?.whatsappNumber || info?.supportPhone || "");
+  const phone = phoneDigits ? `+${phoneDigits}` : undefined;
+  const address = info?.businessAddress?.trim();
+  const sameAs = [info?.social.facebook, info?.social.instagram, info?.social.tiktok, info?.social.youtube]
+    .map((url) => url?.trim())
+    .filter((url): url is string => Boolean(url) && /^https?:\/\//i.test(url as string));
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "@id": `${SITE_URL}/#localbusiness`,
+    name: info?.storeName || SITE_NAME,
+    url: SITE_URL,
+    image: absoluteUrl(DEFAULT_OG_IMAGE),
+    brand: { "@id": ORGANIZATION_ID },
+    ...(phone ? { telephone: phone } : {}),
+    ...(info?.supportEmail ? { email: info.supportEmail } : {}),
+    ...(address ? { address: { "@type": "PostalAddress", streetAddress: address, addressCountry: "EG" } } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  };
+}
+
+/**
+ * FAQPage — pass ONLY the questions/answers actually rendered on the calling
+ * page, in the same order, so the schema never diverges from visible content.
+ */
+export function faqJsonLd(items: Array<{ question: string; answer: string }>): JsonLdObject {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
   };
 }
 

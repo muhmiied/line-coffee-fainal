@@ -11,8 +11,8 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo/site";
 import {
   getSeoBlogEntries,
-  getSeoCategorySlugs,
-  getSeoProductSlugs,
+  getSeoCategoryEntries,
+  getSeoProductEntries,
 } from "@/lib/seo/data";
 
 export const revalidate = 3600;
@@ -23,14 +23,35 @@ function safeDate(value: string, fallback: Date): Date {
   return Number.isNaN(parsed.getTime()) ? fallback : parsed;
 }
 
+// Canonical-URL decision (documented, not just implemented):
+//   Real catalog categories are reachable at TWO URLs — the dedicated
+//   `/products/category/[slug]` route (its own generateMetadata +
+//   CollectionPage/Breadcrumb JSON-LD, self-canonicalizing) and
+//   `/products?category=slug` (the same `/products` route filtered
+//   client-side). `/products?category=...` never gets its own metadata —
+//   Next.js metadata/canonical is resolved per matched route, and a query
+//   string does not change which route matched, so every `?category=`
+//   variant inherits `products/layout.tsx`'s static canonical of `/products`
+//   itself. That means `/products/category/[slug]` is the indexable,
+//   canonical URL for a category, and `/products?category=slug` already
+//   correctly defers its canonical signal to `/products` — there is no
+//   duplicate-canonical conflict to fix in code. Only `/products/category/
+//   [slug]` URLs are listed below; the sitemap should only ever contain
+//   canonical URLs.
+//
+//   The two custom-builder "categories" (make-your-espresso / make-your-
+//   flavor) have no dedicated route at all — they only exist as a
+//   `/products?category=...` client-side view, so (by the same rule) their
+//   canonical is `/products`. They are intentionally NOT listed as separate
+//   sitemap entries (listing a non-canonical URL would contradict its own
+//   canonical tag); they remain discoverable via internal links from the
+//   homepage hero, About, and the `/products` sidebar.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${SITE_URL}/products`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${SITE_URL}/products?category=make-your-espresso`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/products?category=make-your-flavor`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
@@ -40,22 +61,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/returns`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  const [productSlugs, categorySlugs, blogEntries] = await Promise.all([
-    getSeoProductSlugs(),
-    getSeoCategorySlugs(),
+  const [productEntries, categoryEntries, blogEntries] = await Promise.all([
+    getSeoProductEntries(),
+    getSeoCategoryEntries(),
     getSeoBlogEntries(),
   ]);
 
-  const productEntries: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
-    url: `${SITE_URL}/products/${slug}`,
-    lastModified: now,
+  const productSitemapEntries: MetadataRoute.Sitemap = productEntries.map((entry) => ({
+    url: `${SITE_URL}/products/${entry.slug}`,
+    lastModified: safeDate(entry.lastModified, now),
     changeFrequency: "weekly",
     priority: 0.8,
   }));
 
-  const categoryEntries: MetadataRoute.Sitemap = categorySlugs.map((slug) => ({
-    url: `${SITE_URL}/products/category/${slug}`,
-    lastModified: now,
+  const categorySitemapEntries: MetadataRoute.Sitemap = categoryEntries.map((entry) => ({
+    url: `${SITE_URL}/products/category/${entry.slug}`,
+    lastModified: safeDate(entry.lastModified, now),
     changeFrequency: "weekly",
     priority: 0.7,
   }));
@@ -67,5 +88,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticEntries, ...productEntries, ...categoryEntries, ...blogPostEntries];
+  return [...staticEntries, ...productSitemapEntries, ...categorySitemapEntries, ...blogPostEntries];
 }

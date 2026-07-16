@@ -92,8 +92,8 @@ export const heroSlides: HeroSlide[] = [
 
 export const heroStats: HeroStat[] = [
   { value: "15+", label: { en: "Origins Curated", ar: "مصادر مختارة" } },
-  { value: "72h", label: { en: "Fresh Roast Window", ar: "نافذة التحميص الطازج" } },
-  { value: "100%", label: { en: "Arabica Focus", ar: "تركيز أرابيكا" } },
+  { value: "2", label: { en: "Custom Builders", ar: "أدوات تخصيص" } },
+  { value: "7+", label: { en: "Coffee Categories", ar: "أنماط قهوة" } },
 ];
 
 // ─── Categories ───────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { ArrowRight, ChevronDown, Mail, MapPin, MessageCircle, Phone } from "luc
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useLanguage } from "@/lib/context/language";
 import { submitContactMessage } from "@/lib/cms/public-cms";
+import { CONTACT_FAQ_ITEMS } from "@/lib/content/contact-faq";
 import {
   DEFAULT_ADMIN_SETTINGS,
   formatPublicPhone,
@@ -19,51 +20,6 @@ import {
 import { cn } from "@/lib/utils/cn";
 
 // ─── Static mock content ──────────────────────────────────────────────────────
-
-const FAQ_ITEMS = [
-  {
-    q: { en: "Do you deliver across Egypt?",           ar: "هل تقومون بالتوصيل لجميع أنحاء مصر؟" },
-    a: {
-      en: "Yes, we deliver to all Egyptian governorates. Orders typically arrive within 1–3 business days depending on your location.",
-      ar: "نعم، نوصل لجميع محافظات مصر. تصل الطلبات عادةً في غضون 1–3 أيام عمل حسب موقعك.",
-    },
-  },
-  {
-    q: { en: "How fresh is the coffee when it arrives?", ar: "ما مدى طازجية القهوة عند وصولها؟" },
-    a: {
-      en: "Every order is roasted within 72 hours of shipment. We never sell pre-roasted stock. You receive coffee at its peak.",
-      ar: "كل طلب يُحمَّص في غضون 72 ساعة من الشحن. لا نبيع قهوة محمصة مسبقاً أبداً. تصلك قهوتك في ذروة طازجيتها.",
-    },
-  },
-  {
-    q: { en: "Can I order a custom blend?",             ar: "هل أستطيع طلب خلطة خاصة بي؟" },
-    a: {
-      en: "Yes. Use our Make Your Espresso or Make Your Flavor studios to build your blend, then add it to your cart. We handle the ratios and roasting.",
-      ar: "نعم. استخدم استوديو 'اصنع إسبريسو خاصتك' أو 'اصنع نكهتك' لتصميم خلطتك، ثم أضفها لسلة مشترياتك. نتولى نحن النسب والتحميص.",
-    },
-  },
-  {
-    q: { en: "Do you offer wholesale pricing?",         ar: "هل تتوفر أسعار الجملة؟" },
-    a: {
-      en: "Yes, for cafes, offices, and resellers. Message us on WhatsApp with your expected monthly volume and we will send a tailored quote.",
-      ar: "نعم، للمقاهي والمكاتب وتجار الجملة. راسلنا عبر واتساب بحجمك الشهري المتوقع وسنرسل لك عرض سعر مخصص.",
-    },
-  },
-  {
-    q: { en: "What is your return policy?",             ar: "ما هي سياسة الاسترجاع؟" },
-    a: {
-      en: "We accept returns within 7 days for unopened products. For freshness concerns, contact us immediately and we will make it right.",
-      ar: "نقبل الاسترجاع خلال 7 أيام للمنتجات غير المفتوحة. لأي مخاوف تتعلق بالطازجية، تواصل معنا فوراً وسنحل المشكلة.",
-    },
-  },
-  {
-    q: { en: "Can I visit the roastery?",               ar: "هل يمكنني زيارة المحمصة؟" },
-    a: {
-      en: "We receive visitors by appointment only. Reach out via WhatsApp to schedule a visit and a cupping session.",
-      ar: "نستقبل الزوار بالموعد المسبق فقط. تواصل معنا عبر واتساب لترتيب زيارة وجلسة تذوق.",
-    },
-  },
-];
 
 // ─── Contact info card ────────────────────────────────────────────────────────
 
@@ -297,10 +253,11 @@ export default function ContactPage() {
                       {/* Name + Phone */}
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
+                          <label htmlFor="contact-name" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
                             {t({ en: "Full Name", ar: "الاسم الكامل" })}
                           </label>
                           <input
+                            id="contact-name"
                             type="text"
                             name="name"
                             value={form.name}
@@ -311,10 +268,11 @@ export default function ContactPage() {
                           />
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
+                          <label htmlFor="contact-phone" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
                             {t({ en: "Phone", ar: "رقم الهاتف" })}
                           </label>
                           <input
+                            id="contact-phone"
                             type="tel"
                             name="phone"
                             value={form.phone}
@@ -328,10 +286,11 @@ export default function ContactPage() {
 
                       {/* Email */}
                       <div>
-                        <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
+                        <label htmlFor="contact-email" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
                           {t({ en: "Email", ar: "البريد الإلكتروني" })}
                         </label>
                         <input
+                          id="contact-email"
                           type="email"
                           name="email"
                           value={form.email}
@@ -370,10 +329,11 @@ export default function ContactPage() {
 
                       {/* Message */}
                       <div>
-                        <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
+                        <label htmlFor="contact-message" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#D6A373]/72">
                           {t({ en: "Message", ar: "الرسالة" })}
                         </label>
                         <textarea
+                          id="contact-message"
                           name="message"
                           value={form.message}
                           onChange={handleChange}
@@ -516,11 +476,13 @@ export default function ContactPage() {
           </div>
 
           <div className="space-y-2">
-            {FAQ_ITEMS.map((item, index) => {
+            {CONTACT_FAQ_ITEMS.map((item, index) => {
               const isOpen = openFaq === index;
+              const panelId = `contact-faq-panel-${index}`;
+              const buttonId = `contact-faq-button-${index}`;
               return (
                 <div
-                  key={item.q.en}
+                  key={item.question.en}
                   className={cn(
                     "overflow-hidden rounded-xl border transition-colors duration-200",
                     isOpen
@@ -530,12 +492,14 @@ export default function ContactPage() {
                 >
                   <button
                     type="button"
+                    id={buttonId}
                     onClick={() => setOpenFaq(isOpen ? null : index)}
                     aria-expanded={isOpen ? "true" : "false"}
+                    aria-controls={panelId}
                     className="flex w-full items-center justify-between gap-4 px-5 py-4 text-start"
                   >
                     <span className="text-sm font-semibold text-[#F5E6D8]">
-                      {t(item.q)}
+                      {t(item.question)}
                     </span>
                     <ChevronDown
                       className={cn(
@@ -546,9 +510,14 @@ export default function ContactPage() {
                   </button>
 
                   {isOpen && (
-                    <div className="border-t border-[#B6885E]/14 px-5 pb-5 pt-4">
+                    <div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={buttonId}
+                      className="border-t border-[#B6885E]/14 px-5 pb-5 pt-4"
+                    >
                       <p className="text-sm leading-7 text-[#D6B79A]/85">
-                        {t(item.a)}
+                        {t(item.answer)}
                       </p>
                     </div>
                   )}
