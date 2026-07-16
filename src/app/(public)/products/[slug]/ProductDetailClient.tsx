@@ -332,7 +332,7 @@ export default function ProductDetailClient({ product, category, relatedProducts
   const currency = language === "ar" ? "ج.م" : "EGP";
 
   const handleAddToCart = () => {
-    if (justAdded) return;
+    if (justAdded || !product.isAvailable) return;
     addItem({
       kind: "product",
       name: product.name,
@@ -374,7 +374,7 @@ export default function ProductDetailClient({ product, category, relatedProducts
         </div>
       </section>
 
-      <main className="mx-auto max-w-7xl px-4 py-10 pb-20 sm:py-12 sm:pb-24">
+      <div className="mx-auto max-w-7xl px-4 py-10 pb-20 sm:py-12 sm:pb-24">
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)_21rem] xl:items-start">
           <ProductGallery
             images={galleryImages}
@@ -493,13 +493,20 @@ export default function ProductDetailClient({ product, category, relatedProducts
               <button
                 type="button"
                 onClick={handleAddToCart}
+                disabled={!product.isAvailable}
                 className={cn(
                   "mt-5 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-all",
-                  justAdded ? "border border-[#D6A373]/38 bg-[#D6A373]/14 text-[#D6A373]" : "premium-button",
+                  !product.isAvailable
+                    ? "cursor-not-allowed border border-[#B6885E]/20 bg-[#120D09]/88 text-[#D6B79A]/52"
+                    : justAdded
+                      ? "border border-[#D6A373]/38 bg-[#D6A373]/14 text-[#D6A373]"
+                      : "premium-button",
                 )}
               >
                 {justAdded ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
-                {justAdded
+                {!product.isAvailable
+                  ? t({ en: "Out of Stock", ar: "غير متوفر" })
+                  : justAdded
                   ? t({ en: "Added to Cart", ar: "تمت الإضافة" })
                   : t({ en: "Add to Cart", ar: "أضف إلى السلة" })}
               </button>
@@ -546,7 +553,7 @@ export default function ProductDetailClient({ product, category, relatedProducts
           </section>
         )}
 
-      </main>
+      </div>
     </div>
   );
 }

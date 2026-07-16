@@ -12,7 +12,7 @@ import {
   YouTubeIcon,
 } from "@/components/icons/SocialIcons";
 import {
-  DEFAULT_ADMIN_SETTINGS,
+  DEFAULT_PUBLIC_SETTINGS,
   formatPublicPhone,
   getPublicSettings,
   resolvePublicPhone,
@@ -20,7 +20,7 @@ import {
   toPhoneHref,
   toPublicHttpUrl,
   toWhatsAppHref,
-} from "@/lib/admin/admin-settings";
+} from "@/lib/settings/public-site-settings";
 import { useLanguage, type LocalizedValue } from "@/lib/context/language";
 
 const footerLinks = {
@@ -49,7 +49,7 @@ const footerLinks = {
 
 export function PublicFooter() {
   const { dir, t } = useLanguage();
-  const [settings, setSettings] = useState(DEFAULT_ADMIN_SETTINGS);
+  const [settings, setSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
 
   useEffect(() => {
     let active = true;
@@ -164,9 +164,9 @@ export function PublicFooter() {
             <FooterColumn title={{ en: "Company", ar: "الشركة" }} links={footerLinks.company} />
 
             <div>
-              <h4 className="mb-5 text-sm font-semibold tracking-wide text-[#D6A373]">
+              <h2 className="mb-5 text-sm font-semibold tracking-wide text-[#D6A373]">
                 {t({ en: "Contact", ar: "تواصل" })}
-              </h4>
+              </h2>
               <ul className="space-y-3.5">
                 {settings.contact.businessAddress.trim() && (
                 <li className="flex items-start gap-2.5">
@@ -249,9 +249,9 @@ function FooterColumn({
 
   return (
     <div>
-      <h4 className="mb-5 text-sm font-semibold tracking-wide text-[#D6A373]">
+      <h2 className="mb-5 text-sm font-semibold tracking-wide text-[#D6A373]">
         {t(title)}
-      </h4>
+      </h2>
       <ul className="space-y-3">
         {links.map((link) => (
           <li key={link.href}>

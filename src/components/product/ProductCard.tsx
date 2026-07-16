@@ -79,6 +79,7 @@ export function ProductCard({
   const productHref = href === undefined ? `/products/${product.slug}` : href;
 
   const priceChips = getPriceChips(product);
+  const isAvailable = !isCatalogProduct(product) || product.isAvailable;
   const description = t(product.note);
   const blend =
     isCatalogProduct(product) && !BLEND_HIDDEN_CATEGORIES.has(product.category)
@@ -94,7 +95,7 @@ export function ProductCard({
   const handleQuickAdd = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (justAdded) return;
+    if (justAdded || !isAvailable) return;
     const chip = priceChips[0];
     if (!chip) return;
     addItem({
@@ -199,14 +200,19 @@ export function ProductCard({
             type="button"
             onClick={handleQuickAdd}
             tabIndex={isDuplicate ? -1 : undefined}
+            disabled={!isAvailable}
             className={cn(
               "flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[11px] font-semibold transition-all duration-300 sm:gap-2 sm:text-sm",
-              justAdded
+              !isAvailable
+                ? "cursor-not-allowed border border-[#B6885E]/20 bg-[#120D09]/88 text-[#D6B79A]/52"
+                : justAdded
                 ? "border border-[#D6A373]/40 bg-[#D6A373]/14 text-[#D6A373]"
                 : "premium-button",
             )}
           >
-            {justAdded ? (
+            {!isAvailable ? (
+              <><ShoppingBag className="h-4 w-4" />{t({ en: "Out of Stock", ar: "غير متوفر" })}</>
+            ) : justAdded ? (
               <><Check className="h-4 w-4" />{t({ en: "Added!", ar: "تمت الإضافة!" })}</>
             ) : (
               <><ShoppingBag className="h-4 w-4" />{t({ en: "Quick Add", ar: "إضافة سريعة" })}</>

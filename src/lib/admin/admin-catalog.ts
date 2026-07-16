@@ -163,6 +163,12 @@ type AdminVariantRow = {
   sort_order: number | null;
 };
 
+type AdminStockRow = {
+  product_id: string;
+  available_kg: number | string;
+  low_stock_threshold_kg: number | string;
+};
+
 const packageSizes = ["250g", "500g", "1kg"] as const satisfies readonly PackageSize[];
 
 const fallbackCategoryImages: Record<string, string> = {
@@ -316,15 +322,12 @@ function groupVariantRows(rows: AdminVariantRow[]) {
   return grouped;
 }
 
-function getProductStockStatus(variants: AdminProductSize[]): ProductStatus {
-  if (variants.length === 0) return "Out of Stock";
-
-  const states = variants.map((variant) => variant.stockState).filter(Boolean);
-  if (states.length === 0) return "In Stock";
-  if (states.every((state) => state === "out_of_stock")) return "Out of Stock";
-  if (states.some((state) => state === "low_stock" || state === "out_of_stock")) {
-    return "Low Stock";
-  }
+function getProductStockStatus(stock?: AdminStockRow): ProductStatus {
+  if (!stock) return "Out of Stock";
+  const availableKg = toNumber(stock.available_kg);
+  const thresholdKg = toNumber(stock.low_stock_threshold_kg);
+  if (availableKg <= 0) return "Out of Stock";
+  if (availableKg <= thresholdKg) return "Low Stock";
   return "In Stock";
 }
 
@@ -356,9 +359,11 @@ function mapProductRows(
   rows: AdminProductRow[],
   variantRows: AdminVariantRow[],
   categories: AdminProductCategory[],
+  stockRows: AdminStockRow[],
 ) {
   const variantsByProductId = groupVariantRows(variantRows);
   const categoryById = new Map(categories.map((category) => [category.id, category]));
+  const stockByProductId = new Map(stockRows.map((stock) => [stock.product_id, stock]));
 
   return rows.map((row): AdminProduct => {
     const category = categoryById.get(row.category_id);
@@ -373,7 +378,7 @@ function mapProductRows(
     const fallbackImage = category?.image ?? getFallbackImage(categorySlug);
     const image = row.image_url ?? fallbackImage;
     const gallery = Array.from(new Set([image, ...normalizeGallery(row.gallery)]));
-    const stockStatus = getProductStockStatus(variants);
+    const stockStatus = getProductStockStatus(stockByProductId.get(row.id));
     const sku = variants.find((variant) => variant.sku)?.sku ?? row.slug;
     const isActive = row.status === "active";
     const hidden = row.visibility === "hidden" || !row.show_on_website || !isActive;
@@ -605,6 +610,17 @@ async function fetchVariantRowsByProductId(productId: string) {
   return (data ?? []) as AdminVariantRow[];
 }
 
+async function fetchStockRows(productIds: string[]) {
+  if (productIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("inventory_stock")
+    .select("product_id, available_kg, low_stock_threshold_kg")
+    .in("product_id", productIds);
+
+  if (error) throw readError("inventory_stock", error);
+  return (data ?? []) as AdminStockRow[];
+}
+
 export async function getAdminCategoryProductCounts() {
   try {
     const { data, error } = await supabase.from("products").select("category_id");
@@ -646,8 +662,12 @@ export async function getAdminProductsWithVariants() {
       getAdminCategories(),
       fetchProductRows(),
     ]);
-    const variants = await fetchVariantRows(productRows.map((product) => product.id));
-    return mapProductRows(productRows, variants, categories);
+    const productIds = productRows.map((product) => product.id);
+    const [variants, stockRows] = await Promise.all([
+      fetchVariantRows(productIds),
+      fetchStockRows(productIds),
+    ]);
+    return mapProductRows(productRows, variants, categories, stockRows);
   } catch (error) {
     throw asCatalogError(error);
   }
@@ -666,8 +686,11 @@ export async function getAdminProductById(id: string) {
 
     if (!productRow) return null;
 
-    const variants = await fetchVariantRowsByProductId(productRow.id);
-    return mapProductRows([productRow], variants, categories)[0] ?? null;
+    const [variants, stockRows] = await Promise.all([
+      fetchVariantRowsByProductId(productRow.id),
+      fetchStockRows([productRow.id]),
+    ]);
+    return mapProductRows([productRow], variants, categories, stockRows)[0] ?? null;
   } catch (error) {
     throw asCatalogError(error);
   }
@@ -682,8 +705,11 @@ export async function getAdminProductBySlug(slug: string) {
 
     if (!productRow) return null;
 
-    const variants = await fetchVariantRowsByProductId(productRow.id);
-    return mapProductRows([productRow], variants, categories)[0] ?? null;
+    const [variants, stockRows] = await Promise.all([
+      fetchVariantRowsByProductId(productRow.id),
+      fetchStockRows([productRow.id]),
+    ]);
+    return mapProductRows([productRow], variants, categories, stockRows)[0] ?? null;
   } catch (error) {
     throw asCatalogError(error);
   }

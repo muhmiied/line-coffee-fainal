@@ -97,7 +97,9 @@ export default function SignupPage() {
           </label>
           <input
             id="signup-name"
+            name="name"
             type="text"
+            autoComplete="name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -112,7 +114,9 @@ export default function SignupPage() {
           </label>
           <input
             id="signup-email"
+            name="email"
             type="email"
+            autoComplete="email"
             required
             dir="ltr"
             value={email}
@@ -129,7 +133,9 @@ export default function SignupPage() {
           <div className="relative">
             <input
               id="signup-password"
+              name="password"
               type={showPass ? "text" : "password"}
+              autoComplete="new-password"
               required
               dir="ltr"
               value={password}
@@ -160,7 +166,9 @@ export default function SignupPage() {
           <div className="relative">
             <input
               id="signup-confirm"
+              name="password-confirmation"
               type={showConfirm ? "text" : "password"}
+              autoComplete="new-password"
               required
               dir="ltr"
               value={confirm}

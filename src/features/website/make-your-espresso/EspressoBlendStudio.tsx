@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils/cn";
 import { MixedNumeric } from "@/components/shared/MixedNumeric";
 import { listPublicEspressoBeans } from "@/lib/builders/public-builders";
 import {
-  espressoBeans as fallbackEspressoBeans,
   metricLabels,
   type EspressoBean,
   type EspressoMetricKey,
@@ -82,7 +81,9 @@ function getFamilyLabel(family: EspressoBean["family"]) {
 export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLanguage();
   const { addItem } = useCart();
-  const [catalog, setCatalog] = useState<EspressoBean[]>(fallbackEspressoBeans);
+  const [catalog, setCatalog] = useState<EspressoBean[]>([]);
+  const [catalogStatus, setCatalogStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [catalogReloadKey, setCatalogReloadKey] = useState(0);
   const [selectedIds, setSelectedIds] = useLocalStorage<string[]>("espresso-studio-beans", []);
   const [blendMode, setBlendMode] = useLocalStorage<BlendMode>("espresso-studio-mode", "smart");
   const [manualRatios, setManualRatios] = useLocalStorage<Record<string, string>>("espresso-studio-ratios", {});
@@ -105,15 +106,20 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
     let active = true;
     void listPublicEspressoBeans()
       .then((beans) => {
-        if (active && beans.length > 0) setCatalog(beans);
+        if (!active) return;
+        if (beans.length === 0) throw new Error("The espresso catalog is empty.");
+        setCatalog(beans);
+        setCatalogStatus("ready");
       })
       .catch(() => {
-        // The local catalog is intentionally retained when the public view is unavailable.
+        if (!active) return;
+        setCatalog([]);
+        setCatalogStatus("error");
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [catalogReloadKey]);
 
   const selectedBeans = useMemo(
     () => selectedIds
@@ -158,7 +164,7 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
   const totalPrice = unitPrice * quantity;
   const ratioTotal = activeRatios.reduce((sum, ratio) => sum + ratio.percent, 0);
   const manualTotalIsValid = blendMode === "smart" || isValidManualTotal(activeRatios);
-  const canUseMockCta = selectedBeans.length > 0 && manualTotalIsValid;
+  const canAddToCart = selectedBeans.length > 0 && manualTotalIsValid;
 
   const resetStudio = () => {
     setSelectedIds([]);
@@ -173,7 +179,7 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
   };
 
   const handleAddToCart = () => {
-    if (!canUseMockCta) return;
+    if (!canAddToCart) return;
     const profile = blendProfiles.find((p) => p.id === preferences.profileId);
     const beanNamesEn = selectedBeans.map((b) => b.name.en).join(" + ");
     const beanNamesAr = selectedBeans.map((b) => b.name.ar).join(" + ");
@@ -322,6 +328,44 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
   const arabicaBeans = catalog.filter((bean) => bean.family === "arabica");
   const robustaBeans = catalog.filter((bean) => bean.family === "robusta");
 
+  if (catalogStatus !== "ready") {
+    const failed = catalogStatus === "error";
+    return (
+      <div
+        className="rounded-2xl border border-[#D6A373]/20 bg-[#120D09]/72 px-5 py-10 text-center text-[#F5E6D8]"
+        role={failed ? "alert" : "status"}
+        aria-live="polite"
+      >
+        <AlertTriangle className="mx-auto mb-3 h-6 w-6 text-[#D6A373]" aria-hidden="true" />
+        <p className="font-semibold">
+          {failed
+            ? t({ en: "Espresso pricing is temporarily unavailable.", ar: "تسعير الإسبريسو غير متاح مؤقتًا." })
+            : t({ en: "Loading live espresso pricing…", ar: "جارٍ تحميل تسعير الإسبريسو المباشر…" })}
+        </p>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#D6B79A]/72">
+          {failed
+            ? t({
+                en: "We could not verify the current bean catalog, so ordering is paused to protect price accuracy.",
+                ar: "تعذر التحقق من كتالوج الحبوب الحالي، لذلك تم إيقاف الطلب مؤقتًا لحماية دقة السعر.",
+              })
+            : t({ en: "Prices are verified from the live catalog before ordering.", ar: "يتم التحقق من الأسعار من الكتالوج المباشر قبل الطلب." })}
+        </p>
+        {failed && (
+          <button
+            type="button"
+            className="mt-5 rounded-full border border-[#D6A373]/35 bg-[#D6A373]/10 px-5 py-2 text-sm font-semibold text-[#F5E6D8] transition-colors hover:bg-[#D6A373]/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6A373]/60"
+            onClick={() => {
+              setCatalogStatus("loading");
+              setCatalogReloadKey((key) => key + 1);
+            }}
+          >
+            {t({ en: "Try again", ar: "حاول مرة أخرى" })}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("arabic-body text-[#F5E6D8]", !embedded && "min-h-screen overflow-x-hidden bg-[#0B0806]")}>
       {embedded ? (
@@ -410,7 +454,7 @@ export function EspressoBlendStudio({ embedded = false }: { embedded?: boolean }
             totalPrice={totalPrice}
             selectedSize={selectedSize}
             quantity={quantity}
-            canUseMockCta={canUseMockCta}
+            canAddToCart={canAddToCart}
             onSizeChange={setSelectedSize}
             onQuantityChange={setQuantity}
             onStartManualEditing={startManualEditing}
@@ -935,7 +979,7 @@ function LiveBlendCart({
   totalPrice,
   selectedSize,
   quantity,
-  canUseMockCta,
+  canAddToCart,
   onSizeChange,
   onQuantityChange,
   onStartManualEditing,
@@ -954,7 +998,7 @@ function LiveBlendCart({
   totalPrice: number;
   selectedSize: PackageSize;
   quantity: number;
-  canUseMockCta: boolean;
+  canAddToCart: boolean;
   onSizeChange: (size: PackageSize) => void;
   onQuantityChange: (quantity: number) => void;
   onStartManualEditing: () => void;
@@ -1034,7 +1078,7 @@ function LiveBlendCart({
           <button
             type="button"
             onClick={onAddToCart}
-            disabled={!canUseMockCta}
+            disabled={!canAddToCart}
             className="premium-button flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
           >
             <ShoppingBag className="h-5 w-5" />

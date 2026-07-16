@@ -18,8 +18,6 @@ import { useLanguage } from "@/lib/context/language";
 import { cn } from "@/lib/utils/cn";
 import { listPublicFlavorCatalog } from "@/lib/builders/public-builders";
 import {
-  flavorBases as fallbackFlavorBases,
-  flavorItems as fallbackFlavorItems,
   flavorPresets,
   metricLabels,
   packageWeights,
@@ -66,10 +64,12 @@ const METRIC_ORDER: FlavorMetricKey[] = [
 export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLanguage();
   const { addItem } = useCart();
-  const [catalog, setCatalog] = useState({
-    bases: fallbackFlavorBases,
-    items: fallbackFlavorItems,
+  const [catalog, setCatalog] = useState<{ bases: FlavorBase[]; items: FlavorItem[] }>({
+    bases: [],
+    items: [],
   });
+  const [catalogStatus, setCatalogStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [catalogReloadKey, setCatalogReloadKey] = useState(0);
   const [selectedBaseId, setSelectedBaseId] = useLocalStorage<string | null>("flavor-studio-base", null);
   const [selectedFlavorIds, setSelectedFlavorIds] = useLocalStorage<string[]>("flavor-studio-flavors", []);
   const [selectedWeight, setSelectedWeight] = useLocalStorage<PackageWeight>("flavor-studio-weight", "250g");
@@ -80,17 +80,22 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
     let active = true;
     void listPublicFlavorCatalog()
       .then((nextCatalog) => {
-        if (active && nextCatalog.bases.length > 0 && nextCatalog.items.length > 0) {
-          setCatalog(nextCatalog);
+        if (!active) return;
+        if (nextCatalog.bases.length === 0 || nextCatalog.items.length === 0) {
+          throw new Error("The flavor catalog is incomplete.");
         }
+        setCatalog(nextCatalog);
+        setCatalogStatus("ready");
       })
       .catch(() => {
-        // The local catalog is intentionally retained when the public views are unavailable.
+        if (!active) return;
+        setCatalog({ bases: [], items: [] });
+        setCatalogStatus("error");
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [catalogReloadKey]);
 
   const selectedBase = useMemo(
     () => catalog.bases.find((b) => b.id === selectedBaseId) ?? null,
@@ -174,6 +179,44 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
 
     setSelectedBaseId((prev) => (prev === baseId ? null : baseId));
   };
+
+  if (catalogStatus !== "ready") {
+    const failed = catalogStatus === "error";
+    return (
+      <div
+        className="rounded-2xl border border-[#D6A373]/20 bg-[#120D09]/72 px-5 py-10 text-center text-[#F5E6D8]"
+        role={failed ? "alert" : "status"}
+        aria-live="polite"
+      >
+        <AlertTriangle className="mx-auto mb-3 h-6 w-6 text-[#D6A373]" aria-hidden="true" />
+        <p className="font-semibold">
+          {failed
+            ? t({ en: "Flavor pricing is temporarily unavailable.", ar: "تسعير النكهات غير متاح مؤقتًا." })
+            : t({ en: "Loading live flavor pricing…", ar: "جارٍ تحميل تسعير النكهات المباشر…" })}
+        </p>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#D6B79A]/72">
+          {failed
+            ? t({
+                en: "We could not verify the current flavor catalog, so ordering is paused to protect price accuracy.",
+                ar: "تعذر التحقق من كتالوج النكهات الحالي، لذلك تم إيقاف الطلب مؤقتًا لحماية دقة السعر.",
+              })
+            : t({ en: "Prices are verified from the live catalog before ordering.", ar: "يتم التحقق من الأسعار من الكتالوج المباشر قبل الطلب." })}
+        </p>
+        {failed && (
+          <button
+            type="button"
+            className="mt-5 rounded-full border border-[#D6A373]/35 bg-[#D6A373]/10 px-5 py-2 text-sm font-semibold text-[#F5E6D8] transition-colors hover:bg-[#D6A373]/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6A373]/60"
+            onClick={() => {
+              setCatalogStatus("loading");
+              setCatalogReloadKey((key) => key + 1);
+            }}
+          >
+            {t({ en: "Try again", ar: "حاول مرة أخرى" })}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("arabic-body text-[#F5E6D8]", !embedded && "min-h-screen overflow-x-hidden bg-[#0B0806]")}>

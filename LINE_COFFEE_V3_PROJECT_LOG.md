@@ -2,36 +2,35 @@
 
 Every AI agent or developer who works on this project must append a new entry to the Agent Work Log before finishing their session.
 
-This file is the project timeline and current operating reference. It should be read together with `AGENT_WORK_PROTOCOL.md` and `CLAUDE.md` before any new AI/dev session.
+This file is the historical project timeline. It should be read together with `AGENT_WORK_PROTOCOL.md` and `CLAUDE.md` before any new AI/dev session.
+
+> **Current-state correction — 2026-07-16:** The descriptive “Current” Sections 1–10 below preserve an early UI-build snapshot and contain stale mock/backend/next-step language. They are history, not present truth. Use `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` for architecture/data status and `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md` for the evidence-based launch verdict, blockers, and owner checklist. The Agent Work Log remains chronological evidence.
 
 ---
 
 ## 1. Project Overview
 
-Line Coffee V3 is the current working foundation for the future Line Coffee ecommerce and operations platform.
-
-The project is no longer only a homepage visual foundation. The public website, customer-facing flows, and Admin Dashboard mock UI are now active.
+Line Coffee V3 is a real Supabase-backed ecommerce and operations application, not a mock-only UI foundation.
 
 Current status:
 
 - Public homepage visual direction is largely locked.
-- Product catalog and product experience exist or are in active development.
-- Customer-facing account area exists or is planned before final backend binding.
-- Admin Dashboard mock modules are actively being built and reviewed module by module.
-- Supabase/backend integration is deferred until UI/business flows are reviewed.
-- All current admin/dashboard work is mock-only unless explicitly stated otherwise.
+- Product catalog, builders, checkout/order creation, customer account ownership, inventory/FIFO/packaging, admin operations, CMS, settings, promos, accounting, and business analytics are Supabase-backed.
+- Customer and admin credentialed release acceptance remains required.
+- Behavioral web-traffic analytics is intentionally not connected; no fake metrics are shown.
+- Final launch verdict on 2026-07-16 is **Not launch-ready** until the blockers in the final launch audit are closed.
 
 Core execution direction:
 
 ```text
 Public Website
 → Customer Account Area
-→ Admin Dashboard Mock UI
-→ Media Studio Architecture
-→ Supabase / Backend Binding
+→ Real Admin Operations
+→ Supabase-backed Commerce and Content
+→ Production Closure and Owner Launch Controls
 ```
 
-Supabase remains the future source of truth, but current work should stay mock-only until backend integration is explicitly approved.
+Supabase is the current source of truth for operational/business data. Static versioned content is allowed only for presentation or explicitly documented seed tooling; it must not silently replace failed live pricing, stock, order, customer, accounting, or admin reads.
 
 ---
 
@@ -61,7 +60,7 @@ General rules:
 - Keep public website sections modular and separated.
 - Keep shared public layout in `src/components/layout/public`.
 - Keep shared UI primitives in `src/components/ui`.
-- Keep mock data in `src/lib/mock-data` until future CMS/Supabase binding is explicitly approved.
+- Keep runtime business data in the existing Supabase-backed data layers. `src/lib/mock-data/visual-content.ts` is presentation content; `product-catalog.ts` is retained for deterministic seed tooling, not runtime commerce.
 - Preserve bilingual data as `{ en, ar }` localized values where applicable.
 - Respect Arabic/English and RTL/LTR behavior.
 - Keep client components focused and avoid broad refactors.
@@ -71,10 +70,10 @@ General rules:
 
 Current architecture mindset:
 
-- Public website and customer flows are being shaped first.
-- Admin Dashboard is being built as a mock operating system before database binding.
-- Media Studio is the future owner of public visual content and page section control.
-- Supabase/database will later become the source of truth for products, customers, orders, inventory, content, analytics, and settings.
+- Public, account, admin, and server-route bundles have explicit ownership boundaries.
+- Supabase/RLS/RPCs are authoritative for products, customers, orders, inventory, content, settings, promos, accounting, and business analytics.
+- Public layout owns storefront providers/header/footer/structured data; admin owns its protected shell and does not inherit public cart/settings providers.
+- New database migrations or live mutations require explicit owner approval and a rollback/verification plan.
 
 ---
 
@@ -97,8 +96,8 @@ Current architecture mindset:
 
 ### Custom Builders
 
-- `/make-your-espresso` — Make Your Espresso builder
-- `/make-your-flavor` — Make Your Flavor builder
+- `/products?category=make-your-espresso` — Make Your Espresso mode
+- `/products?category=make-your-flavor` — Make Your Flavor mode
 
 Important builder decision:
 
@@ -345,6 +344,8 @@ Current practical rule:
 
 | Date | Agent | Task | Files Changed | What Changed | What Was Not Touched | Validation | Notes / Next Step |
 | ---- | ----- | ---- | ------------- | ------------ | -------------------- | ---------- | ----------------- |
+| 2026-07-16 | Codex GPT-5 | Resumed final closure: route ownership, settings boundary, Next proxy, repeatable production QA, and documentation truth | Root/public layouts; public/shared/admin settings layers and consumers; `src/proxy.ts` (replaces `src/middleware.ts`); checkout select semantics; `scripts/final-production-smoke.mjs`; protocol/current-state/audit/log/CLAUDE docs | Continued on the explicitly approved prior-session working tree; moved cart/language providers and business JSON-LD into the public layout; separated public settings reads from admin writes through a neutral shared mapper; migrated the deprecated Next middleware convention to proxy without changing its UX-only trust model; added a non-destructive repeatable production smoke runner; corrected stale mock-only protocol/project descriptions. | No business-rule, pricing, checkout RPC, inventory/FIFO, packaging, promo, COGS, auth/RLS, database data, migration, secret, real order/contact/notification, deployment, commit, push, or PR change. | Clean `npm ci`; TypeScript/ESLint pass; dependency audit 0 vulnerabilities; seed check 124/372 clean; two final production builds pass 42 pages with no framework warning; 40 local/remote migrations match; final production runner checks 155 routes and EN desktop/AR mobile with 0 failures/warnings; screenshots visually reviewed. | Verdict remains **Not launch-ready** for owner/infrastructure/credentialed blockers, not for a failing public build. Close checkout abuse protection, credentialed customer/admin acceptance, pending packaging-shortage review, and production owner checklist. |
+| 2026-07-16 | Codex GPT-5 | Final production closure master audit + scoped hardening | 24 code/package/tool files; `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md`; current-state/project-record docs | Removed live-builder fake fallbacks; wired public availability and real Admin Products stock; fixed checkout/auth/search/landmark/heading/mobile-dialog accessibility; pinned safe PostCSS; corrected the historical seed tool's current count assertions; completed architecture, live Supabase/RLS/advisor/invariant/accounting/security/performance/SEO/browser/responsive/RTL review; wrote the 29-section audit. | No business-rule change, migration, DB/data write, order/contact/notification submission, production secret/config mutation, commit, push, PR, or deployment. The historical catalog source remains tooling-only and unchanged. | TypeScript and ESLint clean; seed generator check clean; production dependency audit 0 vulnerabilities; final Next production build passed all 42 pages; 177-URL server sweep = 164×200 + 13 expected admin 307; representative EN/AR browser, keyboard, populated-checkout, and accessibility smoke passed with zero console errors. | Verdict: **Not launch-ready**. Close robust checkout abuse protection, credentialed customer/admin acceptance, one pending packaging-shortage review, and owner deployment controls. Concurrent Telegram claim remains migration-gated. |
 | 2026-07-15 | Codex GPT-5 | Final Phase 3 account-menu and Admin-to-store navigation polish | `src/components/layout/public/PublicHeader.tsx`; `src/components/admin/layout/AdminSidebar.tsx`; `LINE_COFFEE_V3_PROJECT_LOG.md` | Replaced the signed-in desktop/mobile customer/admin menu rows' muted, faint hover treatment with explicit pointer cursors, stronger readable defaults, copper/beige hover backgrounds and inset rings, brighter text/icons, subtle glow, equivalent `focus-visible` rings, and `aria-current` styling for the active account route. Sign-out keeps its destructive red treatment but now has the same clear pointer/focus affordance. Removed `target="_blank"` and `rel` only from the Admin sidebar's main `View Store` Next Link so it navigates to `/` in the current tab and preserves normal browser history/session behavior. | Did NOT change dropdown dimensions, auth/admin resolution, session/logout behavior, Supabase/RLS/database/migrations, header/admin layout, public design, top-bar `Website Preview`, product preview actions, external links, or any other Phase 3 work. No commit or push. | `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `git diff --check` passed. Clean Playwright signed-out regression passed EN/LTR and AR/RTL desktop/mobile account behavior, Escape/click-outside dismissal, mobile dialog focus/return, and reported zero console errors/warnings. Static inspection confirmed the shared signed-in customer/admin desktop/mobile states and main sidebar same-tab link. | Credentialed customer/admin browser verification was not run because no test credentials were available; manually confirm real-name/no-flicker, hover/focus visuals, Admin Dashboard navigation, View Store same-tab navigation, Back-to-Admin, and session continuity in existing real sessions. Existing non-fatal build warnings remain for the Windows SWC native-binding fallback and deprecated middleware convention. |
 | 2026-07-15 | Codex GPT-5 | Phase 3 auth runtime and account-state regression fix | `src/components/layout/public/PublicHeader.tsx`; `src/lib/hooks/useAuth.ts`; `src/lib/hooks/useCurrentAdmin.ts`; `LINE_COFFEE_V3_PROJECT_LOG.md` | Reproduced `/auth/login` against the existing dev server and traced the failure to stale/missing Next development chunks (route and dynamic account chunks returned 404 text responses); a clean `.next` plus one dev server rendered all auth routes, so the bilingual ARIA changes were retained. Consolidated public-header identity/admin resolution into one user-keyed `signed_out`/`resolving`/`customer`/`admin`/`error` state; resolving/error menus expose no role-specific links; stale admin results are versioned and tied to the resolved auth user; Strict Mode stale callbacks are cancelled. Identity priority now uses admin/profile full name, auth metadata (`full_name`, `name`, first+last, `display_name`), email username, then localized fallback; the compact label uses the Unicode-safe first token. | Did NOT alter Supabase authorization rules, RLS, admin authority (`admin_users` remains authoritative), auth redirects/recovery, database schema/migrations, homepage design, Phase 3 SEO/accessibility work, or commit/push. | `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `git diff --check` passed. Clean Playwright browser: all four auth routes 200 with expected headings/no boundary; header account/cart/wishlist, EN/AR RTL, mobile focus, Contact FAQ, product detail/related products, reduced motion, JSON-LD, and checkout custom listboxes passed with zero console/page errors. | Signed-in customer/admin credentialed smoke was not run because no test credentials were available; verify both roles manually with real sessions. Existing non-fatal build warnings remain for the Windows SWC native binding fallback and deprecated middleware convention. No commit or push. |
 | 2026-06-26 | Claude Opus 4.8 | Phase A image-warning cleanup + Phase B Admin Product basic write layer | `src/app/(public)/products/page.tsx`; `src/components/admin/dashboard/WelcomeHero.tsx`; `src/app/admin/products/[slug]/page.tsx`; `src/components/admin/products/ProductDrawer.tsx`; `src/lib/admin/admin-catalog.ts`; `supabase/migrations/20260626090000_admin_catalog_write_grants.sql` (new); `LINE_COFFEE_V3_PROJECT_LOG.md` | Phase A: added missing `sizes` to the 4 remaining `next/image fill` images (`/products` hero, admin product detail thumb, ProductDrawer header + main image) and added `priority` to the admin dashboard `WelcomeHero` LCP background image — no visual/layout/crop change. Phase B: added `updateAdminProduct()` and `updateAdminProductVariantPrices()` to `admin-catalog.ts` (shared Supabase browser client, no new client); wired real Supabase saves from `ProductDrawer` (General name/desc → name_*/notes_*, Pricing 250g/500g/1kg variant prices + per-kg `sale_price_per_kg`, Visibility hidden→show_on_website+visibility / featured / best_seller, SEO slug + meta) and from `/admin/products/[slug]` Edit Prices; Save enables on edit, shows saving/success/exact-error states, refreshes from Supabase after save and re-targets the drawer on slug change. | Did NOT add product/category create/delete/archive, category writes, media/gallery/Storage uploads (Media tab disabled with "Media upload will be implemented in the Media/Storage layer."), inventory/stock writes (Inventory tab disabled with "Inventory will be handled by the inventory movement layer."), SKU generation, or order/accounting writes; did NOT redesign public or admin UI; did NOT change brand/typography/layout; did NOT edit seed files; did NOT run Supabase/db commands; did NOT bypass/disable RLS or use service role; did NOT switch admin to public views; did NOT add a second Supabase client; did NOT commit. `purchase_cost_per_kg` left display-only (not editable in UI). | `npx tsc --noEmit` passed (0 errors); `npm run lint` passed (0 warnings); concurrent `npm run build` intentionally skipped to avoid corrupting the live `next dev` server on :3000 (shared `.next` → ChunkLoadError risk) — validated instead via per-route dev compilation: `/`, `/products`, `/products/heavy-crema`, `/admin/dashboard`, `/admin/products`, `/admin/products/heavy-crema` all returned HTTP 200 with no Build/Chunk/runtime errors. | RLS already covers admin UPDATE via Migration 1 `products_admin_all` / `product_variants_admin_all` (`for all` + `is_admin()`), so the new migration only adds the missing `GRANT UPDATE ON products, product_variants TO authenticated` (UPDATE layer; SELECT already granted). MIGRATION REQUIRED before manual write test can pass — apply `20260626090000_admin_catalog_write_grants.sql`, then verify saves as an authenticated admin; a 403/permission-denied before the migration is expected. Credentialed admin browser write test still needs the owner's admin session (cannot log in headless). |

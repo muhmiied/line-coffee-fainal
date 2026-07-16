@@ -131,10 +131,12 @@ export function AddressSection({
         <div className="grid gap-4">
 
           <div>
-            <FieldLabel label={t({ en: "Full Name", ar: "الاسم الكامل" })} required />
+            <FieldLabel htmlFor="checkout-name" label={t({ en: "Full Name", ar: "الاسم الكامل" })} required />
             <input
+              id="checkout-name"
               name="name"
               type="text"
+              required
               autoComplete={user ? "off" : "name"}
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
@@ -147,10 +149,12 @@ export function AddressSection({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <FieldLabel label={t({ en: "Phone Number", ar: "رقم الهاتف" })} required />
+              <FieldLabel htmlFor="checkout-phone" label={t({ en: "Phone Number", ar: "رقم الهاتف" })} required />
               <input
+                id="checkout-phone"
                 name="phone"
                 type="tel"
+                required
                 autoComplete={user ? "off" : "tel"}
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
@@ -161,10 +165,12 @@ export function AddressSection({
               {errors.phone && <p className={errorClass}>{errors.phone}</p>}
             </div>
             <div>
-              <FieldLabel label={t({ en: "WhatsApp Number", ar: "رقم الواتساب" })} required />
+              <FieldLabel htmlFor="checkout-whatsapp" label={t({ en: "WhatsApp Number", ar: "رقم الواتساب" })} required />
               <input
+                id="checkout-whatsapp"
                 name="whatsapp"
                 type="tel"
+                required
                 autoComplete={user ? "off" : "tel"}
                 value={form.whatsapp}
                 onChange={(e) => update("whatsapp", e.target.value)}
@@ -177,8 +183,9 @@ export function AddressSection({
           </div>
 
           <div>
-            <FieldLabel label={t({ en: "Email", ar: "البريد الإلكتروني" })} />
+            <FieldLabel htmlFor="checkout-email" label={t({ en: "Email", ar: "البريد الإلكتروني" })} />
             <input
+              id="checkout-email"
               name="email"
               type="email"
               autoComplete={user ? "off" : "email"}
@@ -202,21 +209,24 @@ export function AddressSection({
         <div className="grid gap-4">
 
           <div>
-            <FieldLabel label={t({ en: "Governorate", ar: "المحافظة" })} required />
+            <FieldLabel htmlFor="checkout-governorate" label={t({ en: "Governorate", ar: "المحافظة" })} required />
             <CustomSelect
+              id="checkout-governorate"
               value={form.governorate}
               onChange={(v) => update("governorate", v)}
               options={govOptions}
               placeholder={t({ en: "Select your governorate", ar: "اختر المحافظة" })}
               label={t({ en: "Governorate", ar: "المحافظة" })}
+              required
               dir={dir}
             />
             {errors.governorate && <p className={errorClass}>{errors.governorate}</p>}
           </div>
 
           <div>
-            <FieldLabel label={t({ en: "Area / District", ar: "المنطقة / الحي" })} required />
+            <FieldLabel htmlFor="checkout-area" label={t({ en: "Area / District", ar: "المنطقة / الحي" })} required />
             <CustomSelect
+              id="checkout-area"
               value={form.area}
               onChange={(v) => update("area", v)}
               options={areaOptions}
@@ -227,6 +237,7 @@ export function AddressSection({
               }
               disabled={!form.governorate}
               label={t({ en: "Area / District", ar: "المنطقة / الحي" })}
+              required
               dir={dir}
             />
             {errors.area && <p className={errorClass}>{errors.area}</p>}
@@ -235,6 +246,7 @@ export function AddressSection({
           {form.area === "Other" && (
             <div>
               <FieldLabel
+                htmlFor="checkout-manual-area"
                 label={t({
                   en: "Area / District name",
                   ar: "اسم المنطقة / الحي",
@@ -242,8 +254,10 @@ export function AddressSection({
                 required
               />
               <input
+                id="checkout-manual-area"
                 name="manualArea"
                 type="text"
+                required
                 autoComplete="address-level2"
                 value={form.manualArea}
                 onChange={(e) => update("manualArea", e.target.value)}
@@ -261,10 +275,12 @@ export function AddressSection({
           )}
 
           <div>
-            <FieldLabel label={t({ en: "Street Address", ar: "عنوان الشارع" })} required />
+            <FieldLabel htmlFor="checkout-street" label={t({ en: "Street Address", ar: "عنوان الشارع" })} required />
             <input
+              id="checkout-street"
               name="street"
               type="text"
+              required
               autoComplete="address-line1"
               value={form.street}
               onChange={(e) => update("street", e.target.value)}
@@ -277,8 +293,9 @@ export function AddressSection({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <FieldLabel label={t({ en: "Building", ar: "المبنى" })} />
+              <FieldLabel htmlFor="checkout-building" label={t({ en: "Building", ar: "المبنى" })} />
               <input
+                id="checkout-building"
                 name="building"
                 type="text"
                 autoComplete="address-line2"
@@ -290,8 +307,9 @@ export function AddressSection({
               />
             </div>
             <div>
-              <FieldLabel label={t({ en: "Floor / Apartment", ar: "الطابق / الشقة" })} />
+              <FieldLabel htmlFor="checkout-floor-apartment" label={t({ en: "Floor / Apartment", ar: "الطابق / الشقة" })} />
               <input
+                id="checkout-floor-apartment"
                 name="floorApt"
                 type="text"
                 autoComplete="address-line3"
@@ -305,8 +323,9 @@ export function AddressSection({
           </div>
 
           <div>
-            <FieldLabel label={t({ en: "Google Maps link", ar: "رابط Google Maps" })} />
+            <FieldLabel htmlFor="checkout-google-maps" label={t({ en: "Google Maps link", ar: "رابط Google Maps" })} />
             <input
+              id="checkout-google-maps"
               name="googleMapsUrl"
               type="url"
               inputMode="url"

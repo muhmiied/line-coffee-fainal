@@ -1,42 +1,39 @@
 # Agent Work Protocol
 
-This protocol is mandatory for every AI agent or developer working on the Line Coffee V3 project.
+This protocol is mandatory for every AI agent or developer working on Line Coffee V3.
 
-## Source Of Truth
+## Source of truth
 
 - Read `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` first.
-- Then read `LINE_COFFEE_V3_PROJECT_LOG.md`.
-- Read `CLAUDE.md` for historical context only when needed.
-- Do not use old planning docs, audits, or prompts as the source of truth when they conflict with `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
-- If a major project decision changes, update `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`.
+- Read the latest entries in `LINE_COFFEE_V3_PROJECT_LOG.md` next.
+- Use `CLAUDE.md` for locked architecture/design rules and historical context.
+- Use `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md` for the current launch verdict, blockers, and owner checklists.
+- Treat older mock-only/backend-future plans as history when they conflict with current-state documentation or current code.
 
-## Before Starting
+## Before starting
 
-- Understand the current task before editing.
-- Work module by module.
-- Read only files relevant to the task.
-- Do not scan the whole repo unless the user explicitly approves it.
-- Identify exact files before editing.
-- Keep patches minimal and scoped.
-- Treat Supabase/backend/API/database work as deferred unless explicitly approved.
+- Confirm the active branch, commit, and `git status`; never overwrite unexplained user changes.
+- If the worktree is dirty, inspect it and obtain explicit approval before continuing on top of it.
+- Identify the affected module boundaries, runtime data source, and required validations before editing.
+- Keep patches scoped. Repository-wide scans are appropriate only for an explicitly approved audit or when needed to prove a cross-cutting invariant.
+- Supabase is live production infrastructure. Read-only inspection is allowed when in scope; never apply a migration, reset/seed a database, mutate live data, or change secrets without explicit owner approval.
 
-## During Work
+## During work
 
-- Do not touch unrelated modules.
-- Preserve the current homepage visual direction.
-- Do not redesign the homepage unless explicitly requested.
-- Keep public website, account, admin, CMS, and Media Studio responsibilities separate.
-- Keep all current dashboard/admin work mock-only unless explicitly stated otherwise.
-- Respect Arabic/English and RTL/LTR behavior.
-- Avoid random animations.
-- Use premium editorial motion only when needed.
-- Do not reintroduce removed visual systems: trust strip, smoke bridges, gradient bridges, section blend systems, transitional fog.
+- Preserve the established public visual direction unless a redesign is explicitly requested.
+- Keep root, public, account, admin, server-route, and database responsibilities separate.
+- The storefront, account, admin, CMS, settings, catalog, checkout, inventory, packaging, promos, accounting, and analytics business data are Supabase-backed. Do not introduce mock business data or silent runtime fallbacks.
+- Keep server-authoritative pricing, delivery, promo, packaging, inventory/FIFO, COGS, and order-state rules in validated database RPCs; never trust client totals or add a service-role browser client.
+- Public settings reads must use public-scoped rows; admin writes must stay behind authenticated RLS/RPC authorization.
+- Preserve English/Arabic behavior, LTR/RTL parity, keyboard access, visible focus, and reduced-motion handling.
+- Do not expose secrets, customer data, admin-only columns, purchase costs, or internal notes.
+- Do not reintroduce removed visual systems: trust strips, smoke/gradient bridges, section-blend systems, transitional fog, or random animation.
 
-## Before Finishing
+## Before finishing
 
-- Run lint, build, or typecheck commands only when appropriate for the task.
-- For documentation-only work, do not run code validation unless there is a clear reason.
-- Append a new entry to `LINE_COFFEE_V3_PROJECT_LOG.md` after each completed work session.
-- Summarize changed files.
-- Mention validation results.
-- Mention unresolved issues or warnings.
+- Validate in proportion to risk. Code closure normally requires TypeScript, ESLint, relevant focused checks, dependency audit when packages changed, production build, and browser smoke for changed user flows.
+- Never submit a real order/contact message, send a notification, or exercise destructive admin actions unless the owner explicitly approves the side effect and cleanup plan.
+- Run `git diff --check`, review the final diff/status, and document unresolved risks honestly as blockers, non-blockers, or **Not tested**.
+- Update `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` for material state changes and append an entry to `LINE_COFFEE_V3_PROJECT_LOG.md`.
+- Summarize exact files changed, migrations created/applied, validation results, side effects, and follow-up ownership.
+- Do not commit, push, open a PR, deploy, or change production configuration unless explicitly requested.

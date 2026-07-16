@@ -10,7 +10,7 @@ import {
   getPublicSettings,
   resolvePublicPhone,
   toPhoneHref,
-} from "@/lib/admin/admin-settings";
+} from "@/lib/settings/public-site-settings";
 import { assets, contactItems } from "@/lib/mock-data/visual-content";
 import type { ContactItemKind, VisualContactItem } from "@/types/homepage";
 import { SectionHeading } from "@/components/ui/SectionHeading";

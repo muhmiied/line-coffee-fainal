@@ -349,7 +349,7 @@ export default function ProductsPageClient({
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
             {isStudio ? (
               activeCategory === "make-your-espresso" ? (
                 <EspressoBlendStudio embedded />
@@ -362,6 +362,7 @@ export default function ProductsPageClient({
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65" />
                   <input
                     type="search"
+                    aria-label={t({ en: "Search products", ar: "ابحث عن منتج" })}
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder={t({ en: "Search products...", ar: "ابحث عن منتج..." })}
@@ -438,7 +439,7 @@ export default function ProductsPageClient({
                 )}
               </>
             )}
-          </main>
+          </div>
         </div>
       </div>
     </div>

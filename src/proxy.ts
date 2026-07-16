@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-// Edge gate for the admin area.
+// Request gate for the admin area.
 //
 // IMPORTANT — this is a UX/defense-in-depth redirect, NOT the security boundary.
 // The Supabase session lives in localStorage (see src/lib/supabase/client.ts:
-// persistSession=true, default storage), which the Edge middleware cannot read.
+// persistSession=true, default storage), which the server-side proxy cannot read.
 // The authoritative gates remain:
 //   1. Row Level Security (`is_admin()`) on every admin table/RPC — a signed-out
 //      or non-admin request can read/write nothing regardless of the URL.
@@ -17,7 +17,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // spoofable, so it is treated as a hint only — never as proof of admin rights.
 const ADMIN_PRESENCE_COOKIE = "line-auth";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const hasSession = request.cookies.get(ADMIN_PRESENCE_COOKIE)?.value === "1";
 
   if (!hasSession) {
@@ -33,6 +33,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only run on admin routes. Everything else is public and skips the middleware.
+  // Only run on admin routes. Everything else is public and skips the proxy.
   matcher: ["/admin/:path*"],
 };

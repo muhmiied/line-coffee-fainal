@@ -2,7 +2,7 @@
 
 ## Current Source Of Truth
 
-- Live state: `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`. **Execution reference (what to build next, in order): `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`.** Where to edit site copy/images: `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md`.
+- Live state: `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`. **Launch verdict/blockers:** `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md`. **Execution reference (what to build next, in order): `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`.** Where to edit site copy/images: `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md`.
 - `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` keeps the locked decisions + context/history but is **no longer the phase-execution source** (its phase numbering is superseded by the master plan).
 - The Change Log below is **history**; it does not override the docs above or the block below.
 
@@ -10,19 +10,20 @@
 
 1. `CLAUDE.md` (this file) — architecture, locked decisions, current position, rules.
 2. `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` — what's real vs mock vs missing.
-3. `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` — **the official execution reference: phase order, gates, per-phase scope.** Use this for what to build next.
-4. `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md` — file location of every public text/image.
-5. `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` — decisions/history reference only; **not** the phase-execution source (numbering superseded by the master plan).
-6. `docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md` — deep model reference only; **never an execution plan**; its "current reality" columns are outdated.
+3. `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md` — final production evidence, blockers, owner/deployment checklist.
+4. `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` — **the official execution reference: phase order, gates, per-phase scope.** Use this for what to build next.
+5. `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md` — file location of every public text/image.
+6. `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` — decisions/history reference only; **not** the phase-execution source (numbering superseded by the master plan).
+7. `docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md` — deep model reference only; **never an execution plan**; its "current reality" columns are outdated.
 
 > **Canonical rule:** the **MASTER_EXECUTION_PLAN** is the official execution reference. If any older roadmap inside `docs/` conflicts with it (especially phase numbers), the master plan wins and the older doc is **not** used for execution.
 
-## Current Architecture (Verified 2026-07-04)
+## Current Architecture (Verified 2026-07-16)
 
-Supabase data access runs in the browser on the **publishable/anon key**; all data writes go through **SECURITY DEFINER RPCs** that validate + recompute server-side. Customer data is scoped by device **`guest_id`**; admin by `admin_users` + `is_admin()`. The sole Next.js server integration is the Telegram delivery route, which keeps the bot token server-only; as of Phase 18B it also reads/writes a durable dedup log using the public anon key through validated SECURITY DEFINER RPCs (no service role).
+Supabase data access runs in the browser on the **publishable/anon key**; all data writes go through **SECURITY DEFINER RPCs** that validate + recompute server-side. Customer data is scoped by Auth UID or device **`guest_id`**; admin by `admin_users` + `is_admin()`. The sole Next.js server integration is the Telegram delivery route, which keeps the bot token server-only and uses saved-order proof plus a durable log through validated SECURITY DEFINER RPCs (no service role). The log prevents sequential replays but check/send/log is not an atomic concurrent claim; see the final audit.
 
 - **REAL (Supabase):** public catalog; admin product/category CRUD; **checkout → real orders** (`create_checkout_order`); inventory **reservation in kg per product** (`inventory_stock` + `inventory_movements`); **Admin Orders** (`update_admin_order_status`); **Customer Account** (orders, profile, addresses, wishlist, notifications); real auth.
-- **MOCK (UI only, resets on refresh):** Admin Inventory's coffee/bean/supplier views, Marketing offers/announcements/broad performance, Espresso Manager, and Flavor Manager. The Admin Inventory **Packaging** tab is real as of Phase 19B and Marketing **Promo Codes** is real as of Phase 19C; Dashboard, Accounting, and Analytics are also real in their documented phases.
+- **INTENTIONALLY LOCAL/STATIC:** the cart is owner-scoped localStorage and is server-repriced; `visual-content.ts` is a versioned homepage presentation asset/copy map, not business truth. The historical `mock-data/product-catalog.ts` has zero runtime imports and remains only as deterministic seed-review-tool input. Current admin modules are real; fabricated Marketing tabs were removed.
 - **LOCAL:** Cart persists per explicit owner in localStorage (`guest:<guestId>` / `auth:<userId>`); the legacy global `line-cart-v1` key is purged and never read.
 - **PHASE 4 FOUNDATION (applied):** migration `20260630120000` adds admin-only `suppliers` / `purchases` / `purchase_items` / `inventory_lots` / `supplier_payments` / `expenses` + purchasing RPCs. Data layer: `src/lib/admin/admin-purchasing.ts`; broad admin UI wiring remains deferred.
 - **PHASE 5 FIFO ENGINE (applied):** migration `20260630130000` makes finished-product lots operational. Checkout reserves FIFO lots; delivered deducts and snapshots COGS; cancel releases; shipped does not deduct.
@@ -30,12 +31,14 @@ Supabase data access runs in the browser on the **publishable/anon key**; all da
 - **PHASE 8-9 BUILDERS (applied):** migration `20260701120000` adds the separate raw-bean FIFO resource and cost-only flavor catalog. Checkout accepts, validates, and server-prices `custom_espresso`/`custom_flavor`; espresso reserves bean lots; flavor has no stock effect. Packaging remains product-only by documented deferral.
 - **PHASE 16A ANALYTICS (applied, code-only):** `src/lib/admin/admin-analytics.ts` + `src/app/admin/analytics/page.tsx` render real sales/customer/product/order/marketing/geography analytics from existing tables; `analytics-mock.ts` deleted. No behavioural web-traffic source exists, so sessions/views/conversion/devices/channels/top-pages are shown as "not connected yet", never faked.
 - **PHASE 18A NOTIFICATIONS (applied, code-only):** after a real order is created, checkout calls a server-only Telegram route; failure is non-blocking. `/order-success` auto-opens a prefilled WhatsApp handoff once per session and retains a manual send button. Public contact/footer phone display uses valid public settings or the public env fallback and never shows the former placeholder.
-- **PHASE 18B HARDENING (applied):** migration `20260704170000` (1) enforces the storefront **store-closed** flag inside `create_checkout_order` — a thin replay-aware wrapper renames the Phase 6-7 body to `_create_checkout_order_phase67` and gates only genuinely-new orders on `site_settings.storefront.storeOpen` (fail-open when missing; an idempotent replay still returns its receipt), and (2) adds a durable admin-read-only `order_notifications` log with anon-callable `order_notification_was_sent` / `log_order_notification` DEFINER RPCs so the Telegram route dedupes across serverless instances, not just warm memory. Checkout also blocks the submit client-side when closed (server remains authoritative). No pricing/delivery/promo/FIFO/COGS/payment/refund/return change; no service-role code.
+- **PHASE 18B HARDENING (applied):** migration `20260704170000` (1) enforces the storefront **store-closed** flag inside `create_checkout_order` — a thin replay-aware wrapper renames the Phase 6-7 body to `_create_checkout_order_phase67` and gates only genuinely-new orders on `site_settings.storefront.storeOpen` (fail-open when missing; an idempotent replay still returns its receipt), and (2) adds a durable admin-read-only `order_notifications` log with anon-callable `order_notification_was_sent` / `log_order_notification` DEFINER RPCs. The log handles sequential replay, but a concurrent cold-instance double-send race remains because there is no atomic pre-send claim. Checkout also blocks the submit client-side when closed (server remains authoritative). No pricing/delivery/promo/FIFO/COGS/payment/refund/return change; no service-role code.
 - **MISSING (no DB):** behavioural web-traffic tracking (visits/sessions/page-views/conversion/device/channel/top-pages). **Media Studio does not exist and is cancelled (Decision 1).**
 - **Builders:** `CartItem.customData` carries the structured bean-ratio / base+flavor selection, and live checkout now accepts both builder kinds.
 - **Applied lifecycle:** checkout reserves inventory, `shipped` keeps it reserved, `delivered` deducts it, and `cancelled` releases it.
 
 ## Locked Business Decisions (1-line each — full text in the roadmap doc)
+
+> **Current position override (2026-07-16):** The long phase paragraph below is retained as build history and its final “remain mock” sentence is obsolete. Inventory/suppliers, Marketing Promo Codes/Announcements, Espresso Manager, Flavor Manager, CMS, Accounting, Analytics business metrics, Customers, Settings, product media, and order operations are real. Behavioral web-traffic tracking remains absent. Use the final launch audit for current gates.
 
 1 Media Studio cancelled (edit copy in code; product images via Admin Products) · 2 ready products bought finished · 3 Make-Your-Espresso = only manufacturing (raw beans by ratio) · 4 Make-Your-Flavor = cost-only · 5 FIFO lots · 6 reserve@order, deduct@delivered · 7 packaging deducts@order · 8 discount reduces Net Sales not COGS · 9 promo on product subtotal only · 10 zone delivery 30/50/100 · 11 governorate = customer pays courier · 12 all payments start Pending (manual) · 13 customer edits before shipping, then admin-only · 14 returns/refunds admin-only · 15 reviews approval-only · 16 Purchases=goods / Expenses=non-goods · 17 suppliers paid/partial/unpaid · 18 /admin protected · 19 product images via Admin Products+Storage · 20 unspecified → practical default.
 
@@ -49,7 +52,7 @@ Supabase data access runs in the browser on the **publishable/anon key**; all da
 
 ## Project Overview
 
-**Line Coffee** is a premium Egyptian specialty-coffee brand website. Visual-first, bilingual (EN/AR), dark cinematic aesthetic. **Architecture note (updated 2026-06-29):** this is **no longer mock-only** — catalog, checkout→orders, admin orders, inventory reservation, and the customer account are **real Supabase** (browser anon key + SECURITY DEFINER RPCs). Remaining admin modules are still mock UI; some launch domains are missing — see `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` for the verified map. *(The 2026-06-16 sections below describe the homepage build and remain accurate for the public visuals.)*
+**Line Coffee** is a premium Egyptian specialty-coffee brand website. Visual-first, bilingual (EN/AR), dark cinematic aesthetic. **Architecture note (updated 2026-07-16):** catalog, builders, checkout/orders, account ownership, admin operations, inventory/FIFO/packaging, CMS, promos/announcements, settings, accounting, and business analytics are real Supabase-backed features (browser publishable key + validated SECURITY DEFINER RPCs; no service-role server). Behavioral web-traffic tracking is intentionally absent. See `CURRENT_STATE.md` and the final launch audit for the verified map and unresolved launch gates. *(The 2026-06-16 sections below describe the homepage build and remain accurate for the public visuals.)*
 
 ---
 
@@ -57,13 +60,13 @@ Supabase data access runs in the browser on the **publishable/anon key**; all da
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16.2.9 (App Router) |
 | UI Library | React 19.2.4 |
 | Language | TypeScript (strict mode) |
 | Styling | Tailwind CSS v4 — CSS-first config via `@theme inline` in `globals.css` |
 | Fonts | Playfair Display (local TTF), Cairo (Google), Tajawal (Google) |
 | Linter | ESLint with `@typescript-eslint` + custom rules |
-| Backend | Supabase (Postgres) — browser anon key + SECURITY DEFINER RPCs; no service-role server. Some admin modules still mock — see `CURRENT_STATE.md`. |
+| Backend | Supabase (Postgres) — browser publishable/anon key + SECURITY DEFINER RPCs; no service-role server. |
 
 ---
 
@@ -113,7 +116,8 @@ type LocalizedValue = { en: string; ar: string }
 ```
 src/
 ├── app/
-│   ├── layout.tsx              ← Root layout: fonts, header, footer, lang provider
+│   ├── layout.tsx              ← Root layout: metadata/fonts + initial lang/dir only
+│   ├── (public)/layout.tsx     ← Public providers, header/footer/main + business JSON-LD
 │   └── globals.css             ← ALL design tokens + component CSS (Tailwind v4 style)
 ├── components/
 │   └── layout/public/
@@ -183,6 +187,18 @@ ContactSection       ← cinematic-section, contact form + info
 ---
 
 ## Change Log
+
+### [2026-07-16] — Final Production Closure Audit + Scoped Hardening (no migration, no deployment)
+
+**Outcome:** Full non-destructive architecture, live Supabase/RLS/advisor/invariant/accounting, dependency, security, SEO, performance, production-server, responsive EN/AR, keyboard, and targeted accessibility audit. The canonical 29-section report is `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md`; verdict is **Not launch-ready** until anonymous checkout abuse protection, credentialed customer/admin acceptance, one pending packaging-shortage review, and the owner deployment checklist are closed.
+
+**Code fixes:** removed static bean/base/flavor business fallbacks from both builders and made them fail closed; propagated live `public_products.is_available` to cards/detail/wishlist; changed Admin Products stock badges from null legacy variant states to real `inventory_stock`; added auth autocomplete/name metadata, public skip/main landmarks, search labels, checkout labels/required semantics, correct footer headings, one-main structure, and a real mobile-dialog focus trap; pinned PostCSS 8.5.15 to clear the production audit; corrected the historical seed generator's post-cleanup assertions to 124 products/372 variants without changing its catalog input or seed data. The resumed closure moved language/cart providers and Organization/WebSite/Store JSON-LD out of the root and into `(public)`, separated public settings reads from admin writes through `src/lib/settings/*`, migrated `src/middleware.ts` to the Next 16 `src/proxy.ts` convention, and added a repeatable non-destructive production smoke runner.
+
+**Evidence:** TypeScript and ESLint pass clean; `npm audit --omit=dev` reports zero vulnerabilities; two final production builds compile all 42 pages without framework warnings. The earlier broad 177-URL server sweep and the repeatable final 155-route sweep both had no HTTP/network failures. The final runner covers English desktop, Arabic mobile RTL, language switching, mobile focus trap/return, scoped guest cart, populated checkout without submission, signed-out admin redirect, public/admin JSON-LD isolation, landmarks/labels/IDs/mojibake/overflow, and browser console/page errors with zero failures or warnings. Live DB has 40 matching local/remote migrations and zero previously audited core total/FIFO/inventory/packaging/COGS/promo/notification invariant mismatches. No database/data write, order/contact/notification submission, secret mutation, migration, commit, push, PR, or deployment.
+
+**Remaining material findings:** robust checkout anti-abuse is absent; Telegram check/send/log has a migration-gated concurrent double-send race; six curated safe public views still trigger Supabase `security_definer_view`; leaked-password protection is disabled; CSP remains report-only; production monitoring/backups/domain/Auth/SMTP/launch data need owner confirmation; credentialed customer/admin behavior is **Not tested**.
+
+---
 
 ### [2026-07-15] — Phase 3: SEO, GEO, AEO, Accessibility & UX States (code + 1 migration APPLIED, no visual redesign)
 
@@ -330,7 +346,7 @@ ContactSection       ← cinematic-section, contact form + info
 
 **6. Hero CTAs per slide (`visual-content.ts`):** Slide 1 unchanged (Shop Coffee → `/products` · Our Story → `/about`). Slide 2 (roastery image) → **Make Your Espresso** `/make-your-espresso` + **Explore Espresso Blends** `/products?category=espresso-blends`, with coherent title/subtitle. Slide 3 → **Make Your Flavor** `/make-your-flavor` + **Explore Flavor Coffee** `/products?category=flavor-coffee`; its image was switched to the flavor asset so the slide matches its flavor CTAs. Every Hero CTA now points to a valid live route (no deprecated target). No Hero layout change.
 
-**7. Deprecated Make-Your route:** searched — **none exists**. Only `/make-your-espresso` and `/make-your-flavor` are present (both live); `EspressoBlendStudio.tsx` is the current live component. No deprecated blend-builder route/page/link anywhere, so nothing was deleted; all public Make-Your links resolve to valid pages.
+**7. Deprecated Make-Your route (historical result):** at the time of this pass the two standalone builder routes were live and no additional deprecated blend-builder route existed. The current 2026-07-16 routing has since consolidated both modes under `/products?category=make-your-espresso` and `/products?category=make-your-flavor`; use the current-state document and route tree rather than this historical route snapshot.
 
 **8. Tokens centralized:** all new color/effect values were added as/through the `--pub-*` layer + `.pub-*` classes in `globals.css`; no scattered one-off colors. Public website only; admin dashboard untouched.
 

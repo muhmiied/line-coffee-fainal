@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import localFont from "next/font/local";
 import { Cairo, Tajawal } from "next/font/google";
-import { LanguageProvider, type Language } from "@/lib/context/language";
-import { CartProvider } from "@/lib/context/cart";
+import type { Language } from "@/lib/context/language";
 import {
   BRAND_LOGO,
   DEFAULT_DESCRIPTION,
@@ -13,8 +12,6 @@ import {
   SITE_NAME,
   SITE_URL,
 } from "@/lib/seo/site";
-import { JsonLd, localBusinessJsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
-import { getSeoBusinessInfo } from "@/lib/seo/data";
 import "./globals.css";
 
 const playfairDisplay = localFont({
@@ -154,8 +151,6 @@ export default async function RootLayout({
   const cookieLanguage = cookieStore.get(LANGUAGE_COOKIE_NAME)?.value;
   const initialLanguage: Language = isLanguage(cookieLanguage) ? cookieLanguage : "en";
   const initialDir = initialLanguage === "ar" ? "rtl" : "ltr";
-  const businessInfo = await getSeoBusinessInfo();
-
   return (
     <html
       lang={initialLanguage}
@@ -163,12 +158,7 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${playfairDisplay.variable} ${cairo.variable} ${tajawal.variable} ${aligarh.variable}`}
     >
-      <body>
-        <JsonLd data={[organizationJsonLd(), websiteJsonLd(), localBusinessJsonLd(businessInfo)]} />
-        <LanguageProvider initialLanguage={initialLanguage}>
-          <CartProvider>{children}</CartProvider>
-        </LanguageProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

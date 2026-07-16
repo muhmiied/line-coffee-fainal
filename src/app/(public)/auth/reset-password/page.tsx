@@ -162,7 +162,9 @@ export default function ResetPasswordPage() {
           <div className="relative">
             <input
               id="reset-password"
+              name="password"
               type={showPass ? "text" : "password"}
+              autoComplete="new-password"
               required
               dir="ltr"
               value={password}
@@ -194,7 +196,9 @@ export default function ResetPasswordPage() {
           <div className="relative">
             <input
               id="reset-confirm"
+              name="password-confirmation"
               type={showConf ? "text" : "password"}
+              autoComplete="new-password"
               required
               dir="ltr"
               value={confirm}

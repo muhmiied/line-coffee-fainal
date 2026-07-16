@@ -48,7 +48,7 @@ export default function WishlistPage() {
 
   const handleAddToCart = (slug: string) => {
     const product = visibleProducts.find((p) => p.slug === slug);
-    if (!product) return;
+    if (!product?.isAvailable) return;
     const firstSize = product.sizes[0];
     addItem({
       kind:         "product",
@@ -158,10 +158,13 @@ export default function WishlistPage() {
                 <button
                   type="button"
                   onClick={() => handleAddToCart(product.slug)}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#B6885E]/20 py-2 text-xs text-[#B79B85]/70 transition-all hover:border-[#B6885E]/40 hover:text-[#D6A373]"
+                  disabled={!product.isAvailable}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#B6885E]/20 py-2 text-xs text-[#B79B85]/70 transition-all enabled:hover:border-[#B6885E]/40 enabled:hover:text-[#D6A373] disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   <ShoppingBag className="h-3.5 w-3.5" />
-                  {t({ en: "Add to cart", ar: "أضف للسلة" })}
+                  {product.isAvailable
+                    ? t({ en: "Add to cart", ar: "أضف للسلة" })
+                    : t({ en: "Out of Stock", ar: "غير متوفر" })}
                 </button>
               </div>
             );

@@ -51,6 +51,7 @@ export const PUBLIC_PRODUCT_COLUMNS = [
   "image_url",
   "gallery",
   "is_new",
+  "is_available",
 ].join(", ");
 
 export type PublicCatalogSize = {
@@ -94,6 +95,8 @@ export type PublicCatalogProduct = {
   bestSeller: boolean;
   /** True while new_until > now() in the DB. Expires automatically after 40 days. */
   isNew: boolean;
+  /** Derived from the real inventory ledger by the public_products view. */
+  isAvailable: boolean;
 };
 
 export type PublicCategoryRow = {
@@ -129,6 +132,8 @@ export type PublicProductRow = {
   gallery: unknown;
   /** Computed by the public_products view: new_until IS NOT NULL AND new_until > now() */
   is_new: boolean | null;
+  /** Computed by the public_products view from inventory_stock.available_kg. */
+  is_available: boolean | null;
 };
 
 export type PublicVariantRow = {
@@ -320,6 +325,7 @@ export function mapProductRows(
       featured: Boolean(row.featured),
       bestSeller: Boolean(row.best_seller),
       isNew: Boolean(row.is_new),
+      isAvailable: row.is_available !== false,
     };
   });
 }

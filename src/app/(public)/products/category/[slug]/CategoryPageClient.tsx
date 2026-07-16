@@ -265,7 +265,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
         </div>
       </section>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
           <div className="rounded-2xl border border-[#B6885E]/16 bg-[#120D09]/62 p-5 shadow-[0_22px_60px_rgba(0,0,0,0.26)]">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
@@ -301,6 +301,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
               <Search className={cn("pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65", dir === "rtl" ? "right-3" : "left-3")} />
               <input
                 type="search"
+                aria-label={t({ en: "Search this category", ar: "ابحث داخل التصنيف" })}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={t({ en: "Search this category...", ar: "ابحث داخل التصنيف..." })}
@@ -422,7 +423,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
             ))}
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

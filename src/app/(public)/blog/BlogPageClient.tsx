@@ -180,6 +180,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
               />
               <input
                 type="text"
+                aria-label={t({ en: "Search articles", ar: "ابحث في المقالات" })}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t({ en: "Search articles...", ar: "ابحث في المقالات..." })}

@@ -9,14 +9,14 @@ import { useLanguage } from "@/lib/context/language";
 import { submitContactMessage } from "@/lib/cms/public-cms";
 import { CONTACT_FAQ_ITEMS } from "@/lib/content/contact-faq";
 import {
-  DEFAULT_ADMIN_SETTINGS,
+  DEFAULT_PUBLIC_SETTINGS,
   formatPublicPhone,
   getPublicSettings,
   resolvePublicPhone,
   toEmailHref,
   toPhoneHref,
   toWhatsAppHref,
-} from "@/lib/admin/admin-settings";
+} from "@/lib/settings/public-site-settings";
 import { cn } from "@/lib/utils/cn";
 
 // ─── Static mock content ──────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [openFaq, setOpenFaq]     = useState<number | null>(null);
-  const [settings, setSettings] = useState(DEFAULT_ADMIN_SETTINGS);
+  const [settings, setSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
   const whatsappNumber = resolvePublicPhone(
     settings.contact.whatsappNumber,
     process.env.NEXT_PUBLIC_WHATSAPP_PHONE ?? "",

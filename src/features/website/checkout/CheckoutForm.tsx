@@ -32,7 +32,7 @@ import {
   resolvePublicPhone,
   toWhatsAppHref,
   type StorefrontSettings,
-} from "@/lib/admin/admin-settings";
+} from "@/lib/settings/public-site-settings";
 import { supabase } from "@/lib/supabase/client";
 import { isValidEgyptianPhone } from "@/lib/validation/phone";
 import { EGYPT_GOVERNORATES as GOVS } from "@/lib/checkout/governorates";
@@ -638,9 +638,9 @@ export function CheckoutForm() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 text-center">
         <ShoppingBag className="mb-4 h-12 w-12 text-[#D6A373]/70" />
-        <p className="mb-2 font-serif text-xl font-bold text-[#F5E6D8]">
+        <h1 className="mb-2 font-serif text-xl font-bold text-[#F5E6D8]">
           {t({ en: "Your cart is empty", ar: "سلتك فارغة" })}
-        </p>
+        </h1>
         <p className="mb-6 text-sm text-[#D6B79A]/75">
           {t({ en: "Add items to your cart before checking out.", ar: "أضف منتجات إلى سلتك قبل إتمام الطلب." })}
         </p>

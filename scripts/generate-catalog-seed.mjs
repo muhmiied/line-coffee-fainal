@@ -418,8 +418,8 @@ function validate({ source, catalogCategories, catalogProducts, sql }) {
     .map((product) => product.slug);
 
   if (catalogCategories.length !== 7) errors.push(`Expected 7 categories, got ${catalogCategories.length}.`);
-  if (catalogProducts.length !== 125) errors.push(`Expected 125 products, got ${catalogProducts.length}.`);
-  if (variants.length !== 375) errors.push(`Expected 375 variants, got ${variants.length}.`);
+  if (catalogProducts.length !== 124) errors.push(`Expected 124 products, got ${catalogProducts.length}.`);
+  if (variants.length !== 372) errors.push(`Expected 372 variants, got ${variants.length}.`);
   if (siteSettings.length !== 3) errors.push(`Expected 3 site_settings, got ${siteSettings.length}.`);
   if (duplicateProductSlugs.length) errors.push(`Duplicate product slugs: ${duplicateProductSlugs.join(", ")}`);
   if (duplicateCategorySlugs.length) errors.push(`Duplicate category slugs: ${duplicateCategorySlugs.join(", ")}`);

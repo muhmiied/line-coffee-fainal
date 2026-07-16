@@ -69,12 +69,15 @@ export function PaymentSection({ t, dir, form, update }: PaymentSectionProps) {
 
       {form.paymentMethod === "instapay" && (
         <div className="mt-4">
-          <FieldLabel label={t({
+          <FieldLabel htmlFor="checkout-instapay-reference" label={t({
             en: "InstaPay reference (optional)",
             ar: "رقم مرجع إنستا باي (اختياري)",
           })} />
           <input
+            id="checkout-instapay-reference"
+            name="paymentReference"
             type="text"
+            autoComplete="off"
             value={form.paymentReference}
             onChange={(e) => update("paymentReference", e.target.value)}
             placeholder={t({
@@ -89,12 +92,15 @@ export function PaymentSection({ t, dir, form, update }: PaymentSectionProps) {
 
       {form.paymentMethod === "e-wallet" && (
         <div className="mt-4">
-          <FieldLabel label={t({
+          <FieldLabel htmlFor="checkout-wallet-phone" label={t({
             en: "Wallet phone (optional)",
             ar: "رقم المحفظة (اختياري)",
           })} />
           <input
+            id="checkout-wallet-phone"
+            name="paymentPhone"
             type="tel"
+            autoComplete="tel"
             value={form.paymentPhone}
             onChange={(e) => update("paymentPhone", e.target.value)}
             placeholder="+20 1XX XXX XXXX"

@@ -11,23 +11,36 @@ export const inputClass =
 
 export const errorClass = "mt-1.5 text-[11px] text-red-400";
 
-export function FieldLabel({ label, required }: { label: string; required?: boolean }) {
+export function FieldLabel({
+  label,
+  required,
+  htmlFor,
+}: {
+  label: string;
+  required?: boolean;
+  htmlFor?: string;
+}) {
   return (
-    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/80">
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-[#D6B79A]/80"
+    >
       {label}
-      {required && <span className="ml-1 text-[#D6A373]">*</span>}
+      {required && <span aria-hidden="true" className="ml-1 text-[#D6A373]">*</span>}
     </label>
   );
 }
 
 export function CustomSelect({
-  value, onChange, options, placeholder, disabled, dir, label,
+  id, value, onChange, options, placeholder, disabled, required, dir, label,
 }: {
+  id?:          string;
   value:       string;
   onChange:    (v: string) => void;
   options:     Array<{ value: string; label: string }>;
   placeholder: string;
   disabled?:   boolean;
+  required?:   boolean;
   dir:         string;
   /** Accessible name for the listbox trigger (e.g. the field's own label text). */
   label?:      string;
@@ -92,12 +105,15 @@ export function CustomSelect({
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
+        id={id}
         type="button"
+        role="combobox"
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open ? "true" : "false"}
         aria-controls={listId}
-        aria-label={label}
+        aria-label={id ? undefined : label}
+        aria-required={required ? "true" : undefined}
         onClick={() => !disabled && (open ? setOpen(false) : openAt(selectedIndex))}
         onKeyDown={handleTriggerKeyDown}
         className={cn(

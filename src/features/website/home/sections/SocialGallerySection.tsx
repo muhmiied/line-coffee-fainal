@@ -6,7 +6,7 @@ import { ArrowUpRight, Camera } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { socialGalleryImages } from "@/lib/mock-data/visual-content";
 import { InstagramIcon, FacebookIcon } from "@/components/icons/SocialIcons";
-import { getPublicSettings, toPublicHttpUrl } from "@/lib/admin/admin-settings";
+import { getPublicSettings, toPublicHttpUrl } from "@/lib/settings/public-site-settings";
 import { cn } from "@/lib/utils/cn";
 
 const INSTAGRAM_HANDLE = "@linecoffee.eg";
