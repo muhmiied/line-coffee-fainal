@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
 
 const ignoredDevArtifacts = [
+  // Next's own default watchOptions.ignored (a regex matching node_modules,
+  // .git and .next) is set on the config before this file's webpack() hook
+  // runs below. Webpack's config schema requires array-form `ignored` to be
+  // strings only (a regex can't sit alongside them in the same array), so
+  // the equivalent globs are listed explicitly here rather than reusing the
+  // regex object — omitting them would leave node_modules/.next unwatched-
+  // ignored, letting the dev compiler's own output writes to .next
+  // retrigger itself in a rebuild loop.
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/.next/**",
   "**/.playwright-mcp/**",
   "**/.claude/**",
   "**/.impeccable/**",
