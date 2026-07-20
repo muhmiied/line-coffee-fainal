@@ -188,6 +188,14 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-07-20] — Arabic homepage shaping fix (font-scope only, no redesign/deployment)
+
+**Root cause:** Homepage and other `.arabic-body` surfaces forced the decorative Aligarh OTF on every RTL descendant with `!important`, while the correctly rendered Header and Announcement Bar used Cairo/Tajawal. The deployed OTF files returned `200` with the correct `font/otf` MIME and matched the local files byte-for-byte, but their mobile WebKit/Chromium rendering looked malformed and the available 400/700 faces did not match several requested 500/600/800 weights. The Hero and section strings remained valid UTF-8 single text nodes; character splitting, hydration, CSS transforms, and font transport were not the cause.
+
+**Fix:** Removed the unused Aligarh `next/font/local` registration/preload and pointed the existing scoped Arabic body/display variables to Cairo/Tajawal, with Tahoma/Arial fallbacks. No Arabic or English copy, Hero timing, layout, component structure, backend, database, migration, Vercel setting, or business flow changed.
+
+**Validation:** `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `git diff --check` passed. Production-mode Playwright checks covered Arabic desktop, iPhone-sized WebKit, English desktop, initial Hero layer/count-up animation, refresh, client navigation back to Home, Header/Announcement Bar, Hero heading/body/CTAs/stats, below-Hero sections, slow font loading, font response status/MIME, RTL/LTR, console/hydration, and horizontal overflow.
+
 ### [2026-07-16] — Final Production Closure Audit + Scoped Hardening (no migration, no deployment)
 
 **Outcome:** Full non-destructive architecture, live Supabase/RLS/advisor/invariant/accounting, dependency, security, SEO, performance, production-server, responsive EN/AR, keyboard, and targeted accessibility audit. The canonical 29-section report is `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md`; verdict is **Not launch-ready** until anonymous checkout abuse protection, credentialed customer/admin acceptance, one pending packaging-shortage review, and the owner deployment checklist are closed.

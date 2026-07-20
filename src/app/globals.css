@@ -1,12 +1,9 @@
 @import "tailwindcss";
 
 /*
- * Arabic display/body font (Aligarh) is now self-hosted and optimized via
- * next/font/local in src/app/layout.tsx — it exposes the --font-aligarh CSS
- * variable with automatic preloading and font-display: swap. The old raw
- * @font-face OTF loads were removed, along with the unused Tinta face (it was
- * defined but never referenced). Aligarh is wired in below through the
- * --font-arabic-*-active variables.
+ * Arabic body/display text uses the production-safe Cairo/Tajawal faces loaded
+ * in src/app/layout.tsx. Keep Tahoma/Arial fallbacks in the shaping context so
+ * Arabic remains connected while web fonts are loading or unavailable.
  */
 
 :root {
@@ -22,8 +19,8 @@
   --gold-border: rgba(182, 136, 94, 0.12);
   --gold-glow: rgba(182, 136, 94, 0.25);
   --ease-luxury: cubic-bezier(0.22, 1, 0.36, 1);
-  --font-arabic-display-active: var(--font-aligarh);
-  --font-arabic-body-active: var(--font-aligarh);
+  --font-arabic-display-active: var(--font-tajawal);
+  --font-arabic-body-active: var(--font-cairo);
 
   /* ─────────────────────────────────────────────────────────────────────
      PUBLIC VISUAL TOKENS — single source of truth for the OFF-home public
@@ -93,17 +90,17 @@
 
 html[dir="rtl"] .arabic-body,
 html[dir="rtl"] .arabic-body * {
-  font-family: var(--font-arabic-body-active), var(--font-tajawal), "Cairo", sans-serif !important;
+  font-family: var(--font-arabic-body-active), "Cairo", Tahoma, Arial, sans-serif !important;
 }
 
 html[dir="rtl"] .arabic-display,
 html[dir="rtl"] .arabic-display * {
-  font-family: var(--font-arabic-display-active), var(--font-tajawal), "Cairo", sans-serif !important;
+  font-family: var(--font-arabic-display-active), "Tajawal", var(--font-cairo), "Cairo", Tahoma, Arial, sans-serif !important;
 }
 
 html[dir="rtl"] .arabic-number,
 html[dir="rtl"] .arabic-number * {
-  font-family: var(--font-arabic-display-active), var(--font-tajawal), "Cairo", sans-serif !important;
+  font-family: var(--font-arabic-body-active), "Cairo", Tahoma, Arial, sans-serif !important;
   font-variant-numeric: tabular-nums;
   direction: ltr;
   unicode-bidi: isolate;
@@ -120,8 +117,8 @@ html[dir="rtl"] .numeric-symbol * {
 @theme inline {
   --font-sans: var(--font-playfair), Georgia, "Times New Roman", serif;
   --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
-  --font-arabic-brand: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
-  --font-arabic-display: var(--font-tajawal), "Segoe UI", Tahoma, sans-serif;
+  --font-arabic-brand: var(--font-cairo), "Cairo", "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-arabic-display: var(--font-tajawal), "Tajawal", var(--font-cairo), "Cairo", "Segoe UI", Tahoma, Arial, sans-serif;
   --color-coffee-black: #0b0806;
   --color-coffee-deep: #120d09;
   --color-coffee-dark: #15100b;
