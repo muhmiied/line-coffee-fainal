@@ -146,9 +146,22 @@ export default function AdminTopBar({
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, []);
 
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+
   const handleSignOut = async () => {
-    await signOut();
-    router.replace("/auth/login");
+    setSignOutError(null);
+    try {
+      await signOut();
+      router.replace("/auth/login");
+    } catch {
+      // A failed sign-out must leave the admin visibly authenticated — stay
+      // put and surface a retry message instead of redirecting to login.
+      setSignOutError(
+        language === "ar"
+          ? "تعذر تسجيل الخروج. حاول مرة أخرى."
+          : "Could not sign out. Please try again.",
+      );
+    }
   };
 
   return (
@@ -391,6 +404,11 @@ export default function AdminTopBar({
                 <LogOut size={13} />
                 {t("Sign Out")}
               </button>
+              {signOutError && (
+                <p className="px-4 pb-2 pt-1 text-[11px]" style={{ color: "#e07a63" }}>
+                  {signOutError}
+                </p>
+              )}
             </div>
           )}
         </div>

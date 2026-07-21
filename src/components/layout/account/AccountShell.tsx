@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
@@ -36,6 +36,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
   const pathname   = usePathname();
   const router     = useRouter();
   const { user, isLoading, isLoggedIn, signOut } = useAuth();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   // Auth guard — useEffect runs client-side only, where localStorage is available
   useEffect(() => {
@@ -45,8 +46,17 @@ export function AccountShell({ children, title }: AccountShellProps) {
   }, [isLoading, isLoggedIn, router]);
 
   const handleSignOut = async () => {
-    await signOut();
-    router.replace("/");
+    setSignOutError(null);
+    try {
+      await signOut();
+      router.replace("/");
+    } catch {
+      // A failed sign-out must leave the user visibly authenticated — stay
+      // on the account page and surface a retry message.
+      setSignOutError(
+        t({ en: "Could not sign out. Please try again.", ar: "تعذر تسجيل الخروج. حاول مرة أخرى." }),
+      );
+    }
   };
 
   const displayName = user?.name ?? user?.email ?? "Customer";
@@ -127,6 +137,9 @@ export function AccountShell({ children, title }: AccountShellProps) {
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}
               </button>
+              {signOutError && (
+                <p className="px-3.5 pt-1.5 text-xs text-red-400/80">{signOutError}</p>
+              )}
             </nav>
           </aside>
 

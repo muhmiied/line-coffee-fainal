@@ -230,11 +230,21 @@ function UserMenu({
   const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    await signOut();
-    onClose();
-    router.replace("/");
+    setSignOutError(null);
+    try {
+      await signOut();
+      onClose();
+      router.replace("/");
+    } catch {
+      // A failed sign-out must leave the user visibly authenticated — keep
+      // the menu open and surface a retry message instead of closing it.
+      setSignOutError(
+        t({ en: "Could not sign out. Please try again.", ar: "تعذر تسجيل الخروج. حاول مرة أخرى." }),
+      );
+    }
   };
 
   const isLoggedIn = account.user !== null;
@@ -351,6 +361,9 @@ function UserMenu({
               <LogOut className="h-4 w-4 shrink-0" />
               {t({ en: "Sign out", ar: "تسجيل الخروج" })}
             </button>
+            {signOutError && (
+              <p className="px-2 pb-2 text-xs text-red-300">{signOutError}</p>
+            )}
           </div>
         </>
       ) : (
@@ -400,11 +413,21 @@ function MobileMenu({
   const { t, dir } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    await signOut();
-    onClose();
-    router.replace("/");
+    setSignOutError(null);
+    try {
+      await signOut();
+      onClose();
+      router.replace("/");
+    } catch {
+      // A failed sign-out must leave the user visibly authenticated — keep
+      // the menu open and surface a retry message instead of closing it.
+      setSignOutError(
+        t({ en: "Could not sign out. Please try again.", ar: "تعذر تسجيل الخروج. حاول مرة أخرى." }),
+      );
+    }
   };
 
   const isLoggedIn = account.user !== null;
@@ -601,6 +624,9 @@ function MobileMenu({
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}
               </button>
+              {signOutError && (
+                <p className="px-4 pt-2 text-xs text-red-300">{signOutError}</p>
+              )}
             </>
           ) : (
             <div className="space-y-2 px-2">

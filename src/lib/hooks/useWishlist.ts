@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { supabase } from "@/lib/supabase/client";
 import { getOrCreateGuestId } from "@/lib/checkout";
+import {
+  COMMERCE_OWNER_LINKED_EVENT,
+  getResolvedCommerceOwner,
+  startCommerceOwnerResolver,
+} from "@/lib/hooks/useAuth";
 
 // =============================================================================
 // Owner-scoped wishlist store (Phase 2 bugfix)
@@ -121,15 +125,56 @@ async function fetchServerWishlist(): Promise<string[]> {
   return mod.getCustomerWishlist();
 }
 
-function persistServer(slug: string, remove: boolean) {
-  import("@/lib/account/customer-account")
-    .then((mod) => {
-      const op = remove
-        ? mod.removeCustomerWishlistItem(slug)
-        : mod.addCustomerWishlistItem(slug);
-      return op.catch(() => {});
-    })
-    .catch(() => {});
+// Per-slug operation queue: rapid add/remove clicks on the SAME product must
+// reach the server in the order the user made them (rapid-toggle rule), and a
+// failed write must reconcile — but only revert what IT changed, never a
+// different slug or a newer local toggle the user has since made on this one
+// (no "restoring unrelated products" / no clobbering fresher intent).
+//
+// `latestSlugSeq` tracks which queued operation is the LATEST for a slug.
+// Checking "does current state match what I wanted" alone is not enough: on
+// add→remove→add where the first add fails but the third (also an add)
+// later succeeds, by the time the first add's catch runs, the THIRD click's
+// synchronous optimistic update (fired immediately at click time, ahead of
+// any network round trip) already left the store showing "has" — so the
+// first add's catch would wrongly read that as its own effect and revert a
+// state it didn't create. Only the operation that is still the most
+// recently queued one for that slug is allowed to reconcile.
+const pendingSlugOps = new Map<string, Promise<void>>();
+const latestSlugSeq = new Map<string, number>();
+
+function queuePersist(slug: string, remove: boolean, ownerToken: string) {
+  const seq = (latestSlugSeq.get(slug) ?? 0) + 1;
+  latestSlugSeq.set(slug, seq);
+
+  const prior = pendingSlugOps.get(slug) ?? Promise.resolve();
+  const next = prior.catch(() => {}).then(async () => {
+    // The owner may have changed since this op was queued (e.g. queued as a
+    // guest action, then the visitor signed in before it got to run) — the
+    // Supabase client always sends the CURRENT session's credentials, so an
+    // un-scoped write here could land on the wrong owner's account. Skip it
+    // entirely rather than write under a different owner than intended.
+    if (store.ownerKey !== ownerToken) return;
+
+    const mod = await import("@/lib/account/customer-account");
+    try {
+      if (remove) await mod.removeCustomerWishlistItem(slug);
+      else await mod.addCustomerWishlistItem(slug);
+    } catch {
+      if (store.ownerKey !== ownerToken) return; // owner switched — nothing to reconcile
+      if (latestSlugSeq.get(slug) !== seq) return; // a newer op for this slug is queued/queued-since — defer to it
+      const currentlyHas = store.ids.includes(slug);
+      const failedOpTargetHas = !remove; // what the failed write tried to make true
+      if (currentlyHas !== failedOpTargetHas) return; // a newer local toggle already moved past this
+      const reverted = remove
+        ? [...store.ids, slug] // failed remove -> restore locally
+        : store.ids.filter((s) => s !== slug); // failed add -> undo locally
+      store = { ...store, ids: reverted };
+      if (store.kind === "guest" && store.guestId) writeGuestCache(store.guestId, reverted);
+      emit();
+    }
+  });
+  pendingSlugOps.set(slug, next);
 }
 
 // ─── Owner switching ─────────────────────────────────────────────────────────
@@ -165,6 +210,7 @@ function mutate(slug: string, remove: boolean) {
   if (remove && !has) return;
   if (!remove && has) return;
 
+  const ownerToken = store.ownerKey;
   const next = remove
     ? store.ids.filter((s) => s !== slug)
     : [...store.ids, slug];
@@ -172,17 +218,37 @@ function mutate(slug: string, remove: boolean) {
   emit();
 
   if (store.kind === "guest" && store.guestId) writeGuestCache(store.guestId, next);
-  persistServer(slug, remove);
+  queuePersist(slug, remove, ownerToken);
 }
 
-// ─── One module-level auth watcher drives the owner ──────────────────────────
-// A single supabase auth subscription (not one per component) keeps the wishlist
-// owner in sync with sign-in / sign-out, so account switches clear + refetch.
+// ─── Owner resolution is driven by the shared commerce-owner resolver ───────
+// The wishlist used to run its OWN independent supabase.auth.onAuthStateChange
+// listener here and hydrate the moment the raw event fired. That raced ahead
+// of link_guest_data_to_account() (which moves the guest's items onto the
+// account), so a fresh sign-in briefly showed an empty account wishlist, and
+// logout briefly showed the stale pre-link guest cache before the server
+// confirmed those rows had moved. COMMERCE_OWNER_LINKED_EVENT (useAuth.ts)
+// fires only once linking has settled (or timed out) for a given transition,
+// so subscribing to it instead makes hydration always come after migration.
 
-let _authWatcherStarted = false;
+let _wishlistOwnerWatcherStarted = false;
 
 function applyAuthUser(userId: string | null | undefined) {
   if (userId) {
+    // If we were previously a guest, that guest's items have just been (or
+    // were attempted to be) linked to this account by the resolver — its
+    // local cache is now stale. Clear it now so a LATER logout back to this
+    // same guest_id seeds from nothing instead of flashing the pre-link
+    // items before the server confirms they moved (the reported "old guest
+    // wishlist appears briefly, then disappears" symptom). The server stays
+    // authoritative either way: setOwner() below always re-fetches next.
+    if (store.kind === "guest" && store.guestId) {
+      try {
+        window.localStorage.removeItem(GUEST_KEY_PREFIX + store.guestId);
+      } catch {
+        // ignore (private mode / quota)
+      }
+    }
     setOwner(`auth:${userId}`, "auth", null);
     return;
   }
@@ -191,17 +257,24 @@ function applyAuthUser(userId: string | null | undefined) {
 }
 
 function startAuthWatcher() {
-  if (_authWatcherStarted || typeof window === "undefined") return;
-  _authWatcherStarted = true;
+  if (_wishlistOwnerWatcherStarted || typeof window === "undefined") return;
+  _wishlistOwnerWatcherStarted = true;
   clearLegacyKeyOnce();
 
-  supabase.auth
-    .getUser()
-    .then(({ data }) => applyAuthUser(data.user?.id ?? null))
-    .catch(() => applyAuthUser(null));
+  // Ensures the shared resolver is running even if no useAuth() consumer has
+  // mounted yet on this page.
+  startCommerceOwnerResolver();
 
-  supabase.auth.onAuthStateChange((_event, session) => {
-    applyAuthUser(session?.user?.id ?? null);
+  // A resolution may have already completed before this listener attaches
+  // (e.g. this is the first useWishlist() consumer to mount, but useAuth()
+  // in the header resolved the owner earlier this page load) — pick that up
+  // synchronously rather than waiting on an event that may never fire again.
+  const already = getResolvedCommerceOwner();
+  if (already) applyAuthUser(already.userId);
+
+  window.addEventListener(COMMERCE_OWNER_LINKED_EVENT, (event) => {
+    const detail = (event as CustomEvent<{ userId: string | null; epoch: number }>).detail;
+    applyAuthUser(detail?.userId ?? null);
   });
 }
 

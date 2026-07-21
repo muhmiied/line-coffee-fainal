@@ -333,7 +333,12 @@ export async function getCustomerWishlist(): Promise<string[]> {
   const { data, error } = await supabase.rpc("get_customer_wishlist", {
     p_guest_id: guestId,
   });
-  if (error || !data) return [];
+  // A genuine RPC error must THROW, not resolve as "the wishlist is empty" —
+  // the caller (useWishlist's owner-switch reconcile) relies on this to tell
+  // a real empty list apart from a failed read and preserve the last valid
+  // state instead of wrongly overwriting it with an empty one.
+  if (error) throw error;
+  if (!data) return [];
   return (data as Record<string, unknown>[]).map((row) =>
     String(row.product_slug),
   );
@@ -341,18 +346,24 @@ export async function getCustomerWishlist(): Promise<string[]> {
 
 export async function addCustomerWishlistItem(slug: string): Promise<void> {
   const guestId = getOrCreateGuestId();
-  await supabase.rpc("add_customer_wishlist_item", {
+  const { error } = await supabase.rpc("add_customer_wishlist_item", {
     p_guest_id:    guestId,
     p_product_slug: slug,
   });
+  // Must throw on failure so the caller's optimistic-update reconciliation
+  // (useWishlist's queuePersist) can detect and revert it — previously this
+  // resolved silently even on a server error, so a failed write looked
+  // identical to a successful one and the UI never corrected itself.
+  if (error) throw error;
 }
 
 export async function removeCustomerWishlistItem(slug: string): Promise<void> {
   const guestId = getOrCreateGuestId();
-  await supabase.rpc("remove_customer_wishlist_item", {
+  const { error } = await supabase.rpc("remove_customer_wishlist_item", {
     p_guest_id:    guestId,
     p_product_slug: slug,
   });
+  if (error) throw error;
 }
 
 // ─── Guest → registered linking (Phase 2) ──────────────────────────────────────

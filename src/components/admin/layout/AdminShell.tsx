@@ -100,9 +100,18 @@ export default function AdminShell({
     }
   };
 
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+
   const handleSignOut = async () => {
-    await signOut();
-    router.replace("/auth/login");
+    setSignOutError(null);
+    try {
+      await signOut();
+      router.replace("/auth/login");
+    } catch {
+      // A failed sign-out must leave the admin visibly authenticated — stay
+      // on this screen and surface a retry message.
+      setSignOutError("Could not sign out. Please try again.");
+    }
   };
 
   // ── Gate: every non-authorized status resolves to a concrete screen, so the
@@ -156,6 +165,9 @@ export default function AdminShell({
           >
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
+          {signOutError && (
+            <p className="text-xs" style={{ color: "#e39a8c" }}>{signOutError}</p>
+          )}
         </div>
       </GateScreen>
     );
@@ -184,6 +196,9 @@ export default function AdminShell({
           >
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
+          {signOutError && (
+            <p className="text-xs" style={{ color: "#e39a8c" }}>{signOutError}</p>
+          )}
         </div>
       </GateScreen>
     );
