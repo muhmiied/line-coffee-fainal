@@ -282,8 +282,8 @@ export default function AdminSettingsPage() {
         <p className="text-xs leading-relaxed admin-text">
           These are your real store settings and are saved to the database. Delivery
           fees are still calculated by the checkout engine and are not editable here.
-          The store-status flag is stored for reference and is not yet enforced at
-          checkout.
+          The store-status flag is enforced at checkout — new orders are blocked
+          server-side while the store is closed.
         </p>
       </div>
 
@@ -440,7 +440,7 @@ export default function AdminSettingsPage() {
         {/* Store status */}
         <Surface
           title="Store status"
-          description="Stored for reference. This flag is not yet enforced at checkout."
+          description="Enforced at checkout — turning this off blocks new orders immediately."
           icon={<MessageCircle className="h-4 w-4" />}
         >
           <div className="space-y-4">

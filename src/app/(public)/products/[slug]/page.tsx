@@ -3,12 +3,13 @@
 // immediately. The interactive purchase UI (gallery, weight/quantity, add to
 // cart, wishlist) lives in ProductDetailClient.tsx, seeded with this data.
 
+import { notFound } from "next/navigation";
 import {
   getServerPublicCategories,
   getServerPublicProductBySlug,
   getServerPublicProductsPage,
 } from "@/lib/catalog/server-catalog";
-import ProductDetailClient, { ProductNotFound } from "./ProductDetailClient";
+import ProductDetailClient from "./ProductDetailClient";
 
 const RELATED_PRODUCTS_LIMIT = 4;
 
@@ -24,7 +25,7 @@ export default async function ProductDetailPage({
   ]);
 
   if (!product) {
-    return <ProductNotFound />;
+    notFound();
   }
 
   const category = categories.find((item) => item.slug === product.category);

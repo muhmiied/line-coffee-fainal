@@ -34,7 +34,7 @@ import {
   type StorefrontSettings,
 } from "@/lib/settings/public-site-settings";
 import { supabase } from "@/lib/supabase/client";
-import { isValidEgyptianPhone } from "@/lib/validation/phone";
+import { isValidEgyptianPhone, normalizeEgyptianPhone } from "@/lib/validation/phone";
 import { EGYPT_GOVERNORATES as GOVS } from "@/lib/checkout/governorates";
 import { AddressSection } from "./AddressSection";
 import { PaymentSection } from "./PaymentSection";
@@ -526,6 +526,14 @@ export function CheckoutForm() {
       (item): item is CheckoutRpcItem => item !== null,
     );
 
+    // validate() already required both to pass isValidEgyptianPhone, so these
+    // are guaranteed non-null here — normalizing keeps the stored value in one
+    // canonical form (0XXXXXXXXXX) instead of whatever mix of +20/spaces/dashes
+    // the customer happened to type, which the admin duplicate-phone detector
+    // and any future phone-based lookup depend on being consistent.
+    const normalizedPhone = normalizeEgyptianPhone(form.phone) ?? form.phone.trim();
+    const normalizedWhatsapp = normalizeEgyptianPhone(form.whatsapp) ?? form.whatsapp.trim();
+
     submitInFlight.current = true;
     setSubmitting(true);
     let orderPlaced = false;
@@ -538,8 +546,8 @@ export function CheckoutForm() {
           checkout_attempt_id: checkoutAttemptId.current,
           customer: {
             name: form.name.trim(),
-            phone: form.phone.trim(),
-            whatsapp: form.whatsapp.trim(),
+            phone: normalizedPhone,
+            whatsapp: normalizedWhatsapp,
             email: form.email.trim() || null,
           },
           address: {
@@ -573,8 +581,8 @@ export function CheckoutForm() {
       const handoff: CheckoutOrderHandoff = {
         customer: {
           name: form.name.trim(),
-          phone: form.phone.trim(),
-          whatsapp: form.whatsapp.trim(),
+          phone: normalizedPhone,
+          whatsapp: normalizedWhatsapp,
         },
         address: {
           governorate: form.governorate,

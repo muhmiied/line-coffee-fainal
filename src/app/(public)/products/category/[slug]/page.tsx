@@ -3,12 +3,13 @@
 // Categories" strip via lightweight COUNT-only queries instead of
 // downloading the entire multi-category catalog just to tally a few numbers.
 
+import { notFound } from "next/navigation";
 import {
   getServerCategoryProductCounts,
   getServerPublicCategories,
   getServerPublicProductsPage,
 } from "@/lib/catalog/server-catalog";
-import CategoryPageClient, { CategoryNotFound } from "./CategoryPageClient";
+import CategoryPageClient from "./CategoryPageClient";
 
 // Bounded (not literally unlimited) but large enough to cover any realistic
 // category size today — this page's search/price-filter/sort already run
@@ -29,7 +30,7 @@ export default async function ProductCategoryPage({
   const category = categories.find((item) => item.slug === categorySlug);
 
   if (!category) {
-    return <CategoryNotFound />;
+    notFound();
   }
 
   const relatedCategories = categories.filter((item) => item.slug !== categorySlug).slice(0, RELATED_CATEGORIES_COUNT);

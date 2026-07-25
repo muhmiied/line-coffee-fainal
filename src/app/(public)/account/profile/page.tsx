@@ -8,6 +8,7 @@ import {
   getCustomerProfile,
   updateCustomerProfile,
 } from "@/lib/account/customer-account";
+import { isValidEgyptianPhone, normalizeEgyptianPhone } from "@/lib/validation/phone";
 
 type ProfileForm = {
   firstName: string;
@@ -43,7 +44,13 @@ function getInitialProfileForm(
   };
 }
 
-function ProfileFormContent({ initialForm }: { initialForm: ProfileForm }) {
+function ProfileFormContent({
+  initialForm,
+  hasExistingProfile,
+}: {
+  initialForm: ProfileForm;
+  hasExistingProfile: boolean;
+}) {
   const { t } = useLanguage();
 
   const [form, setSomeForm]   = useState<ProfileForm>(initialForm);
@@ -56,18 +63,48 @@ function ProfileFormContent({ initialForm }: { initialForm: ProfileForm }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError(null);
+
+    // The very first save for an account creates its customer profile row,
+    // and that row requires a non-empty WhatsApp number (server-side
+    // constraint, preserved as-is). Check this up front with the exact,
+    // relevant message instead of letting a generic post-RPC failure stand
+    // in for it — that previously showed an unrelated "no order history"
+    // message that didn't explain what to actually do.
+    if (!hasExistingProfile && !form.whatsapp.trim()) {
+      setError(
+        t({
+          en: "WhatsApp number is required to create your profile.",
+          ar: "رقم واتساب مطلوب لإنشاء ملفك الشخصي.",
+        }),
+      );
+      return;
+    }
+
+    // Same Egyptian-format rule as Checkout — only enforced when a value is
+    // actually entered (phone/whatsapp stay optional here otherwise).
+    if (form.phone.trim() && !isValidEgyptianPhone(form.phone)) {
+      setError(t({ en: "Enter a valid Egyptian phone number.", ar: "أدخل رقم هاتف مصري صحيح." }));
+      return;
+    }
+    if (form.whatsapp.trim() && !isValidEgyptianPhone(form.whatsapp)) {
+      setError(t({ en: "Enter a valid Egyptian WhatsApp number.", ar: "أدخل رقم واتساب مصري صحيح." }));
+      return;
+    }
+
+    setSaving(true);
     try {
       const fullName = [form.firstName.trim(), form.lastName.trim()]
         .filter(Boolean)
         .join(" ");
-      const ok = await updateCustomerProfile(fullName, form.phone, form.whatsapp);
+      const normalizedPhone = normalizeEgyptianPhone(form.phone) ?? "";
+      const normalizedWhatsapp = normalizeEgyptianPhone(form.whatsapp) ?? "";
+      const ok = await updateCustomerProfile(fullName, normalizedPhone, normalizedWhatsapp);
       if (ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
       } else {
-        setError(t({ en: "Could not save — no order history found for this device.", ar: "تعذّر الحفظ — لا توجد طلبات مرتبطة بهذا الجهاز." }));
+        setError(t({ en: "Could not save your profile. Please try again.", ar: "تعذّر حفظ ملفك الشخصي. يرجى المحاولة مجدداً." }));
       }
     } catch {
       setError(t({ en: "An error occurred. Please try again.", ar: "حدث خطأ. يرجى المحاولة مجدداً." }));
@@ -226,5 +263,11 @@ export default function ProfilePage() {
   const initialForm = getInitialProfileForm(user, profile);
   const formKey = `${user?.id ?? "guest"}:${user?.email ?? ""}:${profile?.phone ?? ""}:${profile?.whatsapp ?? ""}`;
 
-  return <ProfileFormContent key={formKey} initialForm={initialForm} />;
+  return (
+    <ProfileFormContent
+      key={formKey}
+      initialForm={initialForm}
+      hasExistingProfile={profile !== null}
+    />
+  );
 }

@@ -13,6 +13,7 @@ import {
   type CustomerAddress,
 } from "@/lib/account/customer-account";
 import { EGYPT_GOVERNORATES as GOVS } from "@/lib/checkout/governorates";
+import { isValidEgyptianPhone, normalizeEgyptianPhone } from "@/lib/validation/phone";
 import { cn } from "@/lib/utils/cn";
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -85,15 +86,21 @@ function formFromAddress(a: CustomerAddress): AddressForm {
 function AddressCard({
   address,
   busy,
+  confirmingDelete,
   onEdit,
-  onDelete,
+  onDeleteRequest,
+  onDeleteConfirm,
+  onDeleteCancel,
   onSetDefault,
   t,
 }: {
   address: CustomerAddress;
   busy: boolean;
+  confirmingDelete: boolean;
   onEdit: () => void;
-  onDelete: () => void;
+  onDeleteRequest: () => void;
+  onDeleteConfirm: () => void;
+  onDeleteCancel: () => void;
   onSetDefault: () => void;
   t: (v: { en: string; ar: string }) => string;
 }) {
@@ -163,31 +170,55 @@ function AddressCard({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          {!address.isDefault && (
-            <button
-              type="button"
-              onClick={onSetDefault}
-              className="rounded-md border border-[#B6885E]/15 px-2.5 py-1 text-xs text-[#B79B85]/80 transition-colors hover:border-[#B6885E]/35 hover:text-[#D6A373]"
-            >
-              {t({ en: "Set default", ar: "افتراضي" })}
-            </button>
+          {confirmingDelete ? (
+            <>
+              <span className="text-xs text-[#B79B85]/75">
+                {t({ en: "Delete this address?", ar: "حذف هذا العنوان؟" })}
+              </span>
+              <button
+                type="button"
+                onClick={onDeleteConfirm}
+                className="rounded-md border border-red-400/30 px-2.5 py-1 text-xs font-semibold text-red-400 transition-colors hover:border-red-400/50 hover:bg-red-400/10"
+              >
+                {t({ en: "Confirm", ar: "تأكيد" })}
+              </button>
+              <button
+                type="button"
+                onClick={onDeleteCancel}
+                className="rounded-md border border-[#B6885E]/15 px-2.5 py-1 text-xs text-[#B79B85]/80 transition-colors hover:border-[#B6885E]/35 hover:text-[#D6A373]"
+              >
+                {t({ en: "Cancel", ar: "إلغاء" })}
+              </button>
+            </>
+          ) : (
+            <>
+              {!address.isDefault && (
+                <button
+                  type="button"
+                  onClick={onSetDefault}
+                  className="rounded-md border border-[#B6885E]/15 px-2.5 py-1 text-xs text-[#B79B85]/80 transition-colors hover:border-[#B6885E]/35 hover:text-[#D6A373]"
+                >
+                  {t({ en: "Set default", ar: "افتراضي" })}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-md p-1.5 text-[#B79B85]/60 transition-colors hover:text-[#D6A373]"
+                aria-label={t({ en: "Edit address", ar: "تعديل العنوان" })}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={onDeleteRequest}
+                className="rounded-md p-1.5 text-[#B79B85]/60 transition-colors hover:text-red-400/70"
+                aria-label={t({ en: "Remove address", ar: "إزالة العنوان" })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-md p-1.5 text-[#B79B85]/60 transition-colors hover:text-[#D6A373]"
-            aria-label="Edit address"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded-md p-1.5 text-[#B79B85]/60 transition-colors hover:text-red-400/70"
-            aria-label="Remove address"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </div>
@@ -420,6 +451,8 @@ export default function AddressesPage() {
   const [saving, setSaving]       = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [busyId, setBusyId]       = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     return getCustomerAddresses()
@@ -446,8 +479,15 @@ export default function AddressesPage() {
       }));
       return;
     }
+    // Same Egyptian-format rule as Checkout/Profile — only enforced when a
+    // phone value is actually entered (this field stays optional otherwise).
+    if (form.phone.trim() && !isValidEgyptianPhone(form.phone)) {
+      setFormError(t({ en: "Enter a valid Egyptian phone number.", ar: "أدخل رقم هاتف مصري صحيح." }));
+      return;
+    }
     const normalizedForm = {
       ...form,
+      phone: normalizeEgyptianPhone(form.phone) ?? "",
       city: resolvedArea,
       area: resolvedArea,
     };
@@ -457,7 +497,16 @@ export default function AddressesPage() {
       if (formMode.kind === "add") {
         const id = await addCustomerAddress(normalizedForm);
         if (!id) {
-          setFormError(t({ en: "Could not save — place an order first to create your account.", ar: "تعذّر الحفظ — أكمل طلباً أولاً لإنشاء حسابك." }));
+          // add_customer_address returns null for exactly one reason: this
+          // account has no customer profile row yet (created the first time
+          // Profile is saved). Point at that directly instead of the
+          // unrelated "place an order first" message this used to show.
+          setFormError(
+            t({
+              en: "Please save your Profile first, then add an address.",
+              ar: "يرجى حفظ ملفك الشخصي أولاً، ثم إضافة عنوان.",
+            }),
+          );
           return;
         }
       } else if (formMode.kind === "edit") {
@@ -479,21 +528,36 @@ export default function AddressesPage() {
     }
   };
 
-  const handleDelete = async (addressId: string) => {
+  const handleDeleteConfirm = async (addressId: string) => {
+    setListError(null);
     setBusyId(addressId);
     try {
-      await deleteCustomerAddress(addressId);
+      const ok = await deleteCustomerAddress(addressId);
+      if (!ok) {
+        setListError(t({ en: "Could not remove this address. Please try again.", ar: "تعذّرت إزالة هذا العنوان. يرجى المحاولة مجدداً." }));
+        return;
+      }
       await reload();
+    } catch {
+      setListError(t({ en: "Could not remove this address. Please try again.", ar: "تعذّرت إزالة هذا العنوان. يرجى المحاولة مجدداً." }));
     } finally {
       setBusyId(null);
+      setConfirmingDeleteId(null);
     }
   };
 
   const handleSetDefault = async (addressId: string) => {
+    setListError(null);
     setBusyId(addressId);
     try {
-      await setDefaultCustomerAddress(addressId);
+      const ok = await setDefaultCustomerAddress(addressId);
+      if (!ok) {
+        setListError(t({ en: "Could not update your default address. Please try again.", ar: "تعذّر تحديث العنوان الافتراضي. يرجى المحاولة مجدداً." }));
+        return;
+      }
       await reload();
+    } catch {
+      setListError(t({ en: "Could not update your default address. Please try again.", ar: "تعذّر تحديث العنوان الافتراضي. يرجى المحاولة مجدداً." }));
     } finally {
       setBusyId(null);
     }
@@ -519,14 +583,26 @@ export default function AddressesPage() {
   return (
     <AccountShell title={{ en: "Addresses", ar: "عناويني" }}>
       <div className="space-y-3">
+        {listError && (
+          <p className="rounded-lg bg-red-900/20 px-4 py-2.5 text-sm text-red-400">
+            {listError}
+          </p>
+        )}
+
         {/* Address cards */}
         {addresses.map((addr) => (
           <AddressCard
             key={addr.id}
             address={addr}
             busy={busyId === addr.id}
+            confirmingDelete={confirmingDeleteId === addr.id}
             onEdit={() => openEdit(addr)}
-            onDelete={() => handleDelete(addr.id)}
+            onDeleteRequest={() => {
+              setListError(null);
+              setConfirmingDeleteId(addr.id);
+            }}
+            onDeleteConfirm={() => handleDeleteConfirm(addr.id)}
+            onDeleteCancel={() => setConfirmingDeleteId(null)}
             onSetDefault={() => handleSetDefault(addr.id)}
             t={t}
           />
