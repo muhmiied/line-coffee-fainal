@@ -1,5 +1,5 @@
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
-export default function Loading() {
+export default function OrderSuccessLoading() {
   return <LoadingScreen />;
 }
