@@ -190,6 +190,76 @@ export function buildWhatsAppOrderHref(result: CheckoutOrderResult): string | nu
   }
 }
 
+// Group 5 (WhatsApp trust boundary): the same DB-authored, capability-bound
+// snapshot the Telegram route already uses (get_order_notification_payload,
+// Phase 20E) — proves knowledge of the order's checkout_attempt_id instead
+// of trusting a raw order id, and is built entirely from orders/order_items
+// columns, never from anything the browser posts. Reused here so the
+// WhatsApp handoff text is built from the same trust boundary as Telegram
+// instead of from live client/form state. Cost-free: never returns COGS,
+// admin notes, or payment credentials.
+export type CheckoutNotificationPayload = {
+  order_id: string;
+  order_code: string;
+  customer: { name: string; phone: string; whatsapp: string };
+  address: {
+    governorate: string;
+    area: string;
+    street: string;
+    building: string;
+    floor_apt: string;
+    landmark: string;
+  };
+  items: Array<{
+    name: string;
+    detail: string;
+    name_ar: string;
+    detail_ar: string;
+    quantity: number;
+  }>;
+  subtotal: number;
+  discount: number;
+  delivery: number;
+  total: number;
+  payment_method: string;
+  notes: string | null;
+};
+
+function isCheckoutNotificationPayload(
+  value: unknown,
+): value is CheckoutNotificationPayload {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Partial<CheckoutNotificationPayload>;
+  return (
+    typeof v.order_id === "string" &&
+    typeof v.order_code === "string" &&
+    typeof v.customer === "object" &&
+    v.customer !== null &&
+    typeof v.address === "object" &&
+    v.address !== null &&
+    Array.isArray(v.items)
+  );
+}
+
+// Best-effort: returns null on any failure (invalid proof, unknown order,
+// network error) rather than throwing — callers must treat a null result as
+// "no trusted handoff available", never fall back to client-held data.
+export async function getOrderNotificationPayload(
+  orderId: string,
+  checkoutAttemptId: string,
+): Promise<CheckoutNotificationPayload | null> {
+  try {
+    const { data, error } = await supabase.rpc("get_order_notification_payload", {
+      p_order_id: orderId,
+      p_checkout_attempt_id: checkoutAttemptId,
+    });
+    if (error || !isCheckoutNotificationPayload(data)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 const PROMO_VALIDATION_STATUSES = new Set<PromoValidationStatus>([
   "valid",
   "invalid",
