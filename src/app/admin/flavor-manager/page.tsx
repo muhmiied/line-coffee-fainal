@@ -352,6 +352,9 @@ export default function FlavorManagerPage() {
               <h2 className="mt-4 font-semibold admin-text">{localize({ en: base.nameEn, ar: base.nameAr })}</h2>
               <p className="mt-1 text-xs admin-faint">{base.baseKey}</p>
               <p className="mt-3 text-sm font-semibold" style={{ color: "var(--admin-hazelnut)" }}>{formatNumber(base.pricePerKg)} {currency} / kg</p>
+              {base.costPerKg == null && (
+                <span className="admin-badge admin-badge-warning mt-2 inline-flex">{t("Cost not configured")}</span>
+              )}
               <button type="button" onClick={() => setEditing({ kind: "base", item: base })} className="admin-btn admin-btn-primary mt-4 flex items-center gap-2 !py-2 !text-xs">
                 <Pencil size={12} />{t("Edit")}
               </button>
@@ -375,6 +378,9 @@ export default function FlavorManagerPage() {
                 </span>
               </div>
               <p className="mt-4 text-sm font-semibold" style={{ color: "var(--admin-hazelnut)" }}>+{formatNumber(flavor.addOnPerKg)} {currency} / kg</p>
+              {flavor.costPerKg == null && (
+                <span className="admin-badge admin-badge-warning mt-2 inline-flex">{t("Cost not configured")}</span>
+              )}
               <p className="mt-1 text-[10px] admin-faint">{flavor.flavorKey} · {t("Order")} {formatNumber(flavor.sortOrder)}</p>
               <button type="button" onClick={() => setEditing({ kind: "flavor", item: flavor })} className="admin-btn admin-btn-primary mt-4 flex items-center gap-2 !py-2 !text-xs">
                 <Pencil size={12} />{t("Edit")}
