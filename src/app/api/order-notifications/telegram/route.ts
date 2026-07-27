@@ -175,34 +175,91 @@ async function getTrustedOrder(
   return trusted?.orderId === request.orderId ? trusted : null;
 }
 
-async function durableNotificationWasSent(
+// Group 5 (Telegram concurrency-safe dedup): claim-before-send instead of
+// check-before-send. `claim_order_notification` atomically decides whether
+// THIS call is the one allowed to send (Postgres resolves the underlying
+// INSERT ... ON CONFLICT ... DO UPDATE ... WHERE under a real row lock, so
+// two truly concurrent requests for the same order can never both win the
+// claim) — closing the documented race where two requests could both pass a
+// prior "was this sent?" read before either finished writing "it was sent".
+type ClaimResult = "claimed" | "already_sent" | "in_progress" | "error";
+
+async function claimNotification(
   client: SupabaseClient,
   request: NotificationRequest,
-): Promise<boolean> {
+): Promise<ClaimResult> {
   try {
-    const { data, error } = await client.rpc("order_notification_was_sent", {
+    const { data, error } = await client.rpc("claim_order_notification", {
       p_order_id: request.orderId,
       p_channel: NOTIFICATION_CHANNEL,
       p_checkout_attempt_id: request.checkoutAttemptId,
     });
-    return !error && data === true;
+    if (error) return "error";
+    if (data === "claimed" || data === "already_sent" || data === "in_progress") return data;
+    return "error";
   } catch {
-    return false;
+    return "error";
   }
 }
 
-async function markDurableNotificationSent(
+async function markNotificationSent(
   client: SupabaseClient,
   request: NotificationRequest,
 ): Promise<void> {
+  // supabase-js resolves { data, error } for a normal RPC/SQL failure rather
+  // than throwing — a try/catch alone never observes that case, so both
+  // paths are checked explicitly. The order is already saved and Telegram
+  // already accepted the message either way; this call only affects the
+  // *durable* record of that fact. If it doesn't land, the in-memory cache
+  // on this instance still prevents a resend from this exact process, but a
+  // different/restarted instance would see the claim go stale and could
+  // legitimately re-send — so a failure here is logged loudly rather than
+  // silently swallowed.
   try {
-    await client.rpc("log_order_notification", {
+    const { data, error } = await client.rpc("mark_order_notification_sent", {
       p_order_id: request.orderId,
       p_channel: NOTIFICATION_CHANNEL,
       p_checkout_attempt_id: request.checkoutAttemptId,
     });
-  } catch {
-    // The order is already saved and Telegram already accepted the message.
+    if (error || data !== true) {
+      console.error("[telegram-order] Failed to durably mark notification sent.", {
+        orderId: request.orderId,
+        reason: error?.message ?? "update matched no claimed row",
+      });
+    }
+  } catch (error) {
+    console.error("[telegram-order] Failed to durably mark notification sent.", {
+      orderId: request.orderId,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+  }
+}
+
+async function releaseNotificationClaim(
+  client: SupabaseClient,
+  request: NotificationRequest,
+): Promise<void> {
+  // Best-effort: if this fails, the claim self-heals once it goes stale
+  // (server-side timeout in claim_order_notification), so a future retry is
+  // never permanently blocked — just delayed by up to the timeout. Still
+  // logged (rather than silently swallowed) for operational visibility.
+  try {
+    const { error } = await client.rpc("release_order_notification_claim", {
+      p_order_id: request.orderId,
+      p_channel: NOTIFICATION_CHANNEL,
+      p_checkout_attempt_id: request.checkoutAttemptId,
+    });
+    if (error) {
+      console.error("[telegram-order] Failed to release notification claim.", {
+        orderId: request.orderId,
+        reason: error.message,
+      });
+    }
+  } catch (error) {
+    console.error("[telegram-order] Failed to release notification claim.", {
+      orderId: request.orderId,
+      reason: error instanceof Error ? error.message : "unknown",
+    });
   }
 }
 
@@ -328,10 +385,31 @@ export async function POST(request: Request) {
   if (sentOrders.has(trustedOrder.orderId)) {
     return Response.json({ ok: true, duplicate: true });
   }
-  if (await durableNotificationWasSent(client, notificationRequest)) {
+
+  // Atomic claim: exactly one concurrent caller can ever receive 'claimed'
+  // for a given (order, channel). Every other simultaneous or retried caller
+  // sees 'already_sent' (a prior attempt finished) or 'in_progress' (another
+  // attempt currently owns it) — neither path sends a second message.
+  const claim = await claimNotification(client, notificationRequest);
+  if (claim === "already_sent") {
     sentOrders.set(trustedOrder.orderId, now);
     return Response.json({ ok: true, duplicate: true });
   }
+  if (claim === "in_progress") {
+    // Someone else is actively sending (or will, once their claim goes
+    // stale) — this is not this request's job. Reported as success since
+    // the order itself was never at risk and a notification is already
+    // in flight.
+    return Response.json({ ok: true, inProgress: true });
+  }
+  if (claim === "error") {
+    return Response.json(
+      { ok: false, warning: "Admin notification is temporarily unavailable." },
+      { status: 503 },
+    );
+  }
+  // claim === "claimed": this request now owns sending and MUST either mark
+  // it sent (success) or release the claim (failure) before returning.
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
@@ -339,6 +417,7 @@ export async function POST(request: Request) {
     console.error("[telegram-order] Telegram is not configured.", {
       orderId: trustedOrder.orderId,
     });
+    await releaseNotificationClaim(client, notificationRequest);
     return Response.json(
       { ok: false, warning: "Admin notification is temporarily unavailable." },
       { status: 503 },
@@ -368,6 +447,7 @@ export async function POST(request: Request) {
         orderId: trustedOrder.orderId,
         status: response.status,
       });
+      await releaseNotificationClaim(client, notificationRequest);
       return Response.json(
         { ok: false, warning: "Admin notification could not be confirmed." },
         { status: 502 },
@@ -375,13 +455,14 @@ export async function POST(request: Request) {
     }
 
     sentOrders.set(trustedOrder.orderId, now);
-    await markDurableNotificationSent(client, notificationRequest);
+    await markNotificationSent(client, notificationRequest);
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[telegram-order] Telegram request failed.", {
       orderId: trustedOrder.orderId,
       reason: error instanceof Error ? error.name : "unknown",
     });
+    await releaseNotificationClaim(client, notificationRequest);
     return Response.json(
       { ok: false, warning: "Admin notification could not be confirmed." },
       { status: 502 },
