@@ -13,8 +13,11 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint · Type-check · Build
+    name: Lint · Type-check · Test · Build
     runs-on: ubuntu-latest
+    # A hung test (a leaked real timer, an unmocked network call) should fail
+    # fast, not silently burn the runner's default multi-hour budget.
+    timeout-minutes: 15
 
     # Public NEXT_PUBLIC_* vars are read at module load (src/lib/supabase/client.ts
     # throws when they are missing). These are non-secret placeholders so the
@@ -43,6 +46,9 @@ jobs:
 
       - name: Type-check
         run: npx tsc --noEmit
+
+      - name: Test
+        run: npm run test:run
 
       - name: Build
         run: npm run build
