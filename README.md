@@ -34,7 +34,7 @@ Before changing anything in this project, read `CLAUDE.md`, then the three files
 - `src/lib` — data layers (`admin/`, `catalog/`, `account/`, `checkout.ts`), auth, SEO, hooks, Supabase client.
 - `src/lib/mock-data/visual-content.ts` — the homepage's static presentation/copy config (intentional, not a backend gap — Media Studio is cancelled).
 - `src/types` — shared TypeScript types.
-- `supabase/migrations` — every applied SQL migration (37 files, local/remote in sync).
+- `supabase/migrations` — every applied SQL migration (44 files, local/remote in sync).
 - `docs/final-system-reference` — the authoritative documentation (see above).
 
 ## Getting started

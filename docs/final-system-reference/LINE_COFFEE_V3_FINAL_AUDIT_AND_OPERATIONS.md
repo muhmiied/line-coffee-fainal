@@ -54,15 +54,16 @@ The database is intentionally at a **clean zero-transactional-data** state, with
 
 The full live list is enumerable via `select proname from pg_proc where pronamespace = 'public'::regnamespace and prokind='f'`. By role:
 
-- **Internal helpers** (prefixed `_`, never directly callable by the browser): `_allocate_espresso_bean_lots_fifo`, `_allocate_lots_fifo`, `_apply_order_packaging`, `_apply_packaging_quantity`, `_create_checkout_order_phase5`, `_create_checkout_order_phase67`, `_deduct_packaging_fifo`, `_evaluate_promo_code`, `_packaging_available`, `_recompute_order_payment_status`, `_restore_espresso_return_lots`, `_restore_product_return_lots`.
-- **Public/anon-callable customer RPCs**: `create_checkout_order`, `create_contact_message`, `get_customer_addresses`, `get_customer_notifications`, `get_customer_order_detail`, `get_customer_orders`, `get_customer_profile`, `get_customer_wishlist`, `add_customer_address`, `add_customer_wishlist_item`, `update_customer_address`, `update_customer_profile`, `delete_customer_address`, `remove_customer_wishlist_item`, `set_default_customer_address`, `link_guest_data_to_account`, `validate_promo_code`, `account_customer_id`, `get_order_notification_payload`, `claim_order_notification`, `mark_order_notification_sent`, `release_order_notification_claim`, `log_order_notification`, `order_notification_was_sent`.
+- **Internal helpers** (never directly callable by `anon`/`authenticated` — most are prefixed `_`; two are not but are equally locked down, corrected during the Phase 8 review after a live `has_function_privilege` check): `_allocate_espresso_bean_lots_fifo`, `_allocate_lots_fifo`, `_apply_order_packaging`, `_apply_packaging_quantity`, `_create_checkout_order_phase5`, `_create_checkout_order_phase67`, `_deduct_packaging_fifo`, `_evaluate_promo_code`, `_packaging_available`, `_recompute_order_payment_status`, `_restore_espresso_return_lots`, `_restore_product_return_lots`, **`account_customer_id`** (no `_` prefix, but confirmed live to have zero `anon`/`authenticated` execute grant — it is the shared ownership resolver called internally by every account RPC below, never called directly by the browser).
+- **Public/anon-callable customer RPCs** (confirmed live, `has_function_privilege('anon', ..., 'execute') = true`): `create_checkout_order`, `create_contact_message`, `get_customer_addresses`, `get_customer_notifications`, `get_customer_order_detail`, `get_customer_orders`, `get_customer_profile`, `get_customer_wishlist`, `add_customer_address`, `add_customer_wishlist_item`, `update_customer_address`, `update_customer_profile`, `delete_customer_address`, `remove_customer_wishlist_item`, `set_default_customer_address`, `validate_promo_code`, `get_order_notification_payload`, `claim_order_notification`, `mark_order_notification_sent`, `release_order_notification_claim`, `log_order_notification`, `order_notification_was_sent`.
+- **Authenticated-only customer RPC** (confirmed live: `anon` execute = false, `authenticated` execute = true — moved out of the anon-callable list above during the Phase 8 review, where it was previously and incorrectly grouped): `link_guest_data_to_account` — matches its own correct description elsewhere in this document set ("authenticated-only").
 - **Admin-only RPCs** (`is_admin()`/`is_super_admin()` gated): `create_admin_product`, `create_purchase`, `receive_purchase`, `record_purchase_payment`, `deactivate_promo_code`, `upsert_promo_code`, `upsert_packaging_item`, `adjust_packaging_stock`, `adjust_finished_product_stock`, `adjust_espresso_bean_stock`, `upsert_espresso_bean`, `upsert_flavor_base`, `upsert_flavor_item`, `update_admin_order_status`, `update_admin_order_note`, `update_admin_order_delivery_fee`, `record_order_payment`, `record_order_refund`, `record_order_return`, `save_admin_blog_post`, `save_admin_legal_page`, `save_admin_review`, `update_admin_contact_message`.
 - **Read-model aggregators** (`SECURITY INVOKER`, real reporting queries, RLS enforces admin-only access to their underlying tables): `get_admin_accounting_report_v1`, `get_admin_analytics_report_v1`, `get_admin_dashboard_report_v1`, `list_admin_customers_v1`, `list_admin_orders_v1`.
 - **Pure/utility** (`SECURITY INVOKER`, no privileged access): `resolve_delivery_fee`, `variant_size_to_kg`, `next_order_code`, `set_updated_at`, `sync_products_category_slug`, `private_resolve_customer_guest`.
 
 ### Migrations
 
-37 migration files, dated `20260625120000` through `20260726110000`. **Local and remote histories are fully in sync** (verified via `supabase migration list --linked`, every row's Local/Remote timestamp column matches). No migration is pending, authored-but-unapplied, or drifted.
+44 migration files, dated `20260625120000` through `20260726110000`. **Local and remote histories are fully in sync** (verified via `supabase migration list --linked`, every row's Local/Remote timestamp column matches). No migration is pending, authored-but-unapplied, or drifted. (Re-verified live during the Phase 8 review, 2026-07-28: `ls supabase/migrations/*.sql | wc -l` and the live `migration list` both independently confirm 44 — this document previously undercounted at 37, corrected here.)
 
 ---
 
@@ -81,21 +82,22 @@ The full live list is enumerable via `select proname from pg_proc where pronames
 | R9 | Protocol-relative post-login redirect (`//attacker.example`) | Security/SEO/Performance audit (2026-07-12) | **Closed.** `src/lib/auth/safe-redirect.ts`'s `safePostLoginPath()` rejects `//`, backslashes, control characters, and re-validates the parsed origin — verified present in current code. |
 | R10 | Public builder bundle shipped internal purchase costs (`espressoBeans.ts`) | Security/SEO/Performance audit (2026-07-12) | **Closed.** No `purchasePrice`/cost field remains in the public builder data file (verified by direct grep); the real backend catalog view (`public_espresso_beans`) is cost-free by construction. |
 | R11 | Order receipt + customer PII stashed in `sessionStorage` for `/order-success` | z.ai audit | **Open, low severity.** Short exposure window (clears on tab close); the recovery path already added in Phase 1 (2026-07-13) fetches from the ownership-scoped RPC when the session value is missing, but the initial happy-path still uses the session stash. Recommended future fix: fetch from the RPC unconditionally. |
-| R12 | `customer_wishlist` has RLS disabled at the table level | z.ai audit | **Accepted, not a gap.** No table-level grant exists to `anon`/`authenticated` — all access is through the `SECURITY DEFINER` RPCs, which self-scope by `auth_user_id`/`guest_id`. Verified live: direct anon `select` is denied. |
+| R12 | `customer_wishlist` had RLS disabled at the table level | z.ai audit | **Closed** (this document previously said "accepted, not a gap" — corrected during the Phase 8 review, 2026-07-28, after live re-verification showed the true current state). Phase 5 Group 3 (`20260725120000_phase5_group3_db_rpc_hardening.sql`, audit finding M2) enabled RLS and added a real `customer_wishlist_owner_all` ownership policy (`auth_user_id = auth.uid()`, `for all to authenticated`), explicitly as defense-in-depth — the migration's own comment notes `anon`/`authenticated` already held zero direct grants on the table, so the change was a hardening step, not a fix to a live hole. Re-verified live during Phase 8: `relrowsecurity = true`; `anon`/`authenticated` grants are `REFERENCES,TRIGGER` only (no `SELECT`/`INSERT`/`UPDATE`/`DELETE`); all real access remains through the `SECURITY DEFINER` RPCs, which self-scope by `auth_user_id`/`guest_id` and are unaffected by row security on tables they touch. |
 | R13 | Guest access is same-device-only by design | Multiple audits | **Accepted, documented tradeoff** (Locked-decision-adjacent) — a shared/compromised device exposes that device's guest order history. Cross-account leakage (a different concern) was closed in Phase 2. |
 
 ---
 
 ## 4. npm dependency vulnerabilities
 
-`npm audit` (full, including devDependencies): **13 high, 0 critical.** `npm audit --omit=dev` (production-relevant only): **2 high.**
+**Updated during the Phase 8 review (2026-07-28).** The independent Phase 8 code review found that the `postcss` finding below had regressed from "0 high in production" (as this document previously claimed) back to **2 high** — a newer PostCSS advisory (`GHSA-r28c-9q8g-f849`, path traversal via source-map auto-loading, range `<=8.5.17`) was published after the Group 1 fix and the project's own exact-pinned `"postcss": "8.5.15"` override (added 2026-07-16 to clear an earlier, different audit finding) was now the thing holding the tree on a vulnerable version. Verified a patched release exists in the same safe minor line (`8.5.18`–`8.5.24`, confirmed via `npm view postcss versions`); the override was bumped to **`8.5.24`** (one line in `package.json`, no breaking change), `npm install` re-run, and `tsc`/`lint`/`vitest run` (99/99)/`build` (all routes) re-verified clean afterward.
 
-All 13 are attributable to two pre-existing dependency chains, neither introduced by any Phase 5 work:
+**Current state:** `npm audit` (full, including devDependencies): **9 high, 0 critical** (down from 13). `npm audit --omit=dev` (production-relevant only): **0 vulnerabilities** (down from 2 high).
 
-1. **`postcss` (via `next`'s transitive pin, and now also via `vite`/`@tailwindcss/postcss`)** — the only available fix requires downgrading `next` to a very old, breaking major version (`9.3.3`). Rejected, matching the project's established precedent of never accepting `npm audit fix --force`'s breaking suggestions.
-2. **`brace-expansion`/`js-yaml` (via `eslint`'s own dependency tree and `eslint-config-next`'s `typescript-eslint`)** — `js-yaml` was cleared with the non-forcing `npm audit fix`; the remaining `brace-expansion` finding needs an `eslint` major-version bump, deferred as a devDependency-only, non-shipping risk.
+The remaining 9 (dev-only) are attributable to one pre-existing dependency chain, not introduced by any Phase 5-8 work:
 
-Neither chain ships to the production bundle or browser — both are build/lint-time tooling only.
+1. **`brace-expansion`/`minimatch` (via `eslint`'s own dependency tree, `eslint-plugin-import`/`eslint-plugin-jsx-a11y`/`eslint-plugin-react`, and `eslint-config-next`)** — needs an `eslint` major-version bump to clear fully; deferred as a devDependency-only, non-shipping risk, matching the project's established precedent of never accepting `npm audit fix --force`'s breaking suggestions for a live dependency it can avoid.
+
+This chain never ships to the production bundle or browser — build/lint-time tooling only.
 
 ---
 
@@ -173,3 +175,45 @@ Code-level items (all confirmed complete by this document and its companions):
 - [x] Telegram notification is concurrency-safe (atomic claim).
 - [x] Database is at a clean, honest zero-transactional-data state with catalog/admin access preserved.
 - [x] No pending/drifted migrations.
+
+---
+
+## 10. Documentation deletion manifest (Phase 7, commit `2243b8a`)
+
+Every file below was deleted only after a zero-code-reference check (grep across `src/`, `scripts/`, `supabase/`, and this doc set). Historical mentions inside dated `CLAUDE.md` changelog entries and one immutable migration-file comment (`supabase/migrations/20260625120000_p0_migration_1_catalog_customers_orders_admin.sql:26`) are intentionally left untouched — they are dated history/provenance notes, not operational pointers, and are not "dangling links." Re-verified 2026-07-28 (Phase 8): all 30 paths confirmed absent from disk; zero remaining non-historical reference anywhere in tracked files.
+
+| # | Original path | Reason for deletion | Replacement (current doc / section) |
+|---|---|---|---|
+| 1 | `LINE_COFFEE_V3_CUSTOM_BUILDERS_REVIEW_AND_ENHANCEMENTS.md` | Pre-implementation UX planning doc for the two builders; predates the real Supabase-backed builder catalogs | System Reference §9 ("Inventory, FIFO, espresso, and packaging"), §5 (Espresso/Flavor Manager row) |
+| 2 | `LINE_COFFEE_V3_CUSTOM_BUILDERS_VISUAL_BLUEPRINT.md` | Same — pre-implementation visual planning for Make Your Espresso/Flavor | Route/Data-Flow Map §4 ("Builders") |
+| 3 | `LINE_COFFEE_V3_PROJECT_LOG.md` | Superseded running log; the complete chronological record now lives solely in `CLAUDE.md`'s Change Log | `CLAUDE.md` Change Log (unchanged, still the permanent history) |
+| 4 | `LINE_COFFEE_V3_PUBLIC_WEBSITE_MASTER_VISUAL_PLAN.md` | Pre-implementation homepage/public-site planning doc; the site described in it is now built | System Reference §3 ("Public website"); Route/Data-Flow Map §2 ("Homepage") |
+| 5 | `PRODUCT.md` | Early product-vision doc predating the real backend/build | System Reference §1 ("What Line Coffee V3 is") |
+| 6 | `docs/AI_HANDOFF_MARKETING.md` | Superseded marketing-module handoff note; Marketing is now real (Promo Codes + Announcement Bar) | System Reference §11 ("Marketing and CMS") |
+| 7 | `docs/DESIGN_SYSTEM_FOUNDATION.md` | Described colors/components/fonts that were never actually built this way — a pre-implementation document contradicted by the real, shipped design system | `CLAUDE.md` Design System section (the real, current tokens/classes) |
+| 8 | `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md` | Superseded content-source map; phases it tracked are complete | Route/Data-Flow Map (entire document — this is its direct successor) |
+| 9 | `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` | Superseded current-state snapshot; every claim in it is either stale or now folded into the new reference | System Reference (entire document — direct successor) |
+| 10 | `docs/ai/LINE_COFFEE_V3_DATA_CONTRACTS_AND_MIGRATIONS.md` | Superseded type/migration-workflow doc; its still-useful guidance (e.g. `npm run gen:types` usage) was inlined elsewhere | `src/lib/types/README.md` ("Supabase generated DB types" section, now self-contained) |
+| 11 | `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` | Superseded decisions/roadmap doc; all 20 decisions are now locked and listed directly | System Reference §14 ("Locked business decisions") |
+| 12 | `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md` (2026-07-16) | Superseded launch audit; its still-open findings are carried forward with current status | Final Audit & Operations §3 ("Known accepted risks", R1/R5/R6/R8/R9/R10/R11 trace to this audit) |
+| 13 | `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` | Superseded phase-execution plan; all phases through 20F+ are complete and described in present tense now | System Reference (entire document) + `CLAUDE.md` Change Log for phase history |
+| 14 | `docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md` | Deep-reference planning doc already self-marked "partially superseded"; Media Studio (which it still described) is cancelled | System Reference §14 (Locked Decision 1) |
+| 15 | `docs/ai/LINE_COFFEE_V3_SYSTEM_AUDIT.md` | Historical audit predating the real backend; explicitly self-marked superseded already | Final Audit & Operations (entire document) |
+| 16 | `docs/archive/LINE_COFFEE_V3_PRODUCTS_PHASE_READINESS_AUDIT.md` | Already-archived, now doubly-superseded readiness audit for the Products phase (long complete) | System Reference §5 ("Admin dashboard" — Products row) |
+| 17 | `docs/audit/LINE_COFFEE_V3_ADMIN_CONTENT_MAP.md` | Superseded admin content-source map | Route/Data-Flow Map §8 ("Admin routes") |
+| 18 | `docs/audit/LINE_COFFEE_V3_DATA_FLOW_MAP.md` | Superseded data-flow map; the checkout/inventory/notification flows it described are now diagrammed fresh | Route/Data-Flow Map §10-12 (the three ASCII data-flow diagrams) |
+| 19 | `docs/audit/LINE_COFFEE_V3_MOCK_DEAD_CODE_AUDIT.md` | Superseded dead-code audit; its three "delete in cleanup phase" findings were executed in Phase 5 Batch C, and its two "owner decision, keep for now" findings are carried forward | Final Audit & Operations §6 ("Preserved generated / design-provenance assets") |
+| 20 | `docs/audit/LINE_COFFEE_V3_PUBLIC_CONTENT_MAP.md` | Superseded public content-source map | Route/Data-Flow Map §2-7 (Homepage through Account/auth) |
+| 21 | `docs/audit/LINE_COFFEE_V3_REFACTOR_AND_DOCS_PLAN.md` | Superseded refactor/documentation planning doc; the refactor and documentation rebuild it planned is this Phase 5-7 work itself | This document + System Reference (both are the completed output of that plan) |
+| 22 | `docs/audit/LINE_COFFEE_V3_REPORTING_AGGREGATES_IMPLEMENTATION_PLAN.md` | Superseded reporting-aggregates plan; the aggregator RPCs it planned (`get_admin_*_report_v1`) are implemented and live | System Reference §2 schema inventory (Read-model aggregators row), §10 ("Accounting and analytics") |
+| 23 | `docs/audit/LINE_COFFEE_V3_SECURITY_SEO_PERFORMANCE_AUDIT.md` (2026-07-12) | Superseded security/SEO/performance audit; its still-open findings are carried forward | Final Audit & Operations §3 (R9/R10 trace to this audit), §13 (SEO section of System Reference) |
+| 24 | `docs/audit/z.ai/LINE_COFFEE_V3_MASTER_AUDIT.md` | Superseded external audit (2026-07-13); explicitly instructed for deletion after its findings were folded in | Final Audit & Operations §3 (risk register carries its F1-F16 findings forward with current status) |
+| 25 | `docs/audit/z.ai/LINE_COFFEE_V3_MASTER_AUDIT.pdf` | Rendered copy of the same audit; same reason as #24 | Same as #24 |
+| 26 | `docs/audit/z.ai/diagram1_architecture.png` | Diagram rendering from the same superseded audit | System Reference §2 (architecture description, prose form) |
+| 27 | `docs/audit/z.ai/diagram2_order_lifecycle.png` | Same | Route/Data-Flow Map §10 (checkout-to-delivered-order ASCII diagram) |
+| 28 | `docs/audit/z.ai/diagram3_risk_matrix.png` | Same | Final Audit & Operations §3 (risk register table) |
+| 29 | `docs/audit/z.ai/diagram4_data_flow.png` | Same | Route/Data-Flow Map §10-12 (ASCII data-flow diagrams) |
+| 30 | `docs/audit/z.ai/diagram5_disconnects.png` | Same | Final Audit & Operations §3 (each disconnect finding's current closed/open status) |
+| 30 | `docs/audit/z.ai/diagram6_refactor_roadmap.png` | Same | System Reference (entire document is the completed roadmap output) |
+
+**Verification method:** `git show --name-status --diff-filter=D 2243b8a` for the exact deletion list; `git grep` across all tracked files for each deleted filename (zero non-historical hits); direct filesystem check that none of the 30 paths exist. Re-run and confirmed during the Phase 8 independent review (2026-07-28).
