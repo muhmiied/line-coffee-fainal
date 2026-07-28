@@ -2,21 +2,20 @@
 
 ## Current Source Of Truth
 
-- Live state: `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`. **Launch verdict/blockers:** `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md`. **Execution reference (what to build next, in order): `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md`.** Where to edit site copy/images: `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md`.
-- `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` keeps the locked decisions + context/history but is **no longer the phase-execution source** (its phase numbering is superseded by the master plan).
-- The Change Log below is **history**; it does not override the docs above or the block below.
+As of **2026-07-28**, the authoritative documentation lives entirely under `docs/final-system-reference/` — every prior `docs/ai/*`, `docs/audit/*`, and root-level planning/audit document has been superseded and removed (Phase 6-7 of the final stabilization mission). Do not look for those old paths; they no longer exist.
+
+- **`docs/final-system-reference/LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md`** — architecture, every module (public site, account, admin, auth, catalog, checkout, inventory/FIFO, accounting, analytics, marketing, CMS, Telegram/WhatsApp, SEO/a11y), locked decisions, environment variables, test suite, CI.
+- **`docs/final-system-reference/LINE_COFFEE_V3_ROUTE_DATA_FLOW_MAP.md`** — where every route's text/images/data comes from (replaces the old Content Map and Data Flow Map), plus checkout/inventory/notification data-flow diagrams.
+- **`docs/final-system-reference/LINE_COFFEE_V3_FINAL_AUDIT_AND_OPERATIONS.md`** — live schema inventory (tables/views/RPCs/triggers/migrations), the current zero-data database state, accepted-risk register, npm/Security-Advisor findings, preserved design-provenance assets, and the deployment/rollback/launch checklist.
+- The Change Log below is **history** — a complete chronological build record. It remains the permanent project history and is not superseded; it just does not override the three documents above for "what is true right now."
 
 ## Doc Reading Order (read before any task)
 
-1. `CLAUDE.md` (this file) — architecture, locked decisions, current position, rules.
-2. `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` — what's real vs mock vs missing.
-3. `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md` — final production evidence, blockers, owner/deployment checklist.
-4. `docs/ai/LINE_COFFEE_V3_MASTER_EXECUTION_PLAN.md` — **the official execution reference: phase order, gates, per-phase scope.** Use this for what to build next.
-5. `docs/ai/LINE_COFFEE_V3_CONTENT_MAP.md` — file location of every public text/image.
-6. `docs/ai/LINE_COFFEE_V3_FINAL_DECISIONS_AND_ROADMAP.md` — decisions/history reference only; **not** the phase-execution source (numbering superseded by the master plan).
-7. `docs/ai/LINE_COFFEE_V3_OPERATING_MODEL_BLUEPRINT.md` — deep model reference only; **never an execution plan**; its "current reality" columns are outdated.
-
-> **Canonical rule:** the **MASTER_EXECUTION_PLAN** is the official execution reference. If any older roadmap inside `docs/` conflicts with it (especially phase numbers), the master plan wins and the older doc is **not** used for execution.
+1. `CLAUDE.md` (this file) — locked decisions, current position, rules.
+2. `docs/final-system-reference/LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md` — what's real, how it's architected.
+3. `docs/final-system-reference/LINE_COFFEE_V3_ROUTE_DATA_FLOW_MAP.md` — where a specific route's content/data comes from.
+4. `docs/final-system-reference/LINE_COFFEE_V3_FINAL_AUDIT_AND_OPERATIONS.md` — schema inventory, accepted risks, launch checklist.
+5. Then read only the exact source/migration files the current task needs.
 
 ## Current Architecture (Verified 2026-07-16)
 

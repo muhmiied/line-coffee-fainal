@@ -4,11 +4,11 @@ This protocol is mandatory for every AI agent or developer working on Line Coffe
 
 ## Source of truth
 
-- Read `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` first.
-- Read the latest entries in `LINE_COFFEE_V3_PROJECT_LOG.md` next.
-- Use `CLAUDE.md` for locked architecture/design rules and historical context.
-- Use `docs/ai/LINE_COFFEE_V3_FINAL_LAUNCH_AUDIT.md` for the current launch verdict, blockers, and owner checklists.
-- Treat older mock-only/backend-future plans as history when they conflict with current-state documentation or current code.
+- Read `docs/final-system-reference/LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md` first.
+- Read `docs/final-system-reference/LINE_COFFEE_V3_ROUTE_DATA_FLOW_MAP.md` for where a specific route's content/data lives.
+- Read `docs/final-system-reference/LINE_COFFEE_V3_FINAL_AUDIT_AND_OPERATIONS.md` for the current launch verdict, accepted risks, and owner checklists.
+- Use `CLAUDE.md` for locked architecture/design rules and the historical Change Log.
+- Treat older mock-only/backend-future plans as history when they conflict with the documents above or current code.
 
 ## Before starting
 
@@ -34,6 +34,6 @@ This protocol is mandatory for every AI agent or developer working on Line Coffe
 - Validate in proportion to risk. Code closure normally requires TypeScript, ESLint, relevant focused checks, dependency audit when packages changed, production build, and browser smoke for changed user flows.
 - Never submit a real order/contact message, send a notification, or exercise destructive admin actions unless the owner explicitly approves the side effect and cleanup plan.
 - Run `git diff --check`, review the final diff/status, and document unresolved risks honestly as blockers, non-blockers, or **Not tested**.
-- Update `docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md` for material state changes and append an entry to `LINE_COFFEE_V3_PROJECT_LOG.md`.
+- For material state changes, update the relevant file under `docs/final-system-reference/` and append an entry to `CLAUDE.md`'s Change Log (its own explicit agent rule).
 - Summarize exact files changed, migrations created/applied, validation results, side effects, and follow-up ownership.
 - Do not commit, push, open a PR, deploy, or change production configuration unless explicitly requested.
