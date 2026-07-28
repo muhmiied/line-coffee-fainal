@@ -51,14 +51,17 @@ const FLOW_ORDER: readonly string[] = ["pending", "preparing", "shipped", "deliv
 
 // ─── Address formatter ────────────────────────────────────────────────────────
 
-function formatAddress(snapshot: Record<string, unknown> | null): string {
+function formatAddress(
+  snapshot: Record<string, unknown> | null,
+  t: (v: { en: string; ar: string }) => string,
+): string {
   if (!snapshot) return "";
   const parts: string[] = [];
   if (snapshot.recipient_name) parts.push(String(snapshot.recipient_name));
   if (snapshot.street)         parts.push(String(snapshot.street));
-  if (snapshot.building)       parts.push(`Bldg. ${snapshot.building}`);
-  if (snapshot.floor)          parts.push(`Fl. ${snapshot.floor}`);
-  if (snapshot.apartment)      parts.push(`Apt. ${snapshot.apartment}`);
+  if (snapshot.building)       parts.push(`${t({ en: "Building", ar: "المبنى" })} ${snapshot.building}`);
+  if (snapshot.floor)          parts.push(`${t({ en: "Floor", ar: "الدور" })} ${snapshot.floor}`);
+  if (snapshot.apartment)      parts.push(`${t({ en: "Apt", ar: "شقة" })} ${snapshot.apartment}`);
   if (snapshot.area)           parts.push(String(snapshot.area));
   if (snapshot.governorate)    parts.push(String(snapshot.governorate));
   return parts.filter(Boolean).join(", ");
@@ -127,7 +130,7 @@ export default function OrderDetailPage({
     en: order.paymentMethod,
     ar: order.paymentMethod,
   };
-  const addressText = formatAddress(order.addressSnapshot);
+  const addressText = formatAddress(order.addressSnapshot, t);
 
   return (
     <AccountShell title={{ en: `Order ${order.code}`, ar: `طلب ${order.code}` }}>

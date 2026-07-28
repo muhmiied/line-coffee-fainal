@@ -175,7 +175,12 @@ export function ProductCard({
         {/* Wishlist */}
         <button
           type="button"
-          aria-label={t({ en: "Add to wishlist", ar: "أضف إلى المفضلة" })}
+          aria-label={
+            wishlisted
+              ? t({ en: "Remove from wishlist", ar: "أزل من المفضلة" })
+              : t({ en: "Add to wishlist", ar: "أضف إلى المفضلة" })
+          }
+          aria-pressed={wishlisted ? "true" : "false"}
           onClick={handleWishlist}
           tabIndex={isDuplicate ? -1 : undefined}
           className={cn(

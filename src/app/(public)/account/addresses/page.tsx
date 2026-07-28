@@ -109,9 +109,9 @@ function AddressCard({
     .join(", ");
   const streetLine = [
     address.street,
-    address.building && `Bldg ${address.building}`,
-    address.floor && `Fl ${address.floor}`,
-    address.apartment && `Apt ${address.apartment}`,
+    address.building && `${t({ en: "Building", ar: "المبنى" })} ${address.building}`,
+    address.floor && `${t({ en: "Floor", ar: "الدور" })} ${address.floor}`,
+    address.apartment && `${t({ en: "Apt", ar: "شقة" })} ${address.apartment}`,
   ]
     .filter(Boolean)
     .join(", ");
@@ -374,7 +374,7 @@ function AddressFormPanel({
           <input value={form.floor} onChange={field("floor")} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>{t({ en: "Apt.", ar: "الشقة" })}</label>
+          <label className={labelCls}>{t({ en: "Apt", ar: "الشقة" })}</label>
           <input value={form.apartment} onChange={field("apartment")} className={inputCls} />
         </div>
       </div>

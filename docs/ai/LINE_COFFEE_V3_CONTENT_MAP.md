@@ -34,7 +34,7 @@ Last updated: 2026-06-28
 | Social gallery | `SocialGallerySection.tsx` | `socialGalleryImages` in `visual-content.ts` | gallery paths | Static |
 | Contact | `ContactSection.tsx` | `contactItems` in `visual-content.ts`; form writes via `create_contact_message` | `roastery.png` ambient | Contact info static; form **real (Phase 13A)** |
 
-> `visual-content.ts` exports: `assets`, `heroSlides`, `heroStats`, `visualCategories`, `visualProducts`, `visualFeatures`, `storyCopy`, `visualJournal`, `visualTestimonials`, `contactItems`, `socialGalleryImages`.
+> `visual-content.ts` exports: `assets`, `heroSlides`, `heroStats`, `visualCategories`, `visualFeatures`, `storyCopy`, `visualJournal`, `contactItems`, `socialGalleryImages`. (`visualProducts`/`visualTestimonials` were removed as dead code in the 2026-07-27 Phase 5 Batch C cleanup — the homepage reads real Supabase best-sellers/reviews instead.)
 
 ---
 

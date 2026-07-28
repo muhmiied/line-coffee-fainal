@@ -6,8 +6,6 @@ import type {
   VisualContactItem,
   VisualFeature,
   VisualJournalItem,
-  VisualProduct,
-  VisualTestimonial,
 } from "@/types/homepage";
 
 // ─── Asset Map ────────────────────────────────────────────────────────────────
@@ -144,73 +142,6 @@ export const visualCategories: VisualCategory[] = [
   },
 ];
 
-// ─── Products ─────────────────────────────────────────────────────────────────
-
-export const visualProducts: VisualProduct[] = [
-  {
-    slug: "signature-dark-roast",
-    name: { en: "Signature Dark Roast", ar: "دارك روست المميز" },
-    note: {
-      en: "Dense aroma, polished body, warm finish.",
-      ar: "رائحة كثيفة، قوام ناعم، ونهاية دافئة.",
-    },
-    image: assets.products.classicPouch,
-    badge: { en: "New", ar: "جديد" },
-    category: "turkish-blends",
-    sizes: [
-      { label: "250g", price: "185" },
-      { label: "500g", price: "355" },
-      { label: "1kg", price: "690" },
-    ],
-  },
-  {
-    slug: "velvet-espresso",
-    name: { en: "Velvet Espresso", ar: "فيلفت إسبريسو" },
-    note: {
-      en: "Crema-forward blend with quiet depth.",
-      ar: "خلطة كريما واضحة بعمق هادئ.",
-    },
-    image: assets.products.espressoPouch,
-    badge: { en: "Best Seller", ar: "الأكثر مبيعًا" },
-    category: "espresso-blends",
-    sizes: [
-      { label: "250g", price: "210" },
-      { label: "500g", price: "405" },
-      { label: "1kg", price: "790" },
-    ],
-  },
-  {
-    slug: "amber-flavor",
-    name: { en: "Amber Flavor", ar: "آمبر فليفر" },
-    note: {
-      en: "Soft spice notes over a dark roast base.",
-      ar: "لمسات توابل ناعمة فوق قاعدة تحميص داكن.",
-    },
-    image: assets.products.flavorPouch,
-    category: "flavor-coffee",
-    sizes: [
-      { label: "250g", price: "195" },
-      { label: "500g", price: "375" },
-      { label: "1kg", price: "730" },
-    ],
-  },
-  {
-    slug: "cream-cappuccino",
-    name: { en: "Cream Cappuccino", ar: "كريم كابتشينو" },
-    note: {
-      en: "Smooth cup profile with a warm foam finish.",
-      ar: "كوب ناعم بطبقة كريمية دافئة.",
-    },
-    image: assets.products.cappuccinoSachets,
-    category: "cappuccino",
-    sizes: [
-      { label: "250g", price: "165" },
-      { label: "500g", price: "315" },
-      { label: "1kg", price: "610" },
-    ],
-  },
-];
-
 // ─── Features ─────────────────────────────────────────────────────────────────
 
 export const visualFeatures: VisualFeature[] = [
@@ -320,37 +251,6 @@ export const visualJournal: VisualJournalItem[] = [
   },
 ];
 
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-
-export const visualTestimonials: VisualTestimonial[] = [
-  {
-    name: { en: "Mariam Hassan", ar: "مريم حسن" },
-    meta: { en: "Home brewer · Cairo", ar: "تحضير منزلي · القاهرة" },
-    quote: {
-      en: "The roast arrives fresh and beautifully balanced. It turned my morning coffee into a quiet little ritual.",
-      ar: "وصلت القهوة طازجة ومتوازنة تمامًا. أصبحت قهوتي الصباحية طقسًا هادئًا أنتظره كل يوم.",
-    },
-    rating: 5,
-  },
-  {
-    name: { en: "Omar Nabil", ar: "عمر نبيل" },
-    meta: { en: "Espresso lover · Alexandria", ar: "محب للإسبريسو · الإسكندرية" },
-    quote: {
-      en: "Smooth crema, warm aroma, and a finish that feels premium without being heavy.",
-      ar: "كريما ناعمة، رائحة دافئة، ونهاية فاخرة بلا ثقل — تجربة إسبريسو استثنائية.",
-    },
-    rating: 5,
-  },
-  {
-    name: { en: "Nour El-Din", ar: "نور الدين" },
-    meta: { en: "Filter coffee fan · Giza", ar: "محب القهوة المقطرة · الجيزة" },
-    quote: {
-      en: "Elegant packaging, clear flavor notes, and delivery that kept the beans perfectly fragrant.",
-      ar: "تغليف أنيق، نكهات واضحة، والتوصيل حافظ على رائحة البن ونضارته بشكل مثالي.",
-    },
-    rating: 5,
-  },
-];
 
 // ─── Contact ──────────────────────────────────────────────────────────────────
 

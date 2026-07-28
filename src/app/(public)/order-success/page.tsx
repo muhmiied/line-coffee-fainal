@@ -262,6 +262,13 @@ function OrderSuccessContent() {
 
             <div className="mb-8 h-px bg-gradient-to-r from-transparent via-[#B6885E]/25 to-transparent" />
 
+            {/* One persistent role="status" wrapper around every branch below —
+                the four branches sit at the same position in this ternary, so
+                React reuses the same DOM node across them; a role placed on
+                only some of the individual branches would be stripped/re-added
+                on each swap and never reliably announce the transition (most
+                importantly, loading -> found, the most common real outcome). */}
+            <div role="status">
             {hasOrderData ? (
               <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5">
                 <h2 className="mb-4 font-serif text-lg font-bold text-[#F5E6D8]">
@@ -350,6 +357,7 @@ function OrderSuccessContent() {
                 )}
               </div>
             )}
+            </div>
 
             {result?.handoff?.telegramStatus === "failed" && (
               <div
