@@ -1797,8 +1797,12 @@ export default function AccountingPage() {
             <KpiCard
               label="Net Profit"
               value={money(data.netProfit)}
-              caption="Gross profit minus operating expenses."
-              tone={data.netProfit >= 0 ? "green" : "red"}
+              caption={
+                data.deliveredIncompleteFlavorCogs > 0
+                  ? `Gross profit minus operating expenses · includes ${data.deliveredIncompleteFlavorCogs} order(s) with unconfigured flavor cost counted as 0.`
+                  : "Gross profit minus operating expenses."
+              }
+              tone={data.deliveredIncompleteFlavorCogs > 0 ? "amber" : data.netProfit >= 0 ? "green" : "red"}
               icon={data.netProfit >= 0 ? ArrowUpRight : ArrowDownRight}
             />
             <KpiCard
@@ -1937,12 +1941,13 @@ export default function AccountingPage() {
 // ── Overview ─────────────────────────────────────────────────────────────────
 
 function OverviewTab({ data }: { data: AdminAccountingData }) {
-  const plRows: Array<{ label: string; value: number; tone: Tone; sign: string; strong?: boolean }> = [
+  const hasIncompleteFlavorCogs = data.deliveredIncompleteFlavorCogs > 0;
+  const plRows: Array<{ label: string; value: number; tone: Tone; sign: string; strong?: boolean; caveat?: boolean }> = [
     { label: "Delivered Net Sales", value: data.deliveredNetSales, tone: "green", sign: "+" },
     { label: "Cost of Goods Sold (COGS)", value: data.cogsTotal, tone: "amber", sign: "-" },
-    { label: "Gross Profit", value: data.grossProfit, tone: data.grossProfit >= 0 ? "blue" : "red", sign: "", strong: true },
+    { label: "Gross Profit", value: data.grossProfit, tone: data.grossProfit >= 0 ? "blue" : "red", sign: "", strong: true, caveat: hasIncompleteFlavorCogs },
     { label: "Operating Expenses", value: data.operatingExpenses, tone: "red", sign: "-" },
-    { label: "Net Profit", value: data.netProfit, tone: data.netProfit >= 0 ? "green" : "red", sign: "", strong: true },
+    { label: "Net Profit", value: data.netProfit, tone: data.netProfit >= 0 ? "green" : "red", sign: "", strong: true, caveat: hasIncompleteFlavorCogs },
   ];
 
   return (
@@ -1966,6 +1971,7 @@ function OverviewTab({ data }: { data: AdminAccountingData }) {
               >
                 <span className={`text-[13px] ${row.strong ? "font-bold" : "font-medium"}`} style={{ color: "var(--admin-white-coffee)" }}>
                   {row.label}
+                  {row.caveat ? " *" : ""}
                 </span>
                 <span className={`text-[14px] ${row.strong ? "font-bold" : "font-semibold"}`} style={{ color: style.color }}>
                   {row.sign}
@@ -1974,6 +1980,11 @@ function OverviewTab({ data }: { data: AdminAccountingData }) {
               </div>
             );
           })}
+          {hasIncompleteFlavorCogs && (
+            <Note tone="amber">
+              * includes {data.deliveredIncompleteFlavorCogs} delivered order(s) with an unconfigured Make Your Flavor cost, counted as 0 — not estimated.
+            </Note>
+          )}
         </div>
       </Surface>
 
@@ -2030,7 +2041,17 @@ function RevenueTab({ data }: { data: AdminAccountingData }) {
         <KpiCard label="Discounts" value={money(data.discountsTotal)} tone="amber" icon={TrendingDown} />
         <KpiCard label="Delivery Fees" value={money(data.deliveryFeesTotal)} tone="blue" icon={Truck} />
         <KpiCard label="Delivered COGS" value={money(data.cogsTotal)} tone="amber" icon={Calculator} />
-        <KpiCard label="Gross Margin" value={pct(data.grossMargin)} tone="blue" icon={TrendingUp} />
+        <KpiCard
+          label="Gross Margin"
+          value={pct(data.grossMargin)}
+          caption={
+            data.deliveredIncompleteFlavorCogs > 0
+              ? `Includes ${data.deliveredIncompleteFlavorCogs} order(s) with unconfigured flavor cost counted as 0.`
+              : undefined
+          }
+          tone={data.deliveredIncompleteFlavorCogs > 0 ? "amber" : "blue"}
+          icon={TrendingUp}
+        />
       </div>
 
       <Surface title="Monthly Trends" caption={`Last ${data.monthly.length} months: revenue, collections, gross profit, and expenses.`} icon={TrendingUp}>

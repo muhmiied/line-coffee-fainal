@@ -131,12 +131,13 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
   const { t, language } = useLanguage();
   const [items, setItems] = useState<import("@/lib/account/customer-account").CustomerNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     import("@/lib/account/customer-account").then(({ getCustomerNotifications }) =>
       getCustomerNotifications()
         .then(setItems)
-        .catch(() => setItems([]))
+        .catch(() => setLoadError(true))
         .finally(() => setLoading(false))
     );
   }, []);
@@ -173,6 +174,12 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
           {[1, 2].map((i) => (
             <div key={i} className="h-12 animate-pulse rounded-lg bg-[#1B140F]" />
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="px-4 py-8 text-center">
+          <p className="text-sm text-red-400">
+            {t({ en: "Couldn't load notifications.", ar: "تعذر تحميل الإشعارات." })}
+          </p>
         </div>
       ) : preview.length === 0 ? (
         <div className="px-4 py-8 text-center">

@@ -36,12 +36,20 @@ export default function OrdersPage() {
 
   const [orders, setOrders]   = useState<CustomerOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
     getCustomerOrders()
       .then(setOrders)
-      .catch(() => setOrders([]))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
   }, []);
 
   return (
@@ -54,6 +62,22 @@ export default function OrdersPage() {
               className="h-16 animate-pulse rounded-xl bg-[#120D09]"
             />
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="rounded-xl border border-red-900/30 bg-red-900/10 px-6 py-16 text-center">
+          <p className="mb-4 text-sm text-red-400">
+            {t({
+              en: "We couldn't load your orders. Please try again.",
+              ar: "تعذر تحميل طلباتك. يرجى المحاولة مرة أخرى.",
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={load}
+            className="premium-button-outline inline-block px-8 py-2.5 text-sm"
+          >
+            {t({ en: "Retry", ar: "إعادة المحاولة" })}
+          </button>
         </div>
       ) : orders.length === 0 ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">

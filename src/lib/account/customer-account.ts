@@ -75,7 +75,11 @@ export async function getCustomerOrders(): Promise<CustomerOrderSummary[]> {
   const { data, error } = await supabase.rpc("get_customer_orders", {
     p_guest_id: guestId,
   });
-  if (error || !data) return [];
+  // A genuine RPC error must THROW, not resolve as "no orders" — matching the
+  // wishlist read contract. A transient failure must never be indistinguishable
+  // from a customer who genuinely has zero orders.
+  if (error) throw error;
+  if (!data) return [];
   return (data as Record<string, unknown>[]).map((row) => ({
     id: String(row.id),
     code: String(row.code),
@@ -156,7 +160,10 @@ export async function getCustomerNotifications(): Promise<CustomerNotification[]
   const { data, error } = await supabase.rpc("get_customer_notifications", {
     p_guest_id: guestId,
   });
-  if (error || !data) return [];
+  // Same read contract as getCustomerOrders/getCustomerWishlist — a failed
+  // read must throw, never silently render as "no notifications."
+  if (error) throw error;
+  if (!data) return [];
   return (data as Record<string, unknown>[]).map((row) => ({
     eventId: String(row.event_id),
     orderId: String(row.order_id),
@@ -248,7 +255,10 @@ export async function getCustomerAddresses(): Promise<CustomerAddress[]> {
   const { data, error } = await supabase.rpc("get_customer_addresses", {
     p_guest_id: guestId,
   });
-  if (error || !data) return [];
+  // Same read contract as getCustomerOrders/getCustomerWishlist — a failed
+  // read must throw, never silently render as "no addresses saved."
+  if (error) throw error;
+  if (!data) return [];
   return (data as Record<string, unknown>[]).map(mapAddressRow);
 }
 

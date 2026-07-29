@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "route-status-check": "node scripts/route-status-check.mjs",
     "gen:types": "supabase gen types typescript --linked > src/lib/types/database.types.ts"
   },
   "dependencies": {

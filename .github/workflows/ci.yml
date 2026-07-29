@@ -52,3 +52,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Route status check (real 404/200, no live project)
+        # Deterministic regression guard for the Group 2 follow-up 404 fix:
+        # (1) structurally asserts no ancestor loading.tsx exists above the
+        # three dynamic routes (the actual root cause of the original bug —
+        # an ancestor loading.tsx streams a 200 before notFound() resolves,
+        # with zero build/lint/type error), and (2) runs its own dedicated
+        # `next build` + `next start` against a local, in-process mock REST
+        # server (plain Node http, no network, no real Supabase project) to
+        # assert genuine HTTP 404 for unknown product/category/blog slugs and
+        # 200 for the known fixture + listing routes.
+        run: npm run route-status-check

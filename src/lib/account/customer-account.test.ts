@@ -66,12 +66,7 @@ describe("owner scoping — every RPC call is scoped to the device guest_id", ()
   });
 });
 
-describe("read functions degrade gracefully on RPC failure (never throw)", () => {
-  it("getCustomerOrders returns [] on error", async () => {
-    rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
-    await expect(getCustomerOrders()).resolves.toEqual([]);
-  });
-
+describe("read functions degrade gracefully only for a genuine empty result (not an RPC error)", () => {
   it("getCustomerOrderDetail returns null on error", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
     await expect(getCustomerOrderDetail("LC-000001")).resolves.toBeNull();
@@ -82,19 +77,9 @@ describe("read functions degrade gracefully on RPC failure (never throw)", () =>
     await expect(getCustomerOrderDetail("LC-000001")).resolves.toBeNull();
   });
 
-  it("getCustomerNotifications returns [] on error", async () => {
-    rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
-    await expect(getCustomerNotifications()).resolves.toEqual([]);
-  });
-
   it("getCustomerProfile returns null on error", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
     await expect(getCustomerProfile()).resolves.toBeNull();
-  });
-
-  it("getCustomerAddresses returns [] on error", async () => {
-    rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
-    await expect(getCustomerAddresses()).resolves.toEqual([]);
   });
 });
 
@@ -142,7 +127,7 @@ describe("mutation functions that report failure via a return value", () => {
   });
 });
 
-describe("wishlist functions THROW on RPC failure (deliberate contrast with the above)", () => {
+describe("wishlist + orders/notifications/addresses reads THROW on RPC failure (deliberate contrast with the profile/address-write functions above)", () => {
   it("getCustomerWishlist throws instead of returning an empty list", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
     await expect(getCustomerWishlist()).rejects.toEqual({ message: "boom" });
@@ -171,6 +156,36 @@ describe("wishlist functions THROW on RPC failure (deliberate contrast with the 
   it("addCustomerWishlistItem resolves (void) on success", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: null });
     await expect(addCustomerWishlistItem("turkish-silk")).resolves.toBeUndefined();
+  });
+
+  it("getCustomerOrders throws instead of returning an empty list", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
+    await expect(getCustomerOrders()).rejects.toEqual({ message: "boom" });
+  });
+
+  it("getCustomerOrders returns [] for a genuine empty-array response (no error)", async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    await expect(getCustomerOrders()).resolves.toEqual([]);
+  });
+
+  it("getCustomerNotifications throws instead of returning an empty list", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
+    await expect(getCustomerNotifications()).rejects.toEqual({ message: "boom" });
+  });
+
+  it("getCustomerNotifications returns [] for a genuine empty-array response (no error)", async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    await expect(getCustomerNotifications()).resolves.toEqual([]);
+  });
+
+  it("getCustomerAddresses throws instead of returning an empty list", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
+    await expect(getCustomerAddresses()).rejects.toEqual({ message: "boom" });
+  });
+
+  it("getCustomerAddresses returns [] for a genuine empty-array response (no error)", async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    await expect(getCustomerAddresses()).resolves.toEqual([]);
   });
 });
 

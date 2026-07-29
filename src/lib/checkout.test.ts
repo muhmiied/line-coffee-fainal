@@ -1,7 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mocked so getOrderNotificationPayload's tests never touch a real network —
+// `rpc` is a single vi.fn() whose resolved value each test controls directly.
+const rpc = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({
+  supabase: { rpc: (...args: unknown[]) => rpc(...args) },
+}));
+
 import {
   buildWhatsAppOrderHref,
   createCheckoutAttemptId,
+  getOrderNotificationPayload,
   isCheckoutOrderResult,
   type CheckoutOrderHandoff,
   type CheckoutOrderResult,
@@ -208,5 +217,99 @@ describe("createCheckoutAttemptId", () => {
     const b = createCheckoutAttemptId();
     expect(a.length).toBeGreaterThan(0);
     expect(a).not.toBe(b);
+  });
+});
+
+// getOrderNotificationPayload is the ownership-safe trust-boundary lookup both
+// the Telegram route and the WhatsApp handoff build their message from (Phase
+// 5 Batch A). It must prove knowledge of the order's own checkout_attempt_id
+// server-side (the RPC does the real enforcement); this suite covers the
+// client wrapper's contract: it never throws, never leaks a partial/malformed
+// payload, and always sends both identifying params to the RPC.
+describe("getOrderNotificationPayload", () => {
+  const orderId = "11111111-1111-1111-1111-111111111111";
+  const attemptId = "attempt-abc-123";
+
+  function validPayload(overrides: Record<string, unknown> = {}) {
+    return {
+      order_id: orderId,
+      order_code: "LC-000123",
+      customer: { name: "Test Customer", phone: "01012345678", whatsapp: "01012345678" },
+      address: {
+        governorate: "Cairo",
+        area: "Nasr City",
+        street: "Test St",
+        building: "1",
+        floor_apt: "2",
+        landmark: "",
+      },
+      items: [
+        { name: "Turkish Silk", detail: "250g", name_ar: "تركي حرير", detail_ar: "٢٥٠ جرام", quantity: 1 },
+      ],
+      subtotal: 500,
+      discount: 0,
+      delivery: 50,
+      total: 550,
+      payment_method: "cash_on_delivery",
+      notes: null,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    rpc.mockReset();
+  });
+
+  it("an authorized owner (correct order_id + checkout_attempt_id) succeeds and returns the full payload", async () => {
+    rpc.mockResolvedValueOnce({ data: validPayload(), error: null });
+    const result = await getOrderNotificationPayload(orderId, attemptId);
+    expect(result).not.toBeNull();
+    expect(result?.order_code).toBe("LC-000123");
+    expect(result?.customer.name).toBe("Test Customer");
+    expect(rpc).toHaveBeenCalledWith("get_order_notification_payload", {
+      p_order_id: orderId,
+      p_checkout_attempt_id: attemptId,
+    });
+  });
+
+  it("a wrong/mismatched checkout_attempt_id fails closed and leaks no data", async () => {
+    // The RPC itself is what enforces the attempt-id match server-side; from
+    // the client's perspective this looks like any other rejected call — an
+    // error and no rows. The wrapper must return null, not a partial object.
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "Order not found or checkout attempt does not match." },
+    });
+    const result = await getOrderNotificationPayload(orderId, "wrong-attempt-id");
+    expect(result).toBeNull();
+  });
+
+  it("a missing/nonexistent order fails closed the same way as a wrong owner (no enumeration signal)", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "Order not found." } });
+    const result = await getOrderNotificationPayload("00000000-0000-0000-0000-000000000000", attemptId);
+    expect(result).toBeNull();
+    // Confirms the failure mode for "doesn't exist" is identical in shape to
+    // "exists but wrong attempt id" above (both: null, no thrown detail) —
+    // there is no way for a caller to distinguish the two, which is the
+    // point: neither case may reveal whether an order exists.
+  });
+
+  it("a malformed/incomplete payload (missing required fields) is rejected, not passed through", async () => {
+    rpc.mockResolvedValueOnce({
+      data: { order_id: orderId }, // missing order_code, customer, address, items
+      error: null,
+    });
+    const result = await getOrderNotificationPayload(orderId, attemptId);
+    expect(result).toBeNull();
+  });
+
+  it("a stale claim where the RPC returns null data with no error resolves to null, never throws", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: null });
+    await expect(getOrderNotificationPayload(orderId, attemptId)).resolves.toBeNull();
+  });
+
+  it("never throws even if the underlying RPC call itself rejects (no live network involved in this test)", async () => {
+    rpc.mockRejectedValueOnce(new Error("network unreachable"));
+    await expect(getOrderNotificationPayload(orderId, attemptId)).resolves.toBeNull();
   });
 });

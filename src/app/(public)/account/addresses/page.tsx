@@ -455,12 +455,22 @@ export default function AddressesPage() {
   const [listError, setListError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
+    setListError(null);
     return getCustomerAddresses()
       .then(setAddresses)
-      .catch(() => setAddresses([]));
+      .catch(() =>
+        setListError(
+          t({
+            en: "We couldn't load your addresses. Please try again.",
+            ar: "تعذر تحميل عناوينك. يرجى المحاولة مرة أخرى.",
+          }),
+        ),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     reload().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -584,9 +594,16 @@ export default function AddressesPage() {
     <AccountShell title={{ en: "Addresses", ar: "عناويني" }}>
       <div className="space-y-3">
         {listError && (
-          <p className="rounded-lg bg-red-900/20 px-4 py-2.5 text-sm text-red-400">
-            {listError}
-          </p>
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-red-900/20 px-4 py-2.5 text-sm text-red-400">
+            <span>{listError}</span>
+            <button
+              type="button"
+              onClick={() => reload()}
+              className="shrink-0 rounded-md border border-red-400/30 px-3 py-1 text-xs text-red-300 transition-colors hover:bg-red-400/10"
+            >
+              {t({ en: "Retry", ar: "إعادة المحاولة" })}
+            </button>
+          </div>
         )}
 
         {/* Address cards */}
@@ -608,8 +625,8 @@ export default function AddressesPage() {
           />
         ))}
 
-        {/* Empty state when no form is open */}
-        {addresses.length === 0 && formMode.kind === "hidden" && (
+        {/* Empty state when no form is open (only for a genuine empty list, not a failed load) */}
+        {!listError && addresses.length === 0 && formMode.kind === "hidden" && (
           <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-10 text-center">
             <MapPin className="mx-auto mb-3 h-8 w-8 text-[#B6885E]/20" />
             <p className="text-sm text-[#B79B85]/75">

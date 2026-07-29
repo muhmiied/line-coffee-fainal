@@ -137,7 +137,7 @@ Both remain on disk, untouched, pending an explicit owner decision on archival/d
 5. Run `npm ci && npm run lint && npx tsc --noEmit && npm run test:run && npm run build` in CI (this is what `.github/workflows/ci.yml` already does).
 6. Deploy to a preview/staging environment first with production-equivalent config.
 7. Run the public EN/AR smoke pass across representative viewports (desktop + mobile at minimum).
-8. Perform credentialed customer and admin acceptance testing — **not yet done in this project**; no test credentials have been available to any automated session so far. This remains the single largest gap between "code-verified" and "launch-ready."
+8. Credentialed customer and admin acceptance testing against the linked Supabase project — **completed** (owner-assisted, AI-observed manual QA during Phase 2 of this mission: the owner signed in with real admin/customer credentials directly in the browser, never shared with or recorded by the agent; the agent then observed and verified live behavior for Admin Dashboard modules/data, the full order lifecycle through Delivered with inventory reservation/deduction, Store-Closed enforcement on both the client and the server followed by restoration to OPEN, Customer Account pages, guest→account Wishlist migration, Cart ownership isolation, and sign-out/return-to-guest state — all confirmed working as documented). **Still genuinely outstanding, and inherently untestable until a real domain exists:** acceptance testing against the actual deployed production domain itself (Auth redirect allowlist, SMTP delivery, cookie/CORS behavior under the real origin) — this is a distinct gap from the functional QA above and must be repeated once step 10 below has a real domain to test against.
 9. Place one real, approved QA order per critical checkout type/payment method if the owner wants live-path confirmation; verify totals, inventory reservation, packaging, Telegram, WhatsApp, admin visibility, delivered-deduction/COGS, and cancellation.
 10. Promote to production; immediately re-check the real domain's canonical URLs, `robots.txt`, `sitemap.xml`, and the Supabase Auth redirect allowlist.
 11. Monitor errors, order rate, inventory movement, and notification delivery through an agreed observation window.
@@ -164,7 +164,8 @@ Owner-only items (cannot be verified or performed from an automated coding sessi
 - [ ] Confirm owner + backup-admin `admin_users` access with appropriate account security (MFA where available).
 - [ ] Connect error monitoring, uptime monitoring, and define alert ownership.
 - [ ] Confirm Supabase backup/PITR policy and do one restore-readiness review.
-- [ ] Perform credentialed customer and admin acceptance testing (blocked so far on test credentials).
+- [x] Credentialed customer and admin acceptance testing against the linked project — completed as owner-assisted, AI-observed manual QA during Phase 2 (see §7 item 8 for the exact scope).
+- [ ] Repeat acceptance testing against the real deployed production domain once it exists (Auth redirect allowlist, SMTP, cookie/CORS) — a distinct, still-outstanding gap from the item above.
 - [ ] Approve a rollback owner, threshold, and communication plan.
 
 Code-level items (all confirmed complete by this document and its companions):

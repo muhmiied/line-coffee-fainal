@@ -35,6 +35,11 @@ describe("normalizeEgyptianPhone", () => {
     expect(normalizeEgyptianPhone("201012345678")).toBe("01012345678");
   });
 
+  it("normalizes +20 followed by the full local number with its leading 0 still attached", () => {
+    expect(normalizeEgyptianPhone("+20 01012345678")).toBe("01012345678");
+    expect(normalizeEgyptianPhone("20 010 1234 5678")).toBe("01012345678");
+  });
+
   it("restores a missing leading 0 on a 10-digit 1xxxxxxxxx number", () => {
     expect(normalizeEgyptianPhone("1012345678")).toBe("01012345678");
   });
