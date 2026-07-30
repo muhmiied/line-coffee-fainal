@@ -46,12 +46,20 @@ export default function NotificationsPage() {
   const { t, language } = useLanguage();
   const [loading, setLoading]       = useState(true);
   const [items, setItems]           = useState<CustomerNotification[]>([]);
+  const [loadError, setLoadError]   = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
     getCustomerNotifications()
       .then(setItems)
-      .catch(() => setItems([]))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
   }, []);
 
   if (loading) {
@@ -68,7 +76,23 @@ export default function NotificationsPage() {
 
   return (
     <AccountShell title={{ en: "Notifications", ar: "الإشعارات" }}>
-      {items.length === 0 ? (
+      {loadError ? (
+        <div className="rounded-xl border border-red-900/30 bg-red-900/10 px-6 py-16 text-center">
+          <p className="mb-4 text-sm text-red-400">
+            {t({
+              en: "We couldn't load your notifications. Please try again.",
+              ar: "تعذر تحميل إشعاراتك. يرجى المحاولة مرة أخرى.",
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={load}
+            className="premium-button-outline inline-block px-8 py-2.5 text-sm"
+          >
+            {t({ en: "Retry", ar: "إعادة المحاولة" })}
+          </button>
+        </div>
+      ) : items.length === 0 ? (
         <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
           <Bell className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/20" />
           <p className="text-sm text-[#B79B85]/75">

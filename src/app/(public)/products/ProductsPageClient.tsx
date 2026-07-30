@@ -17,9 +17,10 @@ import {
 // only render when a studio category is selected, so load them on demand instead
 // of shipping them in the products page's initial JS bundle.
 function StudioFallback() {
+  const { t } = useLanguage();
   return (
     <div className="flex min-h-[320px] items-center justify-center text-sm text-[#D6B79A]/65">
-      Loading studio…
+      {t({ en: "Loading studio…", ar: "جارٍ تحميل الاستوديو…" })}
     </div>
   );
 }

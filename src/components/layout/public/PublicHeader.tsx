@@ -27,11 +27,24 @@ import { useWishlist } from "@/lib/hooks/useWishlist";
 import { useAuth, type AuthUser } from "@/lib/hooks/useAuth";
 import { useCurrentAdmin } from "@/lib/hooks/useCurrentAdmin";
 import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
-import {
-  formatAdminRole,
-  getAdminInitials,
-  type CurrentAdmin,
-} from "@/lib/auth/admin";
+import { getAdminInitials, type CurrentAdmin } from "@/lib/auth/admin";
+import type { AdminRole } from "@/lib/types/admin";
+
+// A second, deliberately separate source of truth for the same three role
+// labels as formatAdminRole() in src/lib/auth/admin.ts — NOT a consolidation
+// candidate: the admin dashboard's own t() (AdminLanguageProvider) only
+// accepts a plain English string and looks it up in a dictionary
+// (translateAdminText), so formatAdminRole() must keep returning a bare
+// string for AdminTopBar.tsx's `t(adminRoleLabel)` call to keep working. This
+// customer-facing header uses the OTHER t() (useLanguage()), which expects
+// `{ en, ar }` objects — the two i18n systems are incompatible in shape, so
+// the labels can't be shared without breaking one of them. If a role is ever
+// renamed/added, update both this function and formatAdminRole().
+function publicAdminRoleLabel(role: AdminRole): { en: string; ar: string } {
+  if (role === "super_admin") return { en: "Super Admin", ar: "مشرف عام" };
+  if (role === "admin") return { en: "Admin", ar: "مشرف" };
+  return { en: "Viewer", ar: "مشاهد" };
+}
 import {
   getPublicProductsBySlugs,
   type PublicCatalogProduct,
@@ -118,12 +131,13 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
   const { t, language } = useLanguage();
   const [items, setItems] = useState<import("@/lib/account/customer-account").CustomerNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     import("@/lib/account/customer-account").then(({ getCustomerNotifications }) =>
       getCustomerNotifications()
         .then(setItems)
-        .catch(() => setItems([]))
+        .catch(() => setLoadError(true))
         .finally(() => setLoading(false))
     );
   }, []);
@@ -160,6 +174,12 @@ function NotificationsDropdown({ onClose }: { onClose: () => void }) {
           {[1, 2].map((i) => (
             <div key={i} className="h-12 animate-pulse rounded-lg bg-[#1B140F]" />
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="px-4 py-8 text-center">
+          <p className="text-sm text-red-400">
+            {t({ en: "Couldn't load notifications.", ar: "تعذر تحميل الإشعارات." })}
+          </p>
         </div>
       ) : preview.length === 0 ? (
         <div className="px-4 py-8 text-center">
@@ -230,11 +250,21 @@ function UserMenu({
   const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    await signOut();
-    onClose();
-    router.replace("/");
+    setSignOutError(null);
+    try {
+      await signOut();
+      onClose();
+      router.replace("/");
+    } catch {
+      // A failed sign-out must leave the user visibly authenticated — keep
+      // the menu open and surface a retry message instead of closing it.
+      setSignOutError(
+        t({ en: "Could not sign out. Please try again.", ar: "تعذر تسجيل الخروج. حاول مرة أخرى." }),
+      );
+    }
   };
 
   const isLoggedIn = account.user !== null;
@@ -278,7 +308,7 @@ function UserMenu({
                 <p className="truncate text-xs text-[#B79B85]/80">{account.displayEmail}</p>
                 {showAdmin && (
                   <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
-                    {formatAdminRole(account.admin!.role)}
+                    {t(publicAdminRoleLabel(account.admin!.role))}
                   </span>
                 )}
               </div>
@@ -351,6 +381,9 @@ function UserMenu({
               <LogOut className="h-4 w-4 shrink-0" />
               {t({ en: "Sign out", ar: "تسجيل الخروج" })}
             </button>
+            {signOutError && (
+              <p className="px-2 pb-2 text-xs text-red-300">{signOutError}</p>
+            )}
           </div>
         </>
       ) : (
@@ -400,11 +433,21 @@ function MobileMenu({
   const { t, dir } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    await signOut();
-    onClose();
-    router.replace("/");
+    setSignOutError(null);
+    try {
+      await signOut();
+      onClose();
+      router.replace("/");
+    } catch {
+      // A failed sign-out must leave the user visibly authenticated — keep
+      // the menu open and surface a retry message instead of closing it.
+      setSignOutError(
+        t({ en: "Could not sign out. Please try again.", ar: "تعذر تسجيل الخروج. حاول مرة أخرى." }),
+      );
+    }
   };
 
   const isLoggedIn = account.user !== null;
@@ -502,7 +545,7 @@ function MobileMenu({
                 <p className="text-xs text-[#B79B85]/75">{account.displayEmail}</p>
                 {showAdmin && (
                   <span className="mt-1.5 inline-flex rounded-full bg-[#B6885E]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D6A373]">
-                    {formatAdminRole(account.admin!.role)}
+                    {t(publicAdminRoleLabel(account.admin!.role))}
                   </span>
                 )}
               </div>
@@ -601,6 +644,9 @@ function MobileMenu({
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}
               </button>
+              {signOutError && (
+                <p className="px-4 pt-2 text-xs text-red-300">{signOutError}</p>
+              )}
             </>
           ) : (
             <div className="space-y-2 px-2">
@@ -759,7 +805,7 @@ function CommercePopover({
                       {/* Image */}
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#1B140F]">
                         {product.image && (
-                          <Image src={product.image} alt={product.name.en} fill sizes="3rem" className="object-cover" />
+                          <Image src={product.image} alt={t(product.name)} fill sizes="3rem" className="object-cover" />
                         )}
                       </div>
                       {/* Info */}
@@ -1319,7 +1365,7 @@ export function PublicHeader() {
             </Link>
 
             {/* Desktop nav */}
-            <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
+            <nav className="hidden items-center gap-8 md:flex" aria-label={t({ en: "Primary", ar: "التنقل الرئيسي" })}>
               {navLinks.map((link) => {
                 const isActive = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(link.href + "/");
                 return (

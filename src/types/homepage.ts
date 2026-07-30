@@ -83,15 +83,6 @@ export type VisualJournalItem = {
   category?: LocalizedValue;
 };
 
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-
-export type VisualTestimonial = {
-  name: LocalizedValue;
-  meta: LocalizedValue;
-  quote: LocalizedValue;
-  rating: 1 | 2 | 3 | 4 | 5;
-};
-
 // ─── Contact ──────────────────────────────────────────────────────────────────
 
 export type ContactItemKind = "location" | "phone" | "mail";

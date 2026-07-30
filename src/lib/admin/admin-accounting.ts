@@ -74,6 +74,11 @@ export type AccountingOrderRow = {
   cogs: number | null;
   grossProfit: number | null;
   margin: number | null;
+  // Group 4 (Flavor COGS honesty): true when this order contains a Make
+  // Your Flavor line whose cost basis was never configured — grossProfit/
+  // margin above are intentionally null in this case (never a confidently
+  // wrong number).
+  cogsIncomplete: boolean;
   netPaid: number;
   outstanding: number;
 };
@@ -170,6 +175,11 @@ export type AdminAccountingData = {
   deliveredCount: number;
   cancelledCount: number;
   deliveredMissingCogs: number;
+  // Group 4 (Flavor COGS honesty): delivered orders containing at least one
+  // Make Your Flavor line whose cost basis was never configured in the
+  // catalog. Their cogs_total is a real (non-null) number and so is NOT
+  // caught by deliveredMissingCogs — this is a distinct honesty flag.
+  deliveredIncompleteFlavorCogs: number;
   // tables
   orders: AccountingOrderRow[];
   purchases: AccountingPurchaseRow[];
@@ -225,6 +235,7 @@ type AccountingReportV1 = {
   deliveredNetSales: number;
   cogsTotal: number;
   deliveredMissingCogs: number;
+  deliveredIncompleteFlavorCogs: number;
   orderCount: number;
   deliveredCount: number;
   cancelledCount: number;
@@ -365,16 +376,42 @@ export async function getAdminAccounting(): Promise<AdminAccountingData> {
 
   // ── Per-order payment/refund lookup, scoped to only the displayed orders ──
   const orderIds = orders.map((o) => o.id);
-  const [displayPaymentsResult, displayRefundsResult] =
+  const [displayPaymentsResult, displayRefundsResult, incompleteFlavorItemsResult] =
     orderIds.length > 0
       ? await Promise.all([
           supabase.from("order_payments").select("order_id, amount").in("order_id", orderIds),
           supabase.from("order_refunds").select("order_id, amount").in("order_id", orderIds),
+          // Group 4 (Flavor COGS honesty): which of the displayed orders
+          // contain a Make Your Flavor line whose cost basis was never
+          // configured — used to null out that row's gross profit/margin
+          // instead of showing a confidently wrong number.
+          supabase
+            .from("order_items")
+            .select("order_id")
+            .in("order_id", orderIds)
+            .eq("kind", "custom_flavor")
+            .eq("flavor_cost_known", false),
         ])
-      : [{ data: [] as { order_id: string; amount: number | string }[], error: null }, { data: [] as { order_id: string; amount: number | string }[], error: null }];
+      : [
+          { data: [] as { order_id: string; amount: number | string }[], error: null },
+          { data: [] as { order_id: string; amount: number | string }[], error: null },
+          { data: [] as { order_id: string }[], error: null },
+        ];
 
   if (displayPaymentsResult.error) throw readError("order-payments", displayPaymentsResult.error.message);
   if (displayRefundsResult.error) throw readError("order-refunds", displayRefundsResult.error.message);
+  // Degrade gracefully instead of failing the whole page: this query depends
+  // on the flavor_cost_known column existing (Phase 5 Batch A migration). If
+  // it's ever queried before that migration has been applied, the honesty
+  // indicator is simply unavailable for this load rather than breaking
+  // Accounting entirely.
+  if (incompleteFlavorItemsResult.error) {
+    devWarn("order-items", incompleteFlavorItemsResult.error.message);
+  }
+
+  const incompleteFlavorCogsOrderIds = new Set(
+    ((incompleteFlavorItemsResult.data ?? []) as { order_id: string }[]).map((row) => row.order_id),
+  );
 
   const paidByOrder = new Map<string, number>();
   for (const p of (displayPaymentsResult.data ?? []) as { order_id: string; amount: number | string }[]) {
@@ -399,13 +436,21 @@ export async function getAdminAccounting(): Promise<AdminAccountingData> {
     const netPaid = round2(paid - refunded);
     const outstanding = isCancelled ? 0 : Math.max(0, round2(total - netPaid));
 
+    // Group 4 (Flavor COGS honesty): this order's cogs_total is a real
+    // (non-null) number even when incomplete, so it is never blank — but
+    // gross profit/margin must not present a confidently accurate figure
+    // built on top of an unknown cost component.
+    const cogsIncomplete = incompleteFlavorCogsOrderIds.has(o.id);
+
     let rowCogs: number | null = null;
     let rowGrossProfit: number | null = null;
     let rowMargin: number | null = null;
     if (isDelivered) {
       rowCogs = money(o.cogs_total);
-      rowGrossProfit = round2(netSales - rowCogs);
-      rowMargin = netSales > 0 ? round2((rowGrossProfit / netSales) * 100) : 0;
+      if (!cogsIncomplete) {
+        rowGrossProfit = round2(netSales - rowCogs);
+        rowMargin = netSales > 0 ? round2((rowGrossProfit / netSales) * 100) : 0;
+      }
     }
 
     return {
@@ -416,6 +461,7 @@ export async function getAdminAccounting(): Promise<AdminAccountingData> {
       placedAt: o.placed_at,
       subtotal, discount, deliveryFee, total, netSales,
       cogs: rowCogs, grossProfit: rowGrossProfit, margin: rowMargin,
+      cogsIncomplete: isDelivered && cogsIncomplete,
       netPaid, outstanding,
     };
   });
@@ -567,6 +613,7 @@ export async function getAdminAccounting(): Promise<AdminAccountingData> {
     deliveredCount: report.deliveredCount,
     cancelledCount: report.cancelledCount,
     deliveredMissingCogs: report.deliveredMissingCogs,
+    deliveredIncompleteFlavorCogs: report.deliveredIncompleteFlavorCogs,
     orders: orderRows,
     purchases,
     expenses,

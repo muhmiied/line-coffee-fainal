@@ -3,8 +3,9 @@
 // immediately. Related-articles uses a lightweight 2-row read instead of
 // downloading every published post to pick 2 at random.
 
+import { notFound } from "next/navigation";
 import { getServerBlogPostBySlug, getServerRelatedBlogPosts } from "@/lib/cms/server-blog";
-import BlogPostClient, { BlogPostNotFound } from "./BlogPostClient";
+import BlogPostClient from "./BlogPostClient";
 
 const RELATED_COUNT = 2;
 
@@ -17,7 +18,7 @@ export default async function BlogPostPage({
   const post = await getServerBlogPostBySlug(slug);
 
   if (!post) {
-    return <BlogPostNotFound />;
+    notFound();
   }
 
   const related = await getServerRelatedBlogPosts(slug, RELATED_COUNT);

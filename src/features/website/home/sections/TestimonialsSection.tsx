@@ -133,7 +133,13 @@ function TestimonialCard({
       <div className="mb-5 flex items-start justify-between gap-4">
         <div
           className="flex items-center gap-0.5"
-          aria-label={`${testimonial.rating} out of 5 stars`}
+          aria-label={t({
+            en: `${testimonial.rating} out of 5 stars`,
+            // Kept in Western digits to match the interpolated rating value
+            // (the codebase's established numeral convention keeps digits
+            // Latin/LTR even in Arabic text — see MixedNumeric/.arabic-number).
+            ar: `${testimonial.rating} من 5 نجوم`,
+          })}
         >
           {Array.from({ length: testimonial.rating }).map((_, i) => (
             <Star key={i} className="h-[15px] w-[15px] fill-[#D6A373] text-[#D6A373]" />

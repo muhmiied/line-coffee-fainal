@@ -108,7 +108,7 @@ export function SocialGallerySection({
             >
               <Image
                 src={src}
-                alt={`Line Coffee ${handle} — photo ${index + 1}`}
+                alt={`Line Coffee ${handle} — ${t({ en: "photo", ar: "صورة" })} ${index + 1}`}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 26rem"
                 className="object-cover brightness-[0.82] contrast-[1.07] saturate-[1.05] transition-all duration-700 group-hover:scale-105 group-hover:brightness-[0.92]"

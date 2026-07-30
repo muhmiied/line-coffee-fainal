@@ -1,0 +1,45 @@
+-- =============================================================================
+-- Pre-push patch: revoke the superseded log_order_notification /
+-- order_notification_was_sent RPCs (3-argument overloads) from anon/authenticated.
+-- =============================================================================
+--
+-- Context: the Telegram order-notification route (src/app/api/order-notifications/
+-- telegram/route.ts) was rewritten in Phase 5 Batch A (20260726100000) to use an
+-- atomic claim-before-send flow: claim_order_notification -> send ->
+-- mark_order_notification_sent (or release_order_notification_claim on failure).
+--
+-- The OLDER check-then-log pair this replaced --
+-- order_notification_was_sent(uuid, text, text) and
+-- log_order_notification(uuid, text, text), added in 20260705133831 -- was
+-- deliberately left in place at the time (its own header says so) but its
+-- anon/authenticated EXECUTE grant was never revoked.
+--
+-- Verified before writing this migration (2026-07-29, pre-push patch review):
+--   - `grep -rn "log_order_notification\|order_notification_was_sent" src/`
+--     returns ZERO matches anywhere in current application code — neither
+--     function is called by the app at all today; the route exclusively uses
+--     claim_order_notification / mark_order_notification_sent /
+--     release_order_notification_claim.
+--   - has_function_privilege confirms: the 2-argument overloads of both
+--     functions (the original Phase 18B signature, order_id + channel only)
+--     already have ZERO anon/authenticated execute grant (correctly revoked
+--     when the 3-argument proof-bound overloads were introduced in
+--     20260705133831 -- no action needed on those).
+--   - the 3-argument overloads (order_id + channel + checkout_attempt_id) of
+--     BOTH functions are STILL anon/authenticated-executable today, despite
+--     being unused by the app. Since a client's own browser already knows its
+--     own order's checkout_attempt_id, an anon caller could invoke
+--     log_order_notification directly to plant a status='sent' dedup row for
+--     its own order BEFORE the real route runs -- silently suppressing that
+--     order's admin Telegram alert forever, entirely outside the atomic claim
+--     flow the route now relies on exclusively.
+--
+-- This migration revokes EXECUTE on exactly those two 3-argument overloads
+-- from anon and authenticated. It does not drop the functions (no destructive
+-- DDL), does not touch order_notifications (the durable dedup log table
+-- itself), and does not touch claim_order_notification /
+-- mark_order_notification_sent / release_order_notification_claim -- the only
+-- notification-dedup path the app uses is left fully intact.
+
+revoke execute on function public.log_order_notification(uuid, text, text) from anon, authenticated;
+revoke execute on function public.order_notification_was_sent(uuid, text, text) from anon, authenticated;

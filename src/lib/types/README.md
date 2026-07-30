@@ -71,6 +71,10 @@ data layers cast rows to their own hand-written row types. This is safe today
 (every cast is followed by explicit field normalization), but generating DB types
 later is recommended so the row types become checked against the real schema.
 
-See `docs/ai/LINE_COFFEE_V3_DATA_CONTRACTS_AND_MIGRATIONS.md` →
-"Supabase DB type strategy" for the exact `supabase gen types` command and how to
-wire the generic in without rewriting the data layers.
+See `docs/final-system-reference/LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md` for
+overall architecture. When ready to generate DB types (not a launch blocker — run
+by the owner), use the existing `npm run gen:types` script (`supabase gen types
+typescript --linked > src/lib/types/database.types.ts`), then wire the generic in
+`src/lib/supabase/client.ts` (`createClient<Database>(...)`) without rewriting the
+data layers — keep the hand-written row types as the public contracts and use the
+generated types to verify them (`satisfies`) rather than replacing them wholesale.

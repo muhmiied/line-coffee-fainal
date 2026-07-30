@@ -14,9 +14,15 @@ const EGYPTIAN_MOBILE_RE = /^01[0125]\d{8}$/;
 export function normalizeEgyptianPhone(raw: string | null | undefined): string | null {
   let digits = (raw ?? "").replace(/\D/g, "");
 
-  // Strip international prefixes down to the local form.
+  // Strip international prefixes down to the local form. Egyptians commonly
+  // write the country code two ways: "20" + 10-digit local without its
+  // leading 0 (12 digits total, e.g. +201012345678), or "20" + the full
+  // 11-digit local number WITH its leading 0 still attached (13 digits
+  // total, e.g. +20 01012345678) — both must be accepted.
   if (digits.startsWith("0020")) {
     digits = digits.slice(4);
+  } else if (digits.startsWith("200") && digits.length === 13) {
+    digits = digits.slice(2);
   } else if (digits.startsWith("20") && digits.length === 12) {
     digits = digits.slice(2);
   }

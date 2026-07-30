@@ -909,7 +909,7 @@ function BeanLibrary({
                       value={String(percent)}
                       onChange={(event) => onManualRatioChange(bean.id, event.target.value)}
                       className="h-7 w-14 rounded-lg border border-[#B6885E]/18 bg-[#120D09]/90 px-2 text-center text-xs font-bold text-[#F5E6D8] outline-none transition-colors focus:border-[#D6A373]/60"
-                      aria-label={`${t(bean.name)} ratio`}
+                      aria-label={`${t(bean.name)} ${t({ en: "ratio", ar: "النسبة" })}`}
                     />
                     <span className="font-bold"><MixedNumeric text="%" /></span>
                   </label>
@@ -1159,7 +1159,7 @@ function LiveBlendCart({
                             value={String(percent)}
                             onChange={(event) => onManualRatioChange(bean.id, event.target.value)}
                             className="h-8 w-16 rounded-lg border border-[#B6885E]/18 bg-[#120D09]/80 px-2 text-center text-xs font-bold text-[#F5E6D8] outline-none focus:border-[#D6A373]/60"
-                            aria-label={`${t(bean.name)} ratio`}
+                            aria-label={`${t(bean.name)} ${t({ en: "ratio", ar: "النسبة" })}`}
                           />
                           <span className="text-xs font-bold text-[#D6A373]"><MixedNumeric text="%" /></span>
                         </label>

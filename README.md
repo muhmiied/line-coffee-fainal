@@ -1,97 +1,62 @@
 # Line Coffee Final / V3
 
-This repository is the current working Line Coffee V3 platform surface.
+Line Coffee V3 is a bilingual (Arabic/English) Egyptian specialty-coffee e-commerce platform: a public storefront with two custom product builders (Make Your Espresso, Make Your Flavor), real customer accounts, and a full admin operations dashboard (catalog, orders, inventory/FIFO, accounting, analytics, marketing, CMS, settings).
 
-It is no longer foundation-only. The public website, customer-facing ecommerce flow, account/auth UI, and Admin Dashboard mock UI are active in this repo.
+The backend is **real Supabase**, not mock data. The browser talks to Postgres directly on the anon/publishable key; every write goes through a validated `SECURITY DEFINER` RPC that recomputes prices/stock/eligibility server-side. There is no service-role server anywhere in this codebase.
 
-Backend, Supabase, real APIs, real payments, and production persistence are still deferred unless explicitly approved.
+## Start here
 
-## Current Phase
+Before changing anything in this project, read `CLAUDE.md`, then the three files under `docs/final-system-reference/`:
 
-Line Coffee V3 is in the mock UI buildout phase.
+1. [`docs/final-system-reference/LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md`](docs/final-system-reference/LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md) — architecture and every module, in depth.
+2. [`docs/final-system-reference/LINE_COFFEE_V3_ROUTE_DATA_FLOW_MAP.md`](docs/final-system-reference/LINE_COFFEE_V3_ROUTE_DATA_FLOW_MAP.md) — where a specific route's copy/images/data comes from.
+3. [`docs/final-system-reference/LINE_COFFEE_V3_FINAL_AUDIT_AND_OPERATIONS.md`](docs/final-system-reference/LINE_COFFEE_V3_FINAL_AUDIT_AND_OPERATIONS.md) — live schema inventory, accepted risks, and the launch checklist.
 
-Active areas include:
+`AGENT_WORK_PROTOCOL.md` has the operating rules every agent/developer follows on this project. `CLAUDE.md`'s Change Log is the complete chronological build history — useful context, but not the current-state source of truth (the three files above are).
 
-- Premium bilingual public website.
-- Product catalog, category pages, and product detail pages.
-- Make Your Espresso and Make Your Flavor builders.
-- Cart, checkout, and order-success mock flow.
-- Auth and customer account mock UI.
-- Admin Dashboard mock modules.
-- Marketing & Promotions restructure in progress.
+## Tech stack
 
-## AI Handoff
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, TypeScript strict |
+| Styling | Tailwind CSS v4 |
+| Backend | Supabase Postgres — anon key + `SECURITY DEFINER` RPCs, no service role |
+| Tests | Vitest + Testing Library (99 tests) |
 
-Before changing this project, read these in order:
+## Folder map (actual, not planned)
 
-1. [`docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md`](docs/ai/LINE_COFFEE_V3_CURRENT_STATE.md)
-2. [`AGENT_WORK_PROTOCOL.md`](AGENT_WORK_PROTOCOL.md)
-3. [`LINE_COFFEE_V3_PROJECT_LOG.md`](LINE_COFFEE_V3_PROJECT_LOG.md)
+- `src/app/(public)` — public website, ecommerce, auth, account routes.
+- `src/app/admin` — real admin dashboard routes.
+- `src/app/api` — the one server route (Telegram order notification).
+- `src/components` — shared UI, layout, product, and admin components.
+- `src/features/website` — public website + builder feature modules.
+- `src/lib` — data layers (`admin/`, `catalog/`, `account/`, `checkout.ts`), auth, SEO, hooks, Supabase client.
+- `src/lib/mock-data/visual-content.ts` — the homepage's static presentation/copy config (intentional, not a backend gap — Media Studio is cancelled).
+- `src/types` — shared TypeScript types.
+- `supabase/migrations` — every applied SQL migration (44 files, local/remote in sync).
+- `docs/final-system-reference` — the authoritative documentation (see above).
 
-The current-state file is the main source of truth for future AI sessions. Older planning docs are historical if they conflict with it.
-
-## Reference Repositories
-
-Reference repositories are read-only sources of context. Do not modify them and do not copy code blindly.
-
-- Architecture source of truth: https://github.com/muhmiied/line-coffee-v2
-- Business and customer journey reference: https://github.com/muhmiied/line-coffee
-
-## Brand Foundation
-
-- Brand: Line Coffee
-- Primary brown: `#522500`
-- Beige: `#FFDCC2`
-- Black: `#000000`
-- White: `#FFFFFF`
-- Arabic font direction: Cairo/Tajawal and current project typography rules
-- English font direction: Playfair Display
-
-## Architecture Guardrails
-
-- Build in this repository only.
-- Keep old repositories read-only.
-- Keep content structures bilingual.
-- Keep public website, account, admin, CMS, and Media Studio responsibilities separate.
-- Keep mock data in `src/lib/mock-data` until backend binding is explicitly approved.
-- Do not introduce Supabase, API routes, database migrations, or backend persistence without approval.
-- Do not redesign the homepage unless explicitly requested.
-
-## Folder Map
-
-- `src/app` - Next.js App Router entry point and routes.
-- `src/app/(public)` - Public website, ecommerce, auth, and account routes.
-- `src/app/admin` - Admin Dashboard mock routes.
-- `src/components` - Shared UI, layout, product, and admin components.
-- `src/features/website` - Public website feature modules.
-- `src/features/dashboard` - Dashboard feature modules.
-- `src/features/cms` - Future Content Builder and CMS modules.
-- `src/features/media-studio` - Future Media Studio modules.
-- `src/features/builders` - Custom builder modules.
-- `src/lib/design-tokens` - Brand and design token definitions.
-- `src/lib/mock-data` - Mock data until Supabase is connected later.
-- `src/types` - Shared TypeScript types.
-- `src/content` - Temporary structured content until CMS binding exists.
-
-## Getting Started
-
-Run the development server:
+## Getting started
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Validation
 
 ```bash
 npm run lint
+npx tsc --noEmit
+npm run test:run
 npm run build
 ```
 
-For documentation-only work, code validation is usually not required.
+## Architecture guardrails
 
-## Design System
-
-The design foundation is documented in [`docs/DESIGN_SYSTEM_FOUNDATION.md`](docs/DESIGN_SYSTEM_FOUNDATION.md).
+- No homepage/public redesign unless explicitly requested — the visual direction is locked.
+- No service-role key, no direct client writes to sensitive tables — every write goes through a validated RPC.
+- Keep public, account, admin, and server-route responsibilities separate (see the System Reference, §2 "Layout ownership").
+- Preserve English/Arabic parity, RTL/LTR correctness, and accessibility behavior in any change.

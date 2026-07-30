@@ -13,8 +13,11 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint · Type-check · Build
+    name: Lint · Type-check · Test · Build
     runs-on: ubuntu-latest
+    # A hung test (a leaked real timer, an unmocked network call) should fail
+    # fast, not silently burn the runner's default multi-hour budget.
+    timeout-minutes: 15
 
     # Public NEXT_PUBLIC_* vars are read at module load (src/lib/supabase/client.ts
     # throws when they are missing). These are non-secret placeholders so the
@@ -32,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -44,5 +47,20 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: Test
+        run: npm run test:run
+
       - name: Build
         run: npm run build
+
+      - name: Route status check (real 404/200, no live project)
+        # Deterministic regression guard for the Group 2 follow-up 404 fix:
+        # (1) structurally asserts no ancestor loading.tsx exists above the
+        # three dynamic routes (the actual root cause of the original bug —
+        # an ancestor loading.tsx streams a 200 before notFound() resolves,
+        # with zero build/lint/type error), and (2) runs its own dedicated
+        # `next build` + `next start` against a local, in-process mock REST
+        # server (plain Node http, no network, no real Supabase project) to
+        # assert genuine HTTP 404 for unknown product/category/blog slugs and
+        # 200 for the known fixture + listing routes.
+        run: npm run route-status-check

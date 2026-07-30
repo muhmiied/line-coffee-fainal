@@ -16,6 +16,7 @@ import {
   checkoutResultStorageKey,
   createCheckoutAttemptId,
   getOrCreateGuestId,
+  getOrderNotificationPayload,
   isCheckoutOrderResult,
   type CheckoutOrderHandoff,
   validatePromoCode,
@@ -34,7 +35,7 @@ import {
   type StorefrontSettings,
 } from "@/lib/settings/public-site-settings";
 import { supabase } from "@/lib/supabase/client";
-import { isValidEgyptianPhone } from "@/lib/validation/phone";
+import { isValidEgyptianPhone, normalizeEgyptianPhone } from "@/lib/validation/phone";
 import { EGYPT_GOVERNORATES as GOVS } from "@/lib/checkout/governorates";
 import { AddressSection } from "./AddressSection";
 import { PaymentSection } from "./PaymentSection";
@@ -526,6 +527,14 @@ export function CheckoutForm() {
       (item): item is CheckoutRpcItem => item !== null,
     );
 
+    // validate() already required both to pass isValidEgyptianPhone, so these
+    // are guaranteed non-null here — normalizing keeps the stored value in one
+    // canonical form (0XXXXXXXXXX) instead of whatever mix of +20/spaces/dashes
+    // the customer happened to type, which the admin duplicate-phone detector
+    // and any future phone-based lookup depend on being consistent.
+    const normalizedPhone = normalizeEgyptianPhone(form.phone) ?? form.phone.trim();
+    const normalizedWhatsapp = normalizeEgyptianPhone(form.whatsapp) ?? form.whatsapp.trim();
+
     submitInFlight.current = true;
     setSubmitting(true);
     let orderPlaced = false;
@@ -538,8 +547,8 @@ export function CheckoutForm() {
           checkout_attempt_id: checkoutAttemptId.current,
           customer: {
             name: form.name.trim(),
-            phone: form.phone.trim(),
-            whatsapp: form.whatsapp.trim(),
+            phone: normalizedPhone,
+            whatsapp: normalizedWhatsapp,
             email: form.email.trim() || null,
           },
           address: {
@@ -570,27 +579,51 @@ export function CheckoutForm() {
         return;
       }
 
-      const handoff: CheckoutOrderHandoff = {
-        customer: {
-          name: form.name.trim(),
-          phone: form.phone.trim(),
-          whatsapp: form.whatsapp.trim(),
-        },
-        address: {
-          governorate: form.governorate,
-          area: resolvedArea,
-          street: form.street.trim(),
-          building: form.building.trim(),
-          floorApt: form.floorApt.trim(),
-        },
-        items: items.map((item) => ({
-          name: t(item.name),
-          detail: t(item.detail),
-          quantity: item.qty,
-        })),
-        whatsappHref,
-        telegramStatus: "failed",
-      };
+      // Group 5 (WhatsApp trust boundary): build the handoff text from the
+      // same DB-authored, checkout_attempt_id-proof-bound snapshot the
+      // Telegram route uses (get_order_notification_payload) instead of
+      // live client/form state — a stale form, a race with a later edit, or
+      // simply distrust of the browser as a source of truth can no longer
+      // put the wrong customer/address/items into the WhatsApp message. If
+      // the trusted snapshot can't be fetched (network failure, or — should
+      // it ever happen — an order/attempt mismatch), no WhatsApp handoff is
+      // offered at all; we never fall back to the untrusted client copy.
+      const trustedPayload = await getOrderNotificationPayload(
+        data.order_id,
+        notificationAttemptId,
+      );
+      const handoff: CheckoutOrderHandoff = trustedPayload
+        ? {
+            customer: {
+              name: trustedPayload.customer.name,
+              phone: trustedPayload.customer.phone,
+              whatsapp: trustedPayload.customer.whatsapp,
+            },
+            address: {
+              governorate: trustedPayload.address.governorate,
+              area: trustedPayload.address.area,
+              street: trustedPayload.address.street,
+              building: trustedPayload.address.building,
+              floorApt: trustedPayload.address.floor_apt,
+            },
+            items: trustedPayload.items.map((item) => ({
+              // The trusted snapshot carries both languages; show the
+              // customer their own item names/details in the WhatsApp
+              // message rather than always defaulting to English.
+              name: language === "ar" && item.name_ar ? item.name_ar : item.name,
+              detail: language === "ar" && item.detail_ar ? item.detail_ar : item.detail,
+              quantity: item.quantity,
+            })),
+            whatsappHref,
+            telegramStatus: "failed",
+          }
+        : {
+            customer: { name: "", phone: "", whatsapp: "" },
+            address: { governorate: "", area: "", street: "", building: "", floorApt: "" },
+            items: [],
+            whatsappHref: null,
+            telegramStatus: "failed",
+          };
 
       try {
         const notificationResponse = await fetch("/api/order-notifications/telegram", {

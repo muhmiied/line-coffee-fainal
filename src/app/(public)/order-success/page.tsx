@@ -170,8 +170,20 @@ function OrderSuccessContent() {
     : null;
   const itemCount = result?.item_count ?? recovered?.itemCount ?? null;
   const totalAmount = result?.total ?? recovered?.total ?? null;
+  // `result` comes straight from sessionStorage, written moments earlier by
+  // the same browser tab immediately after a successful create_checkout_order
+  // response — it never needs a second server round-trip to "verify," since
+  // it IS the verification. `recovered` is the ownership-scoped RPC path for
+  // every other case (another tab/device, cleared storage, a shared/stale
+  // link) and is the thing that actually needs a loading/failure state.
   const hasOrderData = Boolean(result) || Boolean(recovered);
-  const isRecovering = recoveryState === "loading";
+  // Treat the brief pre-effect "idle" render (before the recovery effect has
+  // had a chance to flip state to "loading") as recovering too whenever it's
+  // about to start — otherwise the hero flashes "We couldn't verify this
+  // order." for one frame before switching to "Verifying…".
+  const willStartRecovering =
+    recoveryState === "idle" && !result && Boolean(fallbackCode) && rawResult !== RECEIPT_LOADING;
+  const isRecovering = recoveryState === "loading" || willStartRecovering;
   const recoveryFailed = recoveryState === "unavailable";
 
   return (
@@ -180,45 +192,83 @@ function OrderSuccessContent() {
         <div className="absolute inset-0 bg-[#0B0806]" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#B6885E]/22 to-transparent" />
         <div className="relative z-10 mx-auto max-w-7xl px-4">
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B6885E]">
-            {t({ en: "Order Received", ar: "تم استلام الطلب" })}
-          </p>
-          <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
-            {t({ en: "Thank You!", ar: "شكراً لك!" })}
-          </h1>
+          {hasOrderData ? (
+            <>
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B6885E]">
+                {t({ en: "Order Received", ar: "تم استلام الطلب" })}
+              </p>
+              <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+                {t({ en: "Thank You!", ar: "شكراً لك!" })}
+              </h1>
+            </>
+          ) : isRecovering ? (
+            <>
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B6885E]">
+                {t({ en: "One Moment", ar: "لحظة من فضلك" })}
+              </p>
+              <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+                {t({ en: "Verifying your order…", ar: "جارٍ التحقق من طلبك…" })}
+              </h1>
+            </>
+          ) : (
+            <>
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B6885E]">
+                {t({ en: "Order Status", ar: "حالة الطلب" })}
+              </p>
+              <h1 className="font-serif text-3xl font-bold text-[#F5E6D8] sm:text-4xl">
+                {t({ en: "We couldn't verify this order.", ar: "تعذّر التحقق من هذا الطلب." })}
+              </h1>
+            </>
+          )}
         </div>
       </section>
 
       <section className="cinematic-section section-bg-warm pb-20 pt-12">
         <div className="relative z-10 mx-auto max-w-2xl px-4">
           <div className="rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/72 p-8 shadow-[0_16px_48px_rgba(0,0,0,0.32)] md:p-10">
-            <div className="mb-6 flex justify-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[#D6A373]/30 bg-[#D6A373]/10 text-[#D6A373]">
-                <CheckCircle className="h-9 w-9" />
+            {hasOrderData && (
+              <div className="mb-6 flex justify-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[#D6A373]/30 bg-[#D6A373]/10 text-[#D6A373]">
+                  <CheckCircle className="h-9 w-9" />
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mb-8 text-center">
-              <p className="mb-2 text-sm text-[#D6B79A]/80">
-                {orderCode
-                  ? t({ en: "Your order number", ar: "رقم طلبك" })
-                  : t({ en: "Your order was received", ar: "تم استلام طلبك" })}
-              </p>
-              {orderCode && (
-                <p className="font-serif text-3xl font-bold tracking-wide text-[#D6A373]" dir="ltr">
-                  {orderCode}
+            {(hasOrderData || orderCode) && (
+              <div className="mb-8 text-center">
+                <p className="mb-2 text-sm text-[#D6B79A]/80">
+                  {orderCode
+                    ? t({ en: "Your order number", ar: "رقم طلبك" })
+                    : t({ en: "Your order was received", ar: "تم استلام طلبك" })}
                 </p>
-              )}
-              <p className="mt-3 text-sm leading-relaxed text-[#D6B79A]/80">
-                {t({
-                  en: "Our team will contact you shortly to confirm your delivery details.",
-                  ar: "سيتواصل فريقنا معك قريباً لتأكيد تفاصيل التوصيل.",
-                })}
-              </p>
-            </div>
+                {orderCode && (
+                  <p className="font-serif text-3xl font-bold tracking-wide text-[#D6A373]" dir="ltr">
+                    {orderCode}
+                  </p>
+                )}
+                {/* "Received"/"team will contact you" is a claim we can only make
+                    once the order is actually verified — showing it alongside an
+                    unverified/stale code would falsely reassure the visitor. */}
+                {hasOrderData && (
+                  <p className="mt-3 text-sm leading-relaxed text-[#D6B79A]/80">
+                    {t({
+                      en: "Our team will contact you shortly to confirm your delivery details.",
+                      ar: "سيتواصل فريقنا معك قريباً لتأكيد تفاصيل التوصيل.",
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="mb-8 h-px bg-gradient-to-r from-transparent via-[#B6885E]/25 to-transparent" />
 
+            {/* One persistent role="status" wrapper around every branch below —
+                the four branches sit at the same position in this ternary, so
+                React reuses the same DOM node across them; a role placed on
+                only some of the individual branches would be stripped/re-added
+                on each swap and never reliably announce the transition (most
+                importantly, loading -> found, the most common real outcome). */}
+            <div role="status">
             {hasOrderData ? (
               <div className="mb-8 rounded-xl border border-[#B6885E]/14 bg-[#0B0806]/40 p-5">
                 <h2 className="mb-4 font-serif text-lg font-bold text-[#F5E6D8]">
@@ -307,6 +357,7 @@ function OrderSuccessContent() {
                 )}
               </div>
             )}
+            </div>
 
             {result?.handoff?.telegramStatus === "failed" && (
               <div

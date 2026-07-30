@@ -119,7 +119,7 @@ export default function WishlistPage() {
                   type="button"
                   onClick={() => remove(product.slug)}
                   className="absolute end-3 top-3 rounded-full p-1.5 text-[#B79B85]/60 transition-colors hover:text-red-400/70"
-                  aria-label="Remove from wishlist"
+                  aria-label={t({ en: "Remove from wishlist", ar: "أزل من المفضلة" })}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -130,7 +130,7 @@ export default function WishlistPage() {
                     {product.image && (
                       <Image
                         src={product.image}
-                        alt={product.name.en}
+                        alt={t(product.name)}
                         fill
                         sizes="4rem"
                         className="object-cover"

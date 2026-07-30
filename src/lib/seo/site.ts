@@ -4,15 +4,51 @@
 // the metadata layers, sitemap, robots, JSON-LD builders, and the /llms.txt
 // endpoint. No data access, no UI. Safe to import from server or client code.
 //
-// The canonical base URL is env-driven (NEXT_PUBLIC_SITE_URL) with a brand-safe
-// fallback to the Line Coffee domain, so canonicals/OG/sitemap all resolve to
-// one absolute origin. Set NEXT_PUBLIC_SITE_URL in the deployment env to the
-// real launch domain to override the fallback.
+// The canonical base URL is env-driven (NEXT_PUBLIC_SITE_URL). A silent,
+// always-on fallback to the production domain is unsafe: it would make a
+// misconfigured deployment (a forgotten env var on a new environment, or a
+// real domain change) emit confidently-wrong canonical/OG/sitemap/JSON-LD
+// URLs with no signal anywhere that anything is wrong. So the fallback is
+// scoped by what's actually running:
+//   - local dev (`next dev`)         -> quiet console.warn, localhost fallback
+//     (never crawled/indexed, so a wrong value here is harmless)
+//   - a real live Vercel production
+//     deployment (VERCEL_ENV==="production") -> loud console.error, since
+//     this is the one case that genuinely serves real traffic/canonicals
+//   - anything else (a local `next build`, CI, a Vercel preview build)
+//     -> a single quiet console.warn, same real-domain fallback (localhost
+//     would be wrong for a build that might get deployed or previewed)
+// `next build` always sets NODE_ENV=production even for a local sanity-check
+// build, so NODE_ENV alone can't tell a real deploy apart from a local build
+// — that's what VERCEL_ENV narrows down. Set NEXT_PUBLIC_SITE_URL in the
+// deployment env to the real launch domain to silence the warning entirely.
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL;
+const isLocalDev = process.env.NODE_ENV !== "production";
+const isRealProductionDeploy = process.env.VERCEL_ENV === "production";
+const PRODUCTION_FALLBACK_SITE_URL = "https://linecoffee.eg";
+
+if (!configuredSiteUrl) {
+  if (isLocalDev) {
+    console.warn(
+      "[seo/site] NEXT_PUBLIC_SITE_URL is not set — using http://localhost:3000 for local development only.",
+    );
+  } else if (isRealProductionDeploy) {
+    console.error(
+      `[seo/site] NEXT_PUBLIC_SITE_URL is not set on a live production deployment. ` +
+        `Falling back to ${PRODUCTION_FALLBACK_SITE_URL}, which may be WRONG for this deployment ` +
+        `(canonical URLs, Open Graph tags, sitemap.xml, and JSON-LD will all be built from it). ` +
+        `Set NEXT_PUBLIC_SITE_URL to the real domain for this environment.`,
+    );
+  } else {
+    console.warn(
+      `[seo/site] NEXT_PUBLIC_SITE_URL is not set for this build. Falling back to ` +
+        `${PRODUCTION_FALLBACK_SITE_URL} — set it explicitly if this build is deployed anywhere.`,
+    );
+  }
+}
 
 const rawSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  "https://linecoffee.eg";
+  configuredSiteUrl || (isLocalDev ? "http://localhost:3000" : PRODUCTION_FALLBACK_SITE_URL);
 
 /** Absolute site origin, no trailing slash. */
 export const SITE_URL = rawSiteUrl.replace(/\/+$/, "");
