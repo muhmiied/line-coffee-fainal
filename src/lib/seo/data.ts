@@ -17,6 +17,7 @@
 // leaf layout's generateMetadata + its JSON-LD share a single query.
 
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_OG_IMAGE, categoryNameForSlug } from "@/lib/seo/site";
 
@@ -368,7 +369,7 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-export const getSeoBusinessInfo = cache(async (): Promise<SeoBusinessInfo | null> => {
+async function fetchSeoBusinessInfo(): Promise<SeoBusinessInfo | null> {
   const client = getClient();
   if (!client) return null;
 
@@ -405,4 +406,12 @@ export const getSeoBusinessInfo = cache(async (): Promise<SeoBusinessInfo | null
   } catch {
     return null;
   }
-});
+}
+
+const getCachedSeoBusinessInfo = unstable_cache(
+  fetchSeoBusinessInfo,
+  ["seo-business-info-v1"],
+  { revalidate: 300, tags: ["public-settings"] },
+);
+
+export const getSeoBusinessInfo = cache(getCachedSeoBusinessInfo);

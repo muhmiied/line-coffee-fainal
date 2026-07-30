@@ -72,6 +72,10 @@ function getServerSnapshot() {
   return EMPTY;
 }
 
+function getWishlistItemServerSnapshot() {
+  return false;
+}
+
 // ─── localStorage helpers (guest scope only) ─────────────────────────────────
 
 let _legacyCleared = false;
@@ -299,4 +303,31 @@ export function useWishlist() {
   const isWishlisted = useCallback((slug: string) => ids.includes(slug), [ids]);
 
   return { ids, count: ids.length, toggle, isWishlisted, remove };
+}
+
+/**
+ * Product-card selector: every card still shares the same owner-safe wishlist
+ * store, but React only re-renders the card whose own boolean changed. The
+ * broader useWishlist() hook intentionally remains available for the header
+ * count, drawer, and account page that need the complete ID list.
+ */
+export function useWishlistItem(slug: string) {
+  useEffect(() => {
+    startAuthWatcher();
+  }, []);
+
+  const getItemSnapshot = useCallback(
+    () => store.ids.includes(slug),
+    [slug],
+  );
+  const wishlisted = useSyncExternalStore(
+    subscribe,
+    getItemSnapshot,
+    getWishlistItemServerSnapshot,
+  );
+  const toggle = useCallback(() => {
+    mutate(slug, store.ids.includes(slug));
+  }, [slug]);
+
+  return { wishlisted, toggle };
 }

@@ -113,13 +113,12 @@ function ProfileFormContent({
     }
   };
 
-  const inputClass =
-    "w-full rounded-lg border border-[#B6885E]/15 bg-[#1B140F] px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#B79B85]/40 transition-colors focus:border-[#B6885E]/40 focus:outline-none";
+  const inputClass = "line-input";
   const labelClass = "mb-1.5 block text-xs font-medium text-[#D6B79A]/75";
 
   return (
     <AccountShell title={{ en: "Profile", ar: "الملف الشخصي" }}>
-      <form onSubmit={handleSubmit} className="max-w-xl space-y-5">
+      <form onSubmit={handleSubmit} className="pub-card-static max-w-xl space-y-5 rounded-2xl p-5 sm:p-6">
         {/* Name row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -209,14 +208,14 @@ function ProfileFormContent({
           <button
             type="submit"
             disabled={saving}
-            className="premium-button px-8 py-2.5 text-sm disabled:opacity-60"
+            className="premium-button pub-btn-3d px-8 py-2.5 text-sm disabled:opacity-60"
           >
             {saving
               ? t({ en: "Saving…", ar: "جاري الحفظ…" })
               : t({ en: "Save changes", ar: "حفظ التغييرات" })}
           </button>
           {saved && (
-            <span className="text-sm text-emerald-400">
+            <span className="text-sm font-semibold text-[#D6A373]">
               {t({ en: "Saved!", ar: "تم الحفظ!" })}
             </span>
           )}
@@ -253,7 +252,7 @@ export default function ProfilePage() {
       <AccountShell title={{ en: "Profile", ar: "الملف الشخصي" }}>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-lg bg-[#120D09]" />
+            <div key={i} className="account-skeleton h-12 rounded-lg" />
           ))}
         </div>
       </AccountShell>

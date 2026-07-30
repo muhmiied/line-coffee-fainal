@@ -38,7 +38,7 @@ function ContactCard({
   const display = typeof value === "string" ? value : t(value);
 
   const inner = (
-    <div className="luxury-panel flex items-start gap-4 rounded-2xl p-5">
+    <div className="pub-card flex items-start gap-4 rounded-2xl p-5">
       <div className="pub-icon-circle h-11 w-11 shrink-0">
         <Icon className="h-5 w-5" />
       </div>
@@ -169,7 +169,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">
+    <div className="pub-page-surface arabic-body min-h-screen text-[#F5E6D8]">
 
       {/* ── 1. Hero ───────────────────────────────────────────────── */}
       <section className="products-hero relative overflow-hidden pb-14 pt-28 sm:pb-16 lg:pb-20 lg:pt-36">
@@ -183,7 +183,7 @@ export default function ContactPage() {
           className="object-cover object-center brightness-[0.52] saturate-[0.90]"
         />
         <div className="absolute inset-0 bg-[#0B0806]/48" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.3)_0%,rgba(11,8,6,0.82)_70%,#0B0806_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.3)_0%,rgba(18,10,6,0.82)_70%,#120A06_100%)]" />
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_30%,rgba(182,136,94,0.12),transparent_65%)]"
@@ -219,7 +219,7 @@ export default function ContactPage() {
 
             {/* ── Contact Form — order-1 ────────────────────────── */}
             <div className="flex-1 lg:order-1">
-              <div className="luxury-panel rounded-2xl p-6 sm:p-8">
+              <div className="pub-card-static rounded-2xl p-6 sm:p-8">
                 {submitted ? (
                   /* Success state */
                   <div className="flex flex-col items-center py-10 text-center">
@@ -238,7 +238,7 @@ export default function ContactPage() {
                     <button
                       type="button"
                       onClick={() => { setForm(EMPTY_FORM); setSubmitted(false); }}
-                      className="premium-button-outline rounded-full px-6 py-2.5 text-sm font-semibold"
+                      className="premium-button-outline pub-btn-3d rounded-full px-6 py-2.5 text-sm font-semibold"
                     >
                       {t({ en: "Send another message", ar: "إرسال رسالة أخرى" })}
                     </button>
@@ -353,7 +353,7 @@ export default function ContactPage() {
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="premium-button mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55"
+                        className="premium-button pub-btn-3d mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55"
                       >
                         {t({ en: "Send Message", ar: "إرسال الرسالة" })}
                         <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />
@@ -394,7 +394,7 @@ export default function ContactPage() {
                 value={settings.contact.businessAddress}
               />}
               {!hasContact && (
-                <div className="luxury-panel rounded-2xl p-5 text-sm leading-6 text-[#D6B79A]/70">
+                <div className="pub-card-static rounded-2xl p-5 text-sm leading-6 text-[#D6B79A]/70">
                   {t({
                     en: "Contact details are not available yet. You can still send us a message using the form.",
                     ar: "بيانات التواصل غير متاحة حالياً. لا يزال بإمكانك إرسال رسالة عبر النموذج.",
@@ -402,7 +402,7 @@ export default function ContactPage() {
                 </div>
               )}
 
-              {(whatsappHref || emailHref) && <div className="luxury-panel mt-1 rounded-2xl p-5">
+              {(whatsappHref || emailHref) && <div className="pub-card-static mt-1 rounded-2xl p-5">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#D6A373]/85">
                   {t({ en: "Response time", ar: "وقت الرد" })}
                 </p>
@@ -450,7 +450,7 @@ export default function ContactPage() {
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="studio-espresso-btn inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-semibold"
+            className="studio-espresso-btn pub-btn-3d inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-semibold"
           >
             {t({ en: "Chat on WhatsApp", ar: "تحدث عبر واتساب" })}
             <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />
@@ -484,10 +484,10 @@ export default function ContactPage() {
                 <div
                   key={item.question.en}
                   className={cn(
-                    "overflow-hidden rounded-xl border transition-colors duration-200",
+                    "pub-card-static overflow-hidden rounded-xl border transition-all duration-200",
                     isOpen
-                      ? "border-[#D6A373]/28 bg-[#1B140F]/80"
-                      : "border-[#B6885E]/14 bg-[#120D09]/60",
+                      ? "border-[#D6A373]/30 bg-[#1B140F]/82 shadow-[0_16px_40px_rgba(0,0,0,0.28),0_0_22px_rgba(182,136,94,0.12)]"
+                      : "border-[#B6885E]/14 bg-[#120D09]/60 hover:border-[#D6A373]/22",
                   )}
                 >
                   <button
@@ -533,7 +533,7 @@ export default function ContactPage() {
             </p>
             <Link
               href="/products"
-              className="premium-button inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
+              className="premium-button pub-btn-3d inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
             >
               {t({ en: "Explore Products", ar: "استكشف المنتجات" })}
               <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />

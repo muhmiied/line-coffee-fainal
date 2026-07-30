@@ -8,14 +8,26 @@ interface AuthCardProps {
   title: { en: string; ar: string };
   subtitle: { en: string; ar: string };
   children: React.ReactNode;
+  /**
+   * "default" (unset) keeps the original card face pixel-identical — used by
+   * forgot-password/reset-password, which are out of scope for the premium
+   * glass polish pass. "premium" is opted into by login/signup only, so the
+   * shared shell can be reused without touching the other two pages' look.
+   */
+  variant?: "default" | "premium";
 }
 
-export function AuthCard({ title, subtitle, children }: AuthCardProps) {
+export function AuthCard({ title, subtitle, children, variant = "default" }: AuthCardProps) {
   const { dir, t } = useLanguage();
+  const isPremium = variant === "premium";
 
   return (
     <div
-      className="arabic-body relative flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 py-16 text-[#F5E6D8]"
+      className={
+        isPremium
+          ? "pub-page-surface arabic-body relative flex min-h-screen flex-col items-center justify-center px-4 py-16 text-[#F5E6D8]"
+          : "arabic-body relative flex min-h-screen flex-col items-center justify-center bg-[#0B0806] px-4 py-16 text-[#F5E6D8]"
+      }
       dir={dir}
     >
       {/* Background */}
@@ -50,11 +62,20 @@ export function AuthCard({ title, subtitle, children }: AuthCardProps) {
         </div>
 
         {/* Card */}
-        <div className="relative overflow-hidden rounded-3xl border border-[#D6A373]/18 bg-[#110C09]/92 px-6 py-8 shadow-[0_0_80px_rgba(0,0,0,0.72),0_0_1px_rgba(214,163,115,0.22)] backdrop-blur-xl sm:px-8 sm:py-10">
+        <div
+          className={
+            isPremium
+              ? "pub-card-static relative px-6 py-8 sm:px-8 sm:py-10"
+              : "relative overflow-hidden rounded-3xl border border-[#D6A373]/18 bg-[#110C09]/92 px-6 py-8 shadow-[0_0_80px_rgba(0,0,0,0.72),0_0_1px_rgba(214,163,115,0.22)] backdrop-blur-xl sm:px-8 sm:py-10"
+          }
+        >
           {/* Inset gold glow — top */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FFDCC2]/30 to-transparent" />
-          {/* Radial warmth */}
-          <div className="pointer-events-none absolute -top-6 left-1/2 h-24 w-48 -translate-x-1/2 rounded-full bg-[#B6885E]/08 blur-2xl" />
+          {!isPremium && (
+            /* Radial warmth — the premium variant's .pub-card-static::before
+               already provides an equivalent corner highlight glow. */
+            <div className="pointer-events-none absolute -top-6 left-1/2 h-24 w-48 -translate-x-1/2 rounded-full bg-[#B6885E]/08 blur-2xl" />
+          )}
 
           {/* Gold accent bar */}
           <div className="relative mb-7 flex items-center gap-2">

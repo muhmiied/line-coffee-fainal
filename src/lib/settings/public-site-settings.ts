@@ -26,16 +26,36 @@ export type {
   StorefrontSettings,
 } from "@/lib/settings/site-settings-shared";
 
-export async function getPublicSettings(): Promise<PublicSiteSettings> {
-  const { data, error } = await supabase
-    .from("site_settings")
-    .select("key,value")
-    .eq("scope", "public")
-    .eq("is_public", true)
-    .in("key", [...PUBLIC_SETTING_KEYS]);
+const PUBLIC_SETTINGS_CACHE_MS = 5 * 60 * 1000;
+let settingsPromise: Promise<PublicSiteSettings> | null = null;
+let settingsRequestedAt = 0;
 
-  if (error) throw new Error(error.message);
-  return mapSiteSettingsRows(
-    (data ?? []) as Array<{ key: string; value: unknown }>,
-  );
+export function getPublicSettings(): Promise<PublicSiteSettings> {
+  const now = Date.now();
+  if (settingsPromise && now - settingsRequestedAt < PUBLIC_SETTINGS_CACHE_MS) {
+    return settingsPromise;
+  }
+
+  settingsRequestedAt = now;
+  const request = Promise.resolve(
+    supabase
+      .from("site_settings")
+      .select("key,value")
+      .eq("scope", "public")
+      .eq("is_public", true)
+      .in("key", [...PUBLIC_SETTING_KEYS]),
+  )
+    .then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return mapSiteSettingsRows(
+        (data ?? []) as Array<{ key: string; value: unknown }>,
+      );
+    });
+
+  const cachedRequest = request.catch((error: unknown) => {
+    if (settingsPromise === cachedRequest) settingsPromise = null;
+    throw error;
+  });
+  settingsPromise = cachedRequest;
+  return cachedRequest;
 }

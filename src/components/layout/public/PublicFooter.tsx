@@ -257,6 +257,7 @@ function FooterColumn({
           <li key={link.href}>
             <Link
               href={link.href}
+              prefetch={false}
               className="text-sm text-[#B79B85]/85 transition-colors hover:text-[#D6A373]"
             >
               {t(link.label)}

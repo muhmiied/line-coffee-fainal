@@ -95,7 +95,7 @@ export default function OrderDetailPage({
       <AccountShell title={{ en: "Order", ar: "الطلب" }}>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 animate-pulse rounded-xl bg-[#120D09]" />
+            <div key={i} className="account-skeleton h-20 rounded-xl" />
           ))}
         </div>
       </AccountShell>
@@ -105,7 +105,7 @@ export default function OrderDetailPage({
   if (!order) {
     return (
       <AccountShell title={{ en: "Order not found", ar: "الطلب غير موجود" }}>
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <p className="mb-4 text-sm text-[#B79B85]/80">
             {t({
               en: "We could not find this order.",
@@ -114,7 +114,7 @@ export default function OrderDetailPage({
           </p>
           <Link
             href="/account/orders"
-            className="premium-button inline-block px-8 py-2.5 text-sm"
+            className="premium-button pub-btn-3d inline-block px-8 py-2.5 text-sm"
           >
             {t({ en: "Back to orders", ar: "العودة للطلبات" })}
           </Link>
@@ -146,7 +146,7 @@ export default function OrderDetailPage({
       <div className="space-y-4">
 
         {/* Header card */}
-        <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-5">
+        <div className="account-card rounded-xl px-5 py-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-mono text-lg font-bold text-[#F5E6D8]">
@@ -164,7 +164,7 @@ export default function OrderDetailPage({
 
         {/* Tracking steps — not shown for terminal statuses */}
         {!isTerminal && (
-          <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-5">
+          <div className="account-card rounded-xl px-5 py-5">
             <p className="mb-5 text-xs font-semibold uppercase tracking-wider text-[#B6885E]/70">
               {t({ en: "Order Status", ar: "حالة الطلب" })}
             </p>
@@ -227,7 +227,7 @@ export default function OrderDetailPage({
         )}
 
         {/* Items */}
-        <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-5">
+        <div className="account-card rounded-xl px-5 py-5">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#B6885E]/70">
             {t({ en: "Items", ar: "المنتجات" })}
           </p>
@@ -264,7 +264,7 @@ export default function OrderDetailPage({
         </div>
 
         {/* Financial summary */}
-        <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-5">
+        <div className="account-card rounded-xl px-5 py-5">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-[#B79B85]/70">
               <span>{t({ en: "Subtotal", ar: "المجموع الفرعي" })}</span>
@@ -303,7 +303,7 @@ export default function OrderDetailPage({
 
         {/* Delivery address */}
         {addressText && (
-          <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-5">
+          <div className="account-card rounded-xl px-5 py-5">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#B6885E]/70">
               {t({ en: "Delivery Address", ar: "عنوان التوصيل" })}
             </p>
@@ -313,7 +313,7 @@ export default function OrderDetailPage({
 
         {/* Order timeline */}
         {order.timeline.length > 0 && (
-          <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-5">
+          <div className="account-card rounded-xl px-5 py-5">
             <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#B6885E]/70">
               {t({ en: "Order History", ar: "سجل الطلب" })}
             </p>

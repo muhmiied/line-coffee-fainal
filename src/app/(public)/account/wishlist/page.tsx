@@ -63,7 +63,7 @@ export default function WishlistPage() {
   return (
     <AccountShell title={{ en: "Wishlist", ar: "المحفوظات" }}>
       {wishlistIds.length === 0 ? (
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Your wishlist is empty", ar: "قائمة المحفوظات فارغة" })}
@@ -71,19 +71,19 @@ export default function WishlistPage() {
           <p className="mb-6 text-xs text-[#B79B85]/70">
             {t({ en: "Tap the heart icon on any product to save it here.", ar: "اضغط أيقونة القلب على أي منتج لحفظه هنا." })}
           </p>
-          <Link href="/products" className="premium-button inline-block px-8 py-2.5 text-sm">
+          <Link href="/products" className="premium-button pub-btn-3d inline-block px-8 py-2.5 text-sm">
             {t({ en: "Browse products", ar: "تصفح المنتجات" })}
           </Link>
         </div>
       ) : catalogState === "idle" || catalogState === "loading" ? (
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Loading saved products", ar: "جاري تحميل المنتجات المحفوظة" })}
           </p>
         </div>
       ) : catalogState === "error" ? (
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Saved products could not be loaded", ar: "تعذر تحميل المنتجات المحفوظة" })}
@@ -93,7 +93,7 @@ export default function WishlistPage() {
           </p>
         </div>
       ) : visibleProducts.length === 0 ? (
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <Heart className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/25" />
           <p className="mb-1 text-sm font-medium text-[#F5E6D8]/70">
             {t({ en: "Your wishlist is empty", ar: "قائمة المحفوظات فارغة" })}
@@ -101,7 +101,7 @@ export default function WishlistPage() {
           <p className="mb-6 text-xs text-[#B79B85]/70">
             {t({ en: "Tap the heart icon on any product to save it here.", ar: "اضغط أيقونة القلب على أي منتج لحفظه هنا." })}
           </p>
-          <Link href="/products" className="premium-button inline-block px-8 py-2.5 text-sm">
+          <Link href="/products" className="premium-button pub-btn-3d inline-block px-8 py-2.5 text-sm">
             {t({ en: "Browse products", ar: "تصفح المنتجات" })}
           </Link>
         </div>
@@ -112,7 +112,7 @@ export default function WishlistPage() {
             return (
               <div
                 key={product.slug}
-                className="group relative rounded-xl border border-[#B6885E]/10 bg-[#120D09] p-4 transition-all hover:border-[#B6885E]/22"
+                className="account-card account-card-interactive group relative rounded-xl p-4"
               >
                 {/* Remove */}
                 <button
@@ -159,7 +159,7 @@ export default function WishlistPage() {
                   type="button"
                   onClick={() => handleAddToCart(product.slug)}
                   disabled={!product.isAvailable}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#B6885E]/20 py-2 text-xs text-[#B79B85]/70 transition-all enabled:hover:border-[#B6885E]/40 enabled:hover:text-[#D6A373] disabled:cursor-not-allowed disabled:opacity-55"
+                  className="account-secondary-button mt-3 flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs transition-all disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   <ShoppingBag className="h-3.5 w-3.5" />
                   {product.isAvailable

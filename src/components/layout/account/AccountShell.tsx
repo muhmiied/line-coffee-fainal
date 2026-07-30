@@ -64,7 +64,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
 
   if (isLoading || !isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#0B0806] pt-28 text-center text-sm text-[#B79B85]/70">
+      <div className="pub-page-surface min-h-screen pt-28 text-center text-sm text-[#B79B85]/70">
         {t({ en: "Checking your session...", ar: "جار التحقق من الجلسة..." })}
       </div>
     );
@@ -72,7 +72,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
 
   return (
     <div
-      className="arabic-body relative min-h-screen bg-[#0B0806] text-[#F5E6D8]"
+      className="pub-page-surface arabic-body relative min-h-screen text-[#F5E6D8]"
       dir={dir}
     >
       {/* Ambient background */}
@@ -81,10 +81,10 @@ export function AccountShell({ children, title }: AccountShellProps) {
         alt=""
         fill
         sizes="100vw"
-        className="object-cover opacity-[0.04]"
+        className="object-cover opacity-[0.075]"
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(182,136,94,0.06),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_42%_at_50%_0%,rgba(214,163,115,0.11),transparent_70%)]" />
 
       <div className="relative z-10 pt-20 lg:pt-24" />
 
@@ -92,10 +92,11 @@ export function AccountShell({ children, title }: AccountShellProps) {
         <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
 
           {/* ── Sidebar ─────────────────────────────────────── */}
-          <aside className="shrink-0 lg:w-56">
+          <aside className="shrink-0 lg:w-60">
+            <div className="pub-card-static sticky top-28 rounded-2xl p-3">
             {/* User badge */}
-            <div className="mb-5 flex items-center gap-3 rounded-xl border border-[#B6885E]/15 bg-[#120D09]/80 px-4 py-3.5 backdrop-blur-sm">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#B6885E]/15 text-[#D6A373] font-bold text-sm">
+            <div className="account-card mb-4 flex items-center gap-3 rounded-xl px-3.5 py-3">
+              <div className="pub-icon-circle h-9 w-9 shrink-0 text-sm font-bold">
                 {displayName[0]}
               </div>
               <div className="min-w-0">
@@ -115,10 +116,10 @@ export function AccountShell({ children, title }: AccountShellProps) {
                     key={href}
                     href={href}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-all",
+                      "account-nav-link flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-all",
                       active
-                        ? "bg-[#B6885E]/12 text-[#D6A373] font-medium"
-                        : "text-[#B79B85]/70 hover:bg-[#B6885E]/06 hover:text-[#D6B79A]",
+                        ? "account-nav-active font-medium"
+                        : "text-[#B79B85]/70 hover:text-[#D6B79A]",
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -132,7 +133,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm text-[#B79B85]/75 transition-colors hover:text-red-400/70"
+                className="account-nav-link flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm text-[#B79B85]/75 transition-colors hover:text-red-400/70"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 {t({ en: "Sign out", ar: "تسجيل الخروج" })}
@@ -141,6 +142,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
                 <p className="px-3.5 pt-1.5 text-xs text-red-400/80">{signOutError}</p>
               )}
             </nav>
+            </div>
           </aside>
 
           {/* ── Main content ─────────────────────────────────── */}

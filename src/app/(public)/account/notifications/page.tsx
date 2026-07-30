@@ -67,7 +67,7 @@ export default function NotificationsPage() {
       <AccountShell title={{ en: "Notifications", ar: "الإشعارات" }}>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl bg-[#120D09]" />
+            <div key={i} className="account-skeleton h-16 rounded-xl" />
           ))}
         </div>
       </AccountShell>
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
   return (
     <AccountShell title={{ en: "Notifications", ar: "الإشعارات" }}>
       {loadError ? (
-        <div className="rounded-xl border border-red-900/30 bg-red-900/10 px-6 py-16 text-center">
+        <div className="account-card rounded-xl border-red-900/30 px-6 py-16 text-center">
           <p className="mb-4 text-sm text-red-400">
             {t({
               en: "We couldn't load your notifications. Please try again.",
@@ -87,13 +87,13 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={load}
-            className="premium-button-outline inline-block px-8 py-2.5 text-sm"
+            className="premium-button-outline pub-btn-3d inline-block px-8 py-2.5 text-sm"
           >
             {t({ en: "Retry", ar: "إعادة المحاولة" })}
           </button>
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <Bell className="mx-auto mb-4 h-10 w-10 text-[#B6885E]/20" />
           <p className="text-sm text-[#B79B85]/75">
             {t({ en: "No notifications yet.", ar: "لا توجد إشعارات بعد." })}
@@ -117,7 +117,7 @@ export default function NotificationsPage() {
               <Link
                 key={notif.eventId}
                 href={`/account/orders/${notif.orderCode}`}
-                className="block w-full rounded-xl border border-[#B6885E]/18 bg-[#15100B] px-5 py-4 text-start transition-all hover:border-[#B6885E]/28"
+                className="account-card account-card-interactive block w-full rounded-xl px-5 py-4 text-start"
               >
                 <div className="flex items-start gap-3">
                   <Bell className="mt-0.5 h-4 w-4 shrink-0 text-[#B6885E]/80" />

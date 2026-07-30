@@ -86,7 +86,7 @@ export default function AboutPage() {
   const isRtl = dir === "rtl";
 
   return (
-    <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">
+    <div className="pub-page-surface arabic-body min-h-screen text-[#F5E6D8]">
 
       {/* ── 1. Editorial Intro ────────────────────────────────────── */}
       {/*
@@ -108,7 +108,7 @@ export default function AboutPage() {
           className="object-cover object-center brightness-[0.50] saturate-[0.88]"
         />
         <div className="absolute inset-0 bg-[#0B0806]/50" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.22)_0%,rgba(11,8,6,0.78)_65%,#0B0806_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.22)_0%,rgba(18,10,6,0.78)_65%,#120A06_100%)]" />
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_20%,rgba(182,136,94,0.08),transparent_62%)]"
@@ -141,7 +141,7 @@ export default function AboutPage() {
 
             {/* Text — order-2: right in LTR, left in RTL */}
             <div className="flex-1 lg:order-2">
-              <span className="mb-6 inline-block rounded-full border border-[#D6A373]/30 bg-[#D6A373]/8 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
+              <span className="line-journal-tag mb-6 inline-block rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em]">
                 {t(INTRO.badge)}
               </span>
 
@@ -155,7 +155,7 @@ export default function AboutPage() {
 
               <Link
                 href="/products"
-                className="premium-button inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
+                className="premium-button pub-btn-3d inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
               >
                 {t(INTRO.cta)}
                 <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />
@@ -183,7 +183,7 @@ export default function AboutPage() {
 
             {/* Text — order-1: left in LTR, right in RTL */}
             <div className="flex-1 lg:order-1">
-              <div className="luxury-panel rounded-2xl p-7 sm:p-9">
+              <div className="pub-card-static rounded-2xl p-7 sm:p-9">
                 <p className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-[#D6A373]">
                   {t(PHILOSOPHY.eyebrow)}
                 </p>
@@ -268,7 +268,7 @@ export default function AboutPage() {
                   <div key={item.title.en} className="relative flex gap-6 text-start">
                     {/* Dot */}
                     <div className="relative z-10 mt-1.5 shrink-0">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D6A373]/30 bg-[#D6A373]/10">
+                      <div className="pub-icon-circle h-10 w-10">
                         <div className="h-2.5 w-2.5 rounded-full bg-[#D6A373]" />
                       </div>
                     </div>
@@ -340,7 +340,7 @@ export default function AboutPage() {
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap sm:justify-center">
             <Link
               href="/products"
-              className="premium-button inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
+              className="premium-button pub-btn-3d inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
             >
               {t({ en: "Explore Products", ar: "استكشف المنتجات" })}
               <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />
@@ -348,7 +348,7 @@ export default function AboutPage() {
 
             <Link
               href="/products?category=make-your-espresso"
-              className="studio-espresso-btn inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
+              className="studio-espresso-btn pub-btn-3d inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
             >
               {t({ en: "Make Your Espresso", ar: "اصنع إسبريسو خاصتك" })}
               <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />
@@ -356,7 +356,7 @@ export default function AboutPage() {
 
             <Link
               href="/products?category=make-your-flavor"
-              className="studio-flavor-btn inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
+              className="studio-flavor-btn pub-btn-3d inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold"
             >
               {t({ en: "Make Your Flavor", ar: "اصنع نكهتك" })}
               <ArrowRight className={cn("h-4 w-4 shrink-0", isRtl && "rotate-180")} />

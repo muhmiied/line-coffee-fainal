@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
+import { memo, useState, type MouseEvent } from "react";
 import { Check, Heart, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { useCart } from "@/lib/context/cart";
-import { useWishlist } from "@/lib/hooks/useWishlist";
+import { useWishlistItem } from "@/lib/hooks/useWishlist";
 import type { VisualProduct } from "@/types/homepage";
 import type { PublicCatalogProduct } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
@@ -60,20 +61,22 @@ type ProductCardProps = {
   reveal?: boolean;
   href?: string | null;
   showBlend?: boolean;
+  glass?: boolean;
 };
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   index = 0,
   isDuplicate = false,
   reveal = true,
   href,
   showBlend = true,
+  glass = false,
 }: ProductCardProps) {
   const { language, t } = useLanguage();
+  const router = useRouter();
   const { addItem } = useCart();
-  const { toggle: toggleWishlist, isWishlisted } = useWishlist();
-  const wishlisted = isWishlisted(product.slug);
+  const { toggle: toggleWishlist, wishlisted } = useWishlistItem(product.slug);
   const [justAdded, setJustAdded] = useState(false);
   const currencyLabel = language === "ar" ? "ج.م" : "EGP";
   const productHref = href === undefined ? `/products/${product.slug}` : href;
@@ -89,7 +92,7 @@ export function ProductCard({
   const handleWishlist = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    toggleWishlist(product.slug);
+    toggleWishlist();
   };
 
   const handleQuickAdd = (event: MouseEvent<HTMLButtonElement>) => {
@@ -110,7 +113,15 @@ export function ProductCard({
     setTimeout(() => setJustAdded(false), 1400);
   };
 
-  type BadgeEntry = { en: string; ar: string; variant: "new" | "best-seller" | "featured" | "visual" };
+  const prefetchProductDetail = () => {
+    if (productHref) router.prefetch(productHref);
+  };
+
+  type BadgeEntry = {
+    en: string;
+    ar: string;
+    variant: "new" | "best-seller" | "featured" | "visual" | "unavailable";
+  };
   const badgeStack: BadgeEntry[] = [];
   if (!isCatalogProduct(product)) {
     if (product.badge) badgeStack.push({ ...product.badge, variant: "visual" });
@@ -118,20 +129,22 @@ export function ProductCard({
     if (product.isNew) badgeStack.push({ en: "New", ar: "جديد", variant: "new" });
     if (product.bestSeller) badgeStack.push({ en: "Best Seller", ar: "الأكثر مبيعًا", variant: "best-seller" });
     if (product.featured) badgeStack.push({ en: "Featured", ar: "مميز", variant: "featured" });
+    if (glass && !product.isAvailable) {
+      badgeStack.push({ en: "Out of Stock", ar: "غير متوفر", variant: "unavailable" });
+    }
   }
 
   const card = (
     <div
       className={cn(
-        "luxury-card relative overflow-hidden rounded-xl",
-        "border border-[#B6885E]/[16%]",
-        "bg-gradient-to-b from-[#1B140F] via-[#15100B] to-[#0B0806]",
-        "shadow-[0_12px_34px_rgba(0,0,0,0.30)]",
-        "group-hover:border-[#D6A373]/[34%]",
+        "relative overflow-hidden rounded-xl border",
+        glass
+          ? "pub-card pub-product-card group-hover:border-[#D6A373]/[38%]"
+          : "luxury-card border-[#B6885E]/[16%] bg-gradient-to-b from-[#1B140F] via-[#15100B] to-[#0B0806] shadow-[0_12px_34px_rgba(0,0,0,0.30)] group-hover:border-[#D6A373]/[34%]",
       )}
     >
       {/* Image zone */}
-      <div className="relative h-40 overflow-hidden bg-[#120D09] min-[380px]:h-44 sm:h-48 lg:aspect-[8/5] lg:h-auto">
+      <div className="relative h-40 overflow-hidden bg-[#1A100A] min-[380px]:h-44 sm:h-48 lg:aspect-[8/5] lg:h-auto">
         {product.image ? (
           <Image
             src={product.image}
@@ -140,7 +153,12 @@ export function ProductCard({
             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 320px"
             loading="lazy"
             className={cn(
-              "object-center brightness-[0.82] contrast-[1.08] saturate-[1.05] transition-all duration-700 ease-out group-hover:brightness-[0.92]",
+              "object-center contrast-[1.08] transition-all duration-700 ease-out",
+              glass
+                ? isAvailable
+                  ? "brightness-[0.88] saturate-[1.08] group-hover:brightness-[0.98]"
+                  : "brightness-[0.5] saturate-[0.72]"
+                : "brightness-[0.82] saturate-[1.05] group-hover:brightness-[0.92]",
               isUploadedProductImage(product.image)
                 ? "object-contain p-2 group-hover:scale-[1.05] sm:p-3"
                 : "object-cover group-hover:scale-[1.08]",
@@ -164,7 +182,7 @@ export function ProductCard({
               <span
                 key={b.variant}
                 data-variant={b.variant}
-                className="line-product-badge rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm"
+                className="line-product-badge rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]"
               >
                 {t(b)}
               </span>
@@ -186,7 +204,7 @@ export function ProductCard({
           className={cn(
             "absolute right-3 top-3 z-10",
             "flex h-8 w-8 items-center justify-center rounded-full",
-            "border border-[#B6885E]/20 bg-[#120D09]/82 text-[#D6B79A]/75 backdrop-blur-md shadow-[0_12px_28px_rgba(0,0,0,0.35)]",
+            "border border-[#B6885E]/20 bg-[#120D09]/92 text-[#D6B79A]/75 shadow-[0_12px_28px_rgba(0,0,0,0.35)]",
             "opacity-100 transition-all duration-300 sm:scale-[0.84] sm:opacity-0 sm:group-hover:scale-100 sm:group-hover:opacity-100",
             "hover:border-[#D6A373]/45 hover:bg-[#B6885E]/15",
           )}
@@ -305,6 +323,7 @@ export function ProductCard({
     <div
       className={cn(
         "group",
+        glass && "catalog-product-grid-item",
         reveal && "reveal-on-scroll",
         reveal && `reveal-delay-${Math.min(index, 10)}`,
       )}
@@ -313,6 +332,9 @@ export function ProductCard({
       {productHref ? (
         <Link
           href={productHref}
+          prefetch={false}
+          onPointerEnter={prefetchProductDetail}
+          onFocus={prefetchProductDetail}
           tabIndex={isDuplicate ? -1 : undefined}
           className="block"
           aria-hidden={isDuplicate ? "true" : undefined}
@@ -324,4 +346,4 @@ export function ProductCard({
       )}
     </div>
   );
-}
+});

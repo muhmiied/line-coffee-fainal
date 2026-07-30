@@ -37,7 +37,7 @@ export default function SettingsPage() {
       <div className="max-w-xl space-y-6">
 
         {/* Language */}
-        <div className="rounded-xl border border-[#B6885E]/12 bg-[#120D09] px-5 py-1">
+        <div className="account-card rounded-xl px-5 py-1">
           <div className="flex items-center justify-between gap-4 py-4">
             <div>
               <p className="text-sm font-medium text-[#F5E6D8]">
@@ -54,10 +54,8 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setLanguage(code)}
                   className={cn(
-                    "rounded-lg border px-4 py-1.5 text-sm transition-all",
-                    language === code
-                      ? "border-[#B6885E]/40 bg-[#B6885E]/12 text-[#D6A373]"
-                      : "border-[#B6885E]/12 text-[#B79B85]/80 hover:border-[#B6885E]/25 hover:text-[#D6B79A]",
+                    "taste-filter-chip !min-h-0 !rounded-lg !px-4 !py-1.5 text-sm",
+                    language === code && "is-active",
                   )}
                 >
                   {code === "en" ? "English" : "العربية"}
@@ -68,7 +66,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Account danger zone */}
-        <div className="rounded-xl border border-red-500/10 bg-[#120D09] px-5 py-5">
+        <div className="account-card rounded-xl border-red-500/20 px-5 py-5">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-red-400/60">
             {t({ en: "Account", ar: "الحساب" })}
           </p>
@@ -76,7 +74,7 @@ export default function SettingsPage() {
             type="button"
             onClick={handleSignOutEverywhere}
             disabled={isSigningOutEverywhere}
-            className="text-sm text-[#B79B85]/80 transition-colors hover:text-red-400/70 disabled:opacity-60"
+            className="account-secondary-button rounded-full px-4 py-2 text-sm transition-colors hover:text-red-300 disabled:opacity-60"
           >
             {isSigningOutEverywhere
               ? t({ en: "Signing out of all devices…", ar: "جارٍ تسجيل الخروج من جميع الأجهزة…" })

@@ -119,7 +119,7 @@ function AddressCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-[#120D09] px-5 py-4 transition-all",
+        "account-card account-card-interactive rounded-xl px-5 py-4",
         address.isDefault ? "border-[#B6885E]/30" : "border-[#B6885E]/10",
         busy && "pointer-events-none opacity-60",
       )}
@@ -133,7 +133,7 @@ function AddressCard({
                 {address.label}
               </span>
               {address.isDefault && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#B6885E]/12 px-2 py-0.5 text-xs text-[#D6A373]">
+                <span className="line-product-badge inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs">
                   <Star className="h-2.5 w-2.5 fill-current" />
                   {t({ en: "Default", ar: "الافتراضي" })}
                 </span>
@@ -257,7 +257,7 @@ function AddressFormPanel({
   );
 
   return (
-    <div className="space-y-4 rounded-xl border border-[#B6885E]/18 bg-[#120D09] px-5 py-5">
+    <div className="account-card space-y-4 rounded-xl px-5 py-5">
       <p className="text-sm font-medium text-[#D6B79A]">
         {form === initial
           ? t({ en: "New address", ar: "عنوان جديد" })
@@ -417,7 +417,7 @@ function AddressFormPanel({
           type="button"
           disabled={saving}
           onClick={() => onSubmit(form)}
-          className="premium-button px-6 py-2 text-sm disabled:opacity-60"
+          className="premium-button pub-btn-3d px-6 py-2 text-sm disabled:opacity-60"
         >
           {saving
             ? t({ en: "Saving…", ar: "جاري الحفظ…" })
@@ -426,7 +426,7 @@ function AddressFormPanel({
         <button
           type="button"
           onClick={onCancel}
-          className="premium-button-outline px-6 py-2 text-sm"
+          className="premium-button-outline pub-btn-3d px-6 py-2 text-sm"
         >
           {t({ en: "Cancel", ar: "إلغاء" })}
         </button>
@@ -578,7 +578,7 @@ export default function AddressesPage() {
       <AccountShell title={{ en: "Addresses", ar: "عناويني" }}>
         <div className="space-y-3">
           {[1, 2].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-[#120D09]" />
+            <div key={i} className="account-skeleton h-24 rounded-xl" />
           ))}
         </div>
       </AccountShell>
@@ -627,7 +627,7 @@ export default function AddressesPage() {
 
         {/* Empty state when no form is open (only for a genuine empty list, not a failed load) */}
         {!listError && addresses.length === 0 && formMode.kind === "hidden" && (
-          <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-10 text-center">
+          <div className="account-card rounded-xl px-6 py-10 text-center">
             <MapPin className="mx-auto mb-3 h-8 w-8 text-[#B6885E]/20" />
             <p className="text-sm text-[#B79B85]/75">
               {t({ en: "No addresses saved yet.", ar: "لا توجد عناوين محفوظة بعد." })}
@@ -656,7 +656,7 @@ export default function AddressesPage() {
           <button
             type="button"
             onClick={openAdd}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#B6885E]/20 bg-transparent py-4 text-sm text-[#B79B85]/80 transition-colors hover:border-[#B6885E]/40 hover:text-[#D6A373]"
+            className="account-secondary-button flex w-full items-center justify-center gap-2 rounded-xl border-dashed py-4 text-sm transition-colors"
           >
             <Plus className="h-4 w-4" />
             {t({ en: "Add new address", ar: "إضافة عنوان جديد" })}

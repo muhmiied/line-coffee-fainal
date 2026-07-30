@@ -10,7 +10,10 @@ import {
 } from "@/lib/catalog/server-catalog";
 import ProductsPageClient from "./ProductsPageClient";
 
-const INITIAL_PAGE_SIZE = 24;
+// Keep one category's taste filters complete on first render. The current
+// catalog's largest category has 30 products; pagination remains available if
+// a future category grows beyond this bounded first page.
+const INITIAL_PAGE_SIZE = 120;
 const STUDIO_CATEGORY_IDS = ["make-your-espresso", "make-your-flavor"];
 
 type SearchParams = Record<string, string | string[] | undefined>;

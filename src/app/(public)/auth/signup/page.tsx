@@ -59,12 +59,12 @@ export default function SignupPage() {
     }
   };
 
-  const inputClass =
-    "w-full rounded-xl border border-[#B6885E]/22 bg-[#120D09]/70 px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/38 outline-none transition-all focus:border-[#D6A373]/50 focus:ring-2 focus:ring-[#D6A373]/18";
+  const inputClass = "line-input";
 
   if (done) {
     return (
       <AuthCard
+        variant="premium"
         title={{ en: "Check your email", ar: "تحقق من بريدك" }}
         subtitle={{
           en: "Your account request is ready. Confirm your email if Supabase email confirmation is enabled.",
@@ -72,12 +72,12 @@ export default function SignupPage() {
         }}
       >
         <div className="py-4 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#B6885E]/15">
-            <svg className="h-6 w-6 text-[#B6885E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="pub-icon-circle mx-auto mb-4 h-12 w-12">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <Link href="/auth/login" className="premium-button inline-block px-8 py-3 text-sm">
+          <Link href="/auth/login" className="premium-button pub-btn-3d inline-block px-8 py-3 text-sm">
             {t({ en: "Go to sign in", ar: "اذهب لتسجيل الدخول" })}
           </Link>
         </div>
@@ -87,6 +87,7 @@ export default function SignupPage() {
 
   return (
     <AuthCard
+      variant="premium"
       title={{ en: "Create account", ar: "إنشاء حساب" }}
       subtitle={{ en: "Join Line Coffee for a better experience.", ar: "انضم إلى لاين كوفي لتجربة أفضل." }}
     >
@@ -141,7 +142,8 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className={`${inputClass} ${isRtl ? "pl-10" : "pr-10"}`}
+              className={inputClass}
+              style={isRtl ? { paddingLeft: "2.5rem" } : { paddingRight: "2.5rem" }}
             />
             <button
               type="button"
@@ -174,7 +176,11 @@ export default function SignupPage() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
-              className={`${inputClass} ${isRtl ? "pl-10" : "pr-10"} ${!passwordsMatch ? "border-red-500/40" : ""}`}
+              className={inputClass}
+              style={{
+                ...(isRtl ? { paddingLeft: "2.5rem" } : { paddingRight: "2.5rem" }),
+                ...(!passwordsMatch ? { borderColor: "rgba(239, 68, 68, 0.5)" } : {}),
+              }}
             />
             <button
               type="button"
@@ -195,7 +201,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading || !valid}
-          className="premium-button mt-2 w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          className="premium-button pub-btn-3d mt-2 w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading
             ? t({ en: "Creating account...", ar: "جار إنشاء الحساب..." })

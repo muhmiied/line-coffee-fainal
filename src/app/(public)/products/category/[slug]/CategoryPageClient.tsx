@@ -6,6 +6,12 @@ import { useState } from "react";
 import { ChevronRight, Filter, Search, SlidersHorizontal } from "lucide-react";
 import { CatalogProductCard } from "@/components/product/CatalogProductCard";
 import { useLanguage, type LocalizedValue } from "@/lib/context/language";
+import {
+  getProductTasteFilterOptions,
+  matchesProductTasteFilter,
+  organizeFlavorCategoryProducts,
+  type ProductTasteFilterKey,
+} from "@/lib/catalog/product-taste-filters";
 import type { PublicCatalogCategory, PublicCatalogProduct } from "@/lib/catalog/public-catalog";
 import { cn } from "@/lib/utils/cn";
 
@@ -181,15 +187,15 @@ function Breadcrumb({ category }: { category: PublicCatalogCategory }) {
 export function CategoryNotFound() {
   const { t } = useLanguage();
   return (
-    <div className="min-h-screen bg-[#0B0806] px-4 py-16 text-center text-[#F5E6D8]">
-      <div className="mx-auto max-w-xl rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/70 p-8">
+    <div className="pub-page-surface min-h-screen px-4 py-16 text-center text-[#F5E6D8]">
+      <div className="pub-card-static mx-auto max-w-xl rounded-2xl p-8">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
           {t({ en: "Category Missing", ar: "التصنيف غير موجود" })}
         </p>
         <h1 className="mt-3 font-serif text-3xl font-bold">
           {t({ en: "We could not find this coffee category.", ar: "لم نتمكن من العثور على هذا التصنيف." })}
         </h1>
-        <Link href="/products" className="premium-button mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
+        <Link href="/products" className="premium-button pub-btn-3d mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
           {t({ en: "Back to Products", ar: "العودة للمنتجات" })}
         </Link>
       </div>
@@ -209,12 +215,14 @@ export default function CategoryPageClient({ category, products, relatedCategori
   const { language, dir, t } = useLanguage();
   const [search, setSearch] = useState("");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
+  const [tasteFilter, setTasteFilter] = useState<ProductTasteFilterKey>("all");
   const [sortValue, setSortValue] = useState<SortValue>("featured");
 
   const experience = getCategoryExperience(category);
+  const tasteFilterOptions = getProductTasteFilterOptions(category.slug, products);
 
   const query = search.trim().toLowerCase();
-  const filteredProducts = sortProducts(
+  const sortedProducts = sortProducts(
     products.filter((product) => {
       const matchesSearch =
         query.length === 0 ||
@@ -223,15 +231,23 @@ export default function CategoryPageClient({ category, products, relatedCategori
         product.note.en.toLowerCase().includes(query) ||
         product.note.ar.includes(search.trim());
 
-      return matchesSearch && matchesPrice(product, priceFilter);
+      return (
+        matchesSearch &&
+        matchesPrice(product, priceFilter) &&
+        matchesProductTasteFilter(category.slug, product, tasteFilter)
+      );
     }),
     sortValue,
     t,
     language,
   );
+  const filteredProducts =
+    sortValue === "featured"
+      ? organizeFlavorCategoryProducts(category.slug, sortedProducts, tasteFilter)
+      : sortedProducts;
 
   return (
-    <div className="arabic-body min-h-screen overflow-x-hidden bg-[#0B0806] text-[#F5E6D8]">
+    <div className="pub-page-surface arabic-body min-h-screen overflow-x-hidden text-[#F5E6D8]">
       <section className="products-hero relative flex min-h-[25rem] items-end overflow-hidden border-b border-[#B6885E]/14 pb-10 pt-28 sm:min-h-[30rem] sm:pb-12">
         <Image
           src={category.image}
@@ -242,7 +258,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
           className="object-cover object-center brightness-[0.58] contrast-[1.12] saturate-[1.05]"
         />
         <div className="absolute inset-0 bg-[#0B0806]/58" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.22)_0%,rgba(11,8,6,0.72)_62%,#0B0806_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.22)_0%,rgba(18,10,6,0.72)_62%,#120A06_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(214,163,115,0.16),transparent_38%)]" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-4">
@@ -267,7 +283,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
-          <div className="rounded-2xl border border-[#B6885E]/16 bg-[#120D09]/62 p-5 shadow-[0_22px_60px_rgba(0,0,0,0.26)]">
+          <div className="pub-card-static rounded-2xl p-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D6A373]">
               {t({ en: "Category Story", ar: "قصة التصنيف" })}
             </p>
@@ -279,7 +295,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
             </p>
           </div>
 
-          <div className="luxury-panel rounded-2xl p-5">
+          <div className="pub-card-static rounded-2xl p-5">
             <div className="flex items-center gap-2 text-[#D6A373]">
               <SlidersHorizontal className="h-4 w-4" />
               <h2 className="font-serif text-lg font-bold text-[#F5E6D8]">
@@ -288,15 +304,15 @@ export default function CategoryPageClient({ category, products, relatedCategori
             </div>
             <p className="mt-2 text-sm leading-6 text-[#D6B79A]/82">
               {t({
-                en: "Search within this category, filter by price, or reorder the collection.",
-                ar: "ابحث داخل هذا التصنيف، صف حسب السعر، أو غير ترتيب المجموعة.",
+                en: "Search this category, explore taste families, or reorder the collection.",
+                ar: "ابحث داخل التصنيف، استكشف مجموعات المذاق، أو غيّر ترتيب المنتجات.",
               })}
             </p>
           </div>
         </section>
 
-        <section className="sticky top-24 z-20 my-7 rounded-2xl border border-[#B6885E]/16 bg-[#120D09]/88 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-xl md:top-32">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
+        <section className="pub-card-static sticky top-24 z-20 my-7 rounded-2xl p-3 md:top-32">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_13rem] lg:items-center">
             <div className="relative">
               <Search className={cn("pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65", dir === "rtl" ? "right-3" : "left-3")} />
               <input
@@ -305,43 +321,65 @@ export default function CategoryPageClient({ category, products, relatedCategori
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={t({ en: "Search this category...", ar: "ابحث داخل التصنيف..." })}
-                className={cn("line-input w-full", dir === "rtl" ? "pr-10" : "pl-10")}
+                className="line-input line-input-search w-full"
               />
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1 lg:max-w-[24rem]">
-              {priceFilters.map((filterOption) => (
-                <button
-                  key={filterOption.value}
-                  type="button"
-                  onClick={() => setPriceFilter(filterOption.value)}
-                  className={cn(
-                    "shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all",
-                    priceFilter === filterOption.value
-                      ? "border-[#D6A373]/60 bg-[#D6A373] text-[#0B0806]"
-                      : "border-[#B6885E]/18 bg-[#0B0806]/45 text-[#D6B79A]/72 hover:border-[#D6A373]/34 hover:text-[#F5E6D8]",
-                  )}
-                >
-                  {t(filterOption.label)}
-                </button>
-              ))}
-            </div>
-
-            <label className="relative flex items-center gap-2 rounded-xl border border-[#D6A373]/26 bg-[#0B0806]/42 px-3 py-2 text-sm text-[#D6B79A]/70 shadow-[0_0_12px_rgba(182,136,94,0.08)] transition-colors hover:border-[#D6A373]/40">
-              <Filter className="h-4 w-4 text-[#D6A373]" />
+            <label className="relative flex items-center gap-2">
+              <Filter className="pointer-events-none absolute left-3 z-10 h-4 w-4 text-[#D6A373] rtl:left-auto rtl:right-3" />
               <select
-                value={sortValue}
-                onChange={(event) => setSortValue(event.target.value as SortValue)}
-                className="min-w-44 bg-transparent text-[#F5E6D8] outline-none"
-                aria-label={t({ en: "Sort products", ar: "ترتيب المنتجات" })}
+                value={priceFilter}
+                onChange={(event) => setPriceFilter(event.target.value as PriceFilter)}
+                className="line-select !py-2.5 !ps-9 text-sm"
+                aria-label={t({ en: "Filter by price", ar: "تصفية حسب السعر" })}
               >
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value} className="bg-[#120D09] text-[#F5E6D8]">
+                {priceFilters.map((option) => (
+                  <option key={option.value} value={option.value}>
                     {t(option.label)}
                   </option>
                 ))}
               </select>
             </label>
+
+            <label className="relative flex items-center gap-2">
+              <SlidersHorizontal className="pointer-events-none absolute left-3 z-10 h-4 w-4 text-[#D6A373] rtl:left-auto rtl:right-3" />
+              <select
+                value={sortValue}
+                onChange={(event) => setSortValue(event.target.value as SortValue)}
+                className="line-select !py-2.5 !ps-9 text-sm"
+                aria-label={t({ en: "Sort products", ar: "ترتيب المنتجات" })}
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.label)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="mt-3 border-t border-[#D6A373]/14 pt-3">
+            <div
+              className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+              role="group"
+              aria-label={t({ en: "Product taste filters", ar: "فلاتر مذاق المنتجات" })}
+            >
+              {tasteFilterOptions.map((option) => {
+                const active = tasteFilter === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setTasteFilter(option.key)}
+                    aria-pressed={active}
+                    className={cn("taste-filter-chip", active && "is-active")}
+                  >
+                    <span>{t(option.label)}</span>
+                    <span className="taste-filter-count">{option.count}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -350,12 +388,13 @@ export default function CategoryPageClient({ category, products, relatedCategori
             <span className="arabic-number">{filteredProducts.length}</span>{" "}
             {t({ en: "matching products", ar: "منتجات مطابقة" })}
           </p>
-          {(search || priceFilter !== "all") && (
+          {(search || priceFilter !== "all" || tasteFilter !== "all") && (
             <button
               type="button"
               onClick={() => {
                 setSearch("");
                 setPriceFilter("all");
+                setTasteFilter("all");
               }}
               className="text-xs font-semibold text-[#D6A373] transition-colors hover:text-[#F5E6D8]"
             >
@@ -376,7 +415,10 @@ export default function CategoryPageClient({ category, products, relatedCategori
               {t({ en: "No products found", ar: "لا توجد منتجات مطابقة" })}
             </p>
             <p className="mt-2 max-w-md text-sm leading-6 text-[#D6B79A]/78">
-              {t({ en: "Try clearing the search or selecting a different price range.", ar: "جرب مسح البحث أو اختيار نطاق سعر مختلف." })}
+              {t({
+                en: "Try clearing the search or choosing another taste family.",
+                ar: "جرّب مسح البحث أو اختيار مجموعة مذاق مختلفة.",
+              })}
             </p>
           </section>
         )}
@@ -401,7 +443,7 @@ export default function CategoryPageClient({ category, products, relatedCategori
               <Link
                 key={item.slug}
                 href={`/products/category/${item.slug}`}
-                className="group relative h-36 w-64 shrink-0 overflow-hidden rounded-2xl border border-[#B6885E]/16 bg-[#120D09]"
+                className="pub-card group relative h-36 w-64 shrink-0 rounded-2xl"
               >
                 <Image
                   src={item.image}

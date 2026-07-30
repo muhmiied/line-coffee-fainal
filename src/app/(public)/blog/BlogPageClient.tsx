@@ -70,7 +70,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
   }, [rest, query, activeCategory, t]);
 
   return (
-    <div className="arabic-body min-h-screen bg-[#0B0806] text-[#F5E6D8]">
+    <div className="pub-page-surface arabic-body min-h-screen text-[#F5E6D8]">
 
       {/* ── Hero ── */}
       <section className="products-hero relative overflow-hidden pb-16 pt-28 lg:pt-36">
@@ -84,7 +84,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
           aria-hidden="true"
         />
         <div className="absolute inset-0 bg-[#0B0806]/52" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.18)_0%,rgba(11,8,6,0.80)_70%,#0B0806_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,8,6,0.18)_0%,rgba(18,10,6,0.80)_70%,#120A06_100%)]" />
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_20%,rgba(182,136,94,0.08),transparent_62%)]"
@@ -114,7 +114,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
             </p>
             <Link
               href={`/blog/${featured.slug}`}
-              className="group grid overflow-hidden rounded-2xl border border-[#B6885E]/18 bg-[#120D09]/68 shadow-[0_16px_48px_rgba(0,0,0,0.32)] transition-all duration-300 hover:border-[#D6A373]/30 hover:shadow-[0_24px_64px_rgba(0,0,0,0.44)] md:grid-cols-2"
+              className="pub-card group grid rounded-2xl md:grid-cols-2"
             >
               <div className="relative h-64 overflow-hidden md:h-auto md:min-h-[22rem]">
                 <Image
@@ -129,7 +129,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
               </div>
               <div className="flex flex-col justify-center p-8 md:p-12">
                 <div className="mb-4 flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-full border border-[#B6885E]/30 bg-[#B6885E]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D6A373]">
+                  <span className="line-journal-tag flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
                     <Tag className="h-2.5 w-2.5" />
                     {t(featured.category)}
                   </span>
@@ -170,7 +170,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
         <div className="relative z-10 mx-auto max-w-7xl px-4">
 
           {/* Search + category filter */}
-          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="pub-card-static mb-10 flex flex-col gap-4 rounded-2xl p-3 sm:p-4 md:flex-row md:items-center md:justify-between">
             <div className="relative w-full max-w-sm">
               <Search
                 className={cn(
@@ -186,7 +186,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
                 placeholder={t({ en: "Search articles...", ar: "ابحث في المقالات..." })}
                 dir={dir}
                 className={cn(
-                  "h-11 w-full rounded-full border border-[#B6885E]/20 bg-[#120D09]/68 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/35 outline-none transition-all focus:border-[#D6A373]/40 focus:ring-1 focus:ring-[#D6A373]/20",
+                  "h-11 w-full rounded-full border border-[#B6885E]/20 bg-[#120D09]/68 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/35 shadow-[inset_0_2px_8px_rgba(12,5,3,0.28),0_0_12px_rgba(182,136,94,0.06)] outline-none transition-all focus:border-[#D6A373]/45 focus:shadow-[inset_0_2px_8px_rgba(12,5,3,0.22),0_0_20px_rgba(214,163,115,0.24)] focus:ring-1 focus:ring-[#D6A373]/22",
                   dir === "rtl" ? "pr-11 pl-10" : "pl-11 pr-10",
                 )}
               />
@@ -210,10 +210,8 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
                 type="button"
                 onClick={() => setActiveCategory(null)}
                 className={cn(
-                  "rounded-full border px-4 py-1.5 text-xs font-semibold transition-all",
-                  !activeCategory
-                    ? "border-[#D6A373]/40 bg-[#D6A373]/12 text-[#D6A373]"
-                    : "border-[#B6885E]/20 text-[#D6B79A]/75 hover:border-[#B6885E]/40 hover:text-[#D6B79A]",
+                  "taste-filter-chip !min-h-0 !px-4 !py-1.5",
+                  !activeCategory && "is-active",
                 )}
               >
                 {t({ en: "All", ar: "الكل" })}
@@ -228,10 +226,8 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
                     )
                   }
                   className={cn(
-                    "rounded-full border px-4 py-1.5 text-xs font-semibold transition-all",
-                    activeCategory === cat.en
-                      ? "border-[#D6A373]/40 bg-[#D6A373]/12 text-[#D6A373]"
-                      : "border-[#B6885E]/20 text-[#D6B79A]/75 hover:border-[#B6885E]/40 hover:text-[#D6B79A]",
+                    "taste-filter-chip !min-h-0 !px-4 !py-1.5",
+                    activeCategory === cat.en && "is-active",
                   )}
                 >
                   {t(cat)}
@@ -273,7 +269,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
                   <Link
                     key={post.slug}
                     href={`/blog/${post.slug}`}
-                    className="group overflow-hidden rounded-2xl border border-[#B6885E]/14 bg-[#120D09]/68 shadow-[0_16px_48px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D6A373]/30 hover:shadow-[0_24px_64px_rgba(0,0,0,0.4)]"
+                    className="pub-card group overflow-hidden rounded-2xl"
                   >
                     <div className="relative h-52 overflow-hidden bg-[#1A120D]">
                       <Image
@@ -284,7 +280,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
                         className="object-cover brightness-[0.80] contrast-[1.08] transition-transform duration-500 group-hover:scale-[1.06]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0B0806]/72 via-transparent to-transparent" />
-                      <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-[#B6885E]/30 bg-[#0B0806]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D6A373]/90 backdrop-blur-md">
+                      <div className="line-journal-tag absolute left-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
                         <Tag className="h-2.5 w-2.5" />
                         {t(post.category)}
                       </div>
@@ -330,7 +326,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
                     type="button"
                     onClick={handleLoadMore}
                     disabled={loadingMore}
-                    className="premium-button-outline inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold disabled:opacity-60"
+                    className="premium-button-outline pub-btn-3d inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold disabled:opacity-60"
                   >
                     {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t({ en: "Load More", ar: "عرض المزيد" })}

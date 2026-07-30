@@ -66,11 +66,11 @@ export default function LoginPage() {
     }
   };
 
-  const inputClass =
-    "w-full rounded-xl border border-[#B6885E]/22 bg-[#120D09]/70 px-4 py-3 text-sm text-[#F5E6D8] placeholder-[#D6B79A]/38 outline-none transition-all focus:border-[#D6A373]/50 focus:ring-2 focus:ring-[#D6A373]/18";
+  const inputClass = "line-input";
 
   return (
     <AuthCard
+      variant="premium"
       title={{ en: "Sign in", ar: "تسجيل الدخول" }}
       subtitle={{ en: "Welcome back to Line Coffee.", ar: "أهلا بك مجددا في لاين كوفي." }}
     >
@@ -108,7 +108,8 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className={`${inputClass} ${isRtl ? "pl-10" : "pr-10"}`}
+              className={inputClass}
+              style={isRtl ? { paddingLeft: "2.5rem" } : { paddingRight: "2.5rem" }}
             />
             <button
               type="button"
@@ -133,7 +134,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="premium-button mt-2 w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          className="premium-button pub-btn-3d mt-2 w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading
             ? t({ en: "Signing in...", ar: "جار تسجيل الدخول..." })

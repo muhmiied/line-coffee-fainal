@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { ChevronRight, Eye, Loader2, Search, Sparkles } from "lucide-react";
+import { ChevronRight, Eye, Loader2, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useLanguage } from "@/lib/context/language";
 import { ProductCard } from "@/components/product/ProductCard";
+import {
+  getProductTasteFilterOptions,
+  matchesProductTasteFilter,
+  organizeFlavorCategoryProducts,
+  type ProductTasteFilterKey,
+} from "@/lib/catalog/product-taste-filters";
 import {
   getPublicProductsByCategorySlugPage,
   searchPublicProductsByCategorySlug,
   type PublicCatalogCategory,
   type PublicCatalogProduct,
 } from "@/lib/catalog/public-catalog";
+import { cn } from "@/lib/utils/cn";
 // The builders are heavy (bean/flavor catalogs + pricing engines + rich UI) and
 // only render when a studio category is selected, so load them on demand instead
 // of shipping them in the products page's initial JS bundle.
@@ -39,7 +46,10 @@ const FlavorMixStudio = dynamic(
   { ssr: false, loading: StudioFallback },
 );
 
-const PAGE_SIZE = 24;
+// Taste-family filters run over one complete category at a time. The current
+// catalog's largest category has 30 products; this bounded page keeps those
+// filters complete while preserving the existing pagination fallback.
+const PAGE_SIZE = 120;
 const SEARCH_DEBOUNCE_MS = 300;
 // A stable empty-array reference so `current?.products ?? EMPTY_PRODUCTS`
 // doesn't create a new array identity on every render when there is no
@@ -101,7 +111,7 @@ function ProductsHero() {
       <div className="absolute inset-0 bg-black/60" />
       <div className="absolute inset-0 bg-gradient-to-br from-[#0B0806]/70 via-transparent to-[#120D09]/50 mix-blend-multiply" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_30%,_rgba(0,0,0,0.75)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#0B0806] via-[#0B0806]/60 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#120A06] via-[#120A06]/62 to-transparent" />
       <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0B0806]/80 via-[#0B0806]/30 to-transparent" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_65%,_rgba(182,136,94,0.08)_0%,_transparent_70%)]" />
 
@@ -127,6 +137,14 @@ type CategoryState = {
   loadedForQuery: string;
 };
 
+function categoryRequestKey(
+  categorySlug: string,
+  query: string,
+  range: { from: number; to: number },
+) {
+  return `${categorySlug}\u0000${query}\u0000${range.from}:${range.to}`;
+}
+
 export type ProductsPageClientProps = {
   categories: PublicCatalogCategory[];
   initialCategorySlug: string;
@@ -140,11 +158,11 @@ export default function ProductsPageClient({
   initialProducts,
   initialTotalCount,
 }: ProductsPageClientProps) {
-  const { t } = useLanguage();
-  const router = useRouter();
+  const { dir, t } = useLanguage();
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<ActiveCategory>(initialCategorySlug);
   const [searchInput, setSearchInput] = useState("");
+  const [tasteFilter, setTasteFilter] = useState<ProductTasteFilterKey>("all");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryData, setCategoryData] = useState<Record<string, CategoryState>>(
     initialCategorySlug
@@ -160,6 +178,7 @@ export default function ProductsPageClient({
   const [loadingCategory, setLoadingCategory] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const categoryRequests = useRef(new Map<string, Promise<CategoryState>>());
 
   const rawCat = searchParams.get("category") ?? searchParams.get("cat");
   const previewProductSlug = searchParams.get("previewProduct");
@@ -178,10 +197,63 @@ export default function ProductsPageClient({
 
   const fallbackCategory = categories[0]?.slug ?? "";
   const activeCategory =
-    (rawCat && validCategories.has(rawCat) ? rawCat : "") ||
     (selectedCategory && validCategories.has(selectedCategory) ? selectedCategory : "") ||
     fallbackCategory;
   const isStudio = activeCategory ? isStudioCategory(activeCategory) : false;
+
+  useEffect(() => {
+    const categoryFromUrl =
+      (rawCat && validCategories.has(rawCat) ? rawCat : "") || fallbackCategory;
+    if (!categoryFromUrl) return;
+
+    // Native History API updates are integrated with useSearchParams by the
+    // App Router. This keeps browser history or an external URL edit in sync
+    // without turning an in-page category tab into a new server navigation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronizes browser history with local UI state
+    setSelectedCategory((current) =>
+      current === categoryFromUrl ? current : categoryFromUrl,
+    );
+  }, [fallbackCategory, rawCat, validCategories]);
+
+  useEffect(() => {
+    // Keep browser back/forward or direct URL category changes from carrying a
+    // taste family that only exists in the previous category.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset is driven by URL-derived category state
+    setTasteFilter("all");
+  }, [activeCategory]);
+
+  const loadCategoryPage = useCallback(
+    (
+      categorySlug: string,
+      query: string,
+      range: { from: number; to: number },
+    ) => {
+      const key = categoryRequestKey(categorySlug, query, range);
+      const existing = categoryRequests.current.get(key);
+      if (existing) return existing;
+
+      const request = (
+        query
+          ? searchPublicProductsByCategorySlug(categorySlug, query, range, categories)
+          : getPublicProductsByCategorySlugPage(categorySlug, range, categories)
+      )
+        .then(({ products, totalCount }) => ({
+          products,
+          totalCount,
+          loadedForQuery: query,
+        }))
+        .catch((error: unknown) => {
+          // Failed reads stay retryable; successful public catalog pages remain
+          // cached for this mounted products experience.
+          categoryRequests.current.delete(key);
+          throw error;
+        });
+
+      categoryRequests.current.set(key, request);
+      return request;
+    },
+    [categories],
+  );
 
   // Fetch the active category's products whenever the category or the
   // (debounced) search query changes and we don't already have a matching
@@ -196,17 +268,12 @@ export default function ProductsPageClient({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch driven by category/search state
     setLoadingCategory(true);
     setLoadError(false);
-    const range = { from: 0, to: PAGE_SIZE - 1 };
-    const fetcher = debouncedSearch
-      ? searchPublicProductsByCategorySlug(activeCategory, debouncedSearch, range)
-      : getPublicProductsByCategorySlugPage(activeCategory, range);
-
-    fetcher
-      .then(({ products, totalCount }) => {
+    loadCategoryPage(activeCategory, debouncedSearch, { from: 0, to: PAGE_SIZE - 1 })
+      .then((next) => {
         if (cancelled) return;
         setCategoryData((prev) => ({
           ...prev,
-          [activeCategory]: { products, totalCount, loadedForQuery: debouncedSearch },
+          [activeCategory]: next,
         }));
       })
       .catch(() => {
@@ -220,12 +287,44 @@ export default function ProductsPageClient({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- categoryData is read, not a trigger; re-running on its own change would refetch every render
-  }, [activeCategory, debouncedSearch]);
+  }, [activeCategory, debouncedSearch, loadCategoryPage]);
+
+  const prefetchCategory = useCallback(
+    (categorySlug: string) => {
+      if (
+        categorySlug === activeCategory ||
+        isStudioCategory(categorySlug) ||
+        categoryData[categorySlug]?.loadedForQuery === ""
+      ) {
+        return;
+      }
+
+      void loadCategoryPage(categorySlug, "", { from: 0, to: PAGE_SIZE - 1 })
+        .then((next) => {
+          setCategoryData((prev) => {
+            if (prev[categorySlug]?.loadedForQuery === "") return prev;
+            return { ...prev, [categorySlug]: next };
+          });
+        })
+        .catch(() => {
+          // Prefetch is opportunistic. A real click retries with visible error
+          // handling through the active-category effect above.
+        });
+    },
+    [activeCategory, categoryData, loadCategoryPage],
+  );
 
   const selectCategory = (cat: ActiveCategory) => {
+    const cached = categoryData[cat];
+    setLoadingCategory(
+      !isStudioCategory(cat) && !(cached && cached.loadedForQuery === ""),
+    );
+    setLoadError(false);
     setSelectedCategory(cat);
     setSearchInput("");
-    router.replace(`/products?category=${cat}`, { scroll: false });
+    setDebouncedSearch("");
+    setTasteFilter("all");
+    window.history.replaceState(null, "", `/products?category=${encodeURIComponent(cat)}`);
   };
 
   const current = categoryData[activeCategory];
@@ -237,11 +336,7 @@ export default function ProductsPageClient({
     if (!activeCategory || loadingMore || !hasMore) return;
     setLoadingMore(true);
     const range = { from: products.length, to: products.length + PAGE_SIZE - 1 };
-    const fetcher = debouncedSearch
-      ? searchPublicProductsByCategorySlug(activeCategory, debouncedSearch, range)
-      : getPublicProductsByCategorySlugPage(activeCategory, range);
-
-    fetcher
+    loadCategoryPage(activeCategory, debouncedSearch, range)
       .then(({ products: more }) => {
         setCategoryData((prev) => {
           const existing = prev[activeCategory];
@@ -281,18 +376,34 @@ export default function ProductsPageClient({
     );
   }, [previewOverride, products]);
 
+  const tasteFilterOptions = useMemo(
+    () => getProductTasteFilterOptions(activeCategory, displayedProducts),
+    [activeCategory, displayedProducts],
+  );
+
+  const filteredDisplayedProducts = useMemo(
+    () => {
+      const filtered = displayedProducts.filter((product) =>
+        matchesProductTasteFilter(activeCategory, product, tasteFilter),
+      );
+
+      return organizeFlavorCategoryProducts(activeCategory, filtered, tasteFilter);
+    },
+    [activeCategory, displayedProducts, tasteFilter],
+  );
+
   return (
-    <div className="min-h-screen bg-[#0B0806]">
+    <div className="pub-page-surface min-h-screen">
       <ProductsHero />
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-8 lg:flex-row">
           <aside className="shrink-0 lg:w-64">
-            <div className="luxury-panel sticky top-28 rounded-2xl p-4">
-              <h2 className="mb-4 px-2 font-serif text-lg font-semibold text-[#F5E6D8]/90">
+            <div className="products-category-panel pub-card-static rounded-2xl p-3 sm:p-4">
+              <h2 className="mb-3 px-2 font-serif text-lg font-semibold text-[#F5E6D8]/90 lg:mb-4">
                 {t({ en: "Categories", ar: "التصنيفات" })}
               </h2>
-              <nav className="space-y-1">
+              <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0">
                 {sidebarItems.map((item) => {
                   if (item.kind === "cat") {
                     const isActive = activeCategory === item.slug;
@@ -301,10 +412,13 @@ export default function ProductsPageClient({
                         key={item.slug}
                         type="button"
                         onClick={() => selectCategory(item.slug)}
+                        onPointerEnter={() => prefetchCategory(item.slug)}
+                        onFocus={() => prefetchCategory(item.slug)}
+                        aria-pressed={isActive ? "true" : "false"}
                         className={
                           isActive
-                            ? "products-cat-active w-full rounded-xl border border-transparent px-4 py-3 text-left text-sm font-semibold"
-                            : "w-full rounded-xl border border-transparent px-4 py-3 text-left text-sm text-[#D6B79A]/75 transition-all duration-200 hover:border-[#B6885E]/20 hover:bg-[#B6885E]/8 hover:text-[#F5E6D8]/80"
+                            ? "products-cat-active w-max shrink-0 rounded-xl border border-transparent px-4 py-3 text-left text-sm font-semibold lg:w-full"
+                            : "w-max shrink-0 rounded-xl border border-transparent px-4 py-3 text-left text-sm text-[#D6B79A]/75 transition-all duration-200 hover:border-[#B6885E]/20 hover:bg-[#B6885E]/8 hover:text-[#F5E6D8]/80 lg:w-full"
                         }
                       >
                         {t(item.name)}
@@ -319,7 +433,7 @@ export default function ProductsPageClient({
                         key={item.id}
                         type="button"
                         disabled
-                        className="w-full cursor-not-allowed rounded-xl border border-[#D6A373]/10 bg-[#D6A373]/5 px-4 py-3 text-left text-sm font-semibold text-[#D6A373]/35"
+                        className="w-max shrink-0 cursor-not-allowed rounded-xl border border-[#D6A373]/10 bg-[#D6A373]/5 px-4 py-3 text-left text-sm font-semibold text-[#D6A373]/35 lg:w-full"
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span>{t(item.label)}</span>
@@ -336,7 +450,7 @@ export default function ProductsPageClient({
                       key={item.id}
                       type="button"
                       onClick={() => selectCategory(item.id)}
-                      className={`${item.id === "make-your-espresso" ? "studio-espresso-btn" : "studio-flavor-btn"} mt-1 flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold${isActive ? " ring-2 ring-white/20 brightness-110" : ""}`}
+                      className={`${item.id === "make-your-espresso" ? "studio-espresso-btn" : "studio-flavor-btn"} flex w-max shrink-0 items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold lg:mt-1 lg:w-full${isActive ? " ring-2 ring-white/20 brightness-110" : ""}`}
                     >
                       <span className="flex items-center gap-2">
                         <Sparkles className="h-3.5 w-3.5 shrink-0" />
@@ -359,20 +473,57 @@ export default function ProductsPageClient({
               )
             ) : (
               <>
-                <div className="relative mb-4">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65" />
-                  <input
-                    type="search"
-                    aria-label={t({ en: "Search products", ar: "ابحث عن منتج" })}
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder={t({ en: "Search products...", ar: "ابحث عن منتج..." })}
-                    className="line-input line-input-search w-full"
-                  />
+                <div className="pub-card-static mb-5 rounded-2xl p-3 sm:p-4">
+                  <div className="relative">
+                    <Search
+                      className={cn(
+                        "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[#D6B79A]/65",
+                        dir === "rtl" ? "right-4" : "left-4",
+                      )}
+                    />
+                    <input
+                      type="search"
+                      aria-label={t({ en: "Search products", ar: "ابحث عن منتج" })}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder={t({ en: "Search products...", ar: "ابحث عن منتج..." })}
+                      className="line-input line-input-search w-full"
+                    />
+                  </div>
+
+                  <div className="mt-3 border-t border-[#D6A373]/14 pt-3">
+                    <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold text-[#D6B79A]/78">
+                      <SlidersHorizontal className="h-3.5 w-3.5 text-[#D6A373]" />
+                      <span>{t({ en: "Explore the collection", ar: "استكشف المجموعة" })}</span>
+                    </div>
+                    <div
+                      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+                      role="group"
+                      aria-label={t({ en: "Product taste filters", ar: "فلاتر مذاق المنتجات" })}
+                    >
+                      {tasteFilterOptions.map((option) => {
+                        const active = tasteFilter === option.key;
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => setTasteFilter(option.key)}
+                            aria-pressed={active}
+                            className={cn("taste-filter-chip", active && "is-active")}
+                          >
+                            <span>{t(option.label)}</span>
+                            <span className="taste-filter-count">{option.count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <p className="mb-5 text-sm text-[#D6BB9F]/75">
-                  {hasMore
+                  {tasteFilter !== "all"
+                    ? `${filteredDisplayedProducts.length} ${t({ en: "products", ar: "منتج" })}`
+                    : hasMore
                     ? `${products.length} / ${totalCount} ${t({ en: "products", ar: "منتج" })}`
                     : `${totalCount} ${t({ en: "products", ar: "منتج" })}`}
                 </p>
@@ -396,15 +547,16 @@ export default function ProductsPageClient({
                       {t({ en: "Please try again in a moment.", ar: "يرجى المحاولة مرة أخرى بعد قليل." })}
                     </p>
                   </div>
-                ) : displayedProducts.length > 0 ? (
+                ) : filteredDisplayedProducts.length > 0 ? (
                   <>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:grid-cols-3">
-                      {displayedProducts.map((product, i) => (
+                      {filteredDisplayedProducts.map((product, i) => (
                         <ProductCard
                           key={product.slug}
                           product={product}
                           index={i}
                           reveal={false}
+                          glass
                         />
                       ))}
                     </div>
@@ -414,7 +566,7 @@ export default function ProductsPageClient({
                           type="button"
                           onClick={handleLoadMore}
                           disabled={loadingMore}
-                          className="premium-button-outline inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold disabled:opacity-60"
+                          className="premium-button-outline pub-btn-3d inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold disabled:opacity-60"
                         >
                           {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
                           {t({ en: "Load More", ar: "عرض المزيد" })}
@@ -436,6 +588,18 @@ export default function ProductsPageClient({
                     <p className="text-sm text-[#D6BB9F]/82">
                       {t({ en: "Try a different search or category", ar: "جرّب بحثاً أو تصنيفاً مختلفاً" })}
                     </p>
+                    {(searchInput || tasteFilter !== "all") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchInput("");
+                          setTasteFilter("all");
+                        }}
+                        className="premium-button-outline pub-btn-3d mt-3 px-6 py-2 text-xs font-semibold"
+                      >
+                        {t({ en: "Clear filters", ar: "مسح الفلاتر" })}
+                      </button>
+                    )}
                   </div>
                 )}
               </>

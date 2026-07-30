@@ -1,6 +1,6 @@
 # Line Coffee V3 — Route & Data Flow Map
 
-**Last updated:** 2026-07-28
+**Last updated:** 2026-07-30
 **Companion to:** `LINE_COFFEE_V3_COMPLETE_SYSTEM_REFERENCE.md`
 
 This is the single place to look up **where a route's content lives** (so editing a word or image is a file lookup, not a hunt) and **how data moves through the system** for the flows that matter most (checkout, order lifecycle, inventory). Media Studio is cancelled (Locked Decision 1) — this document is what replaces it.
@@ -46,6 +46,10 @@ This is the single place to look up **where a route's content lives** (so editin
 | `/products/category/[slug]` | `public_products` filtered by category | Dynamic |
 | `/products/[slug]` | `public_products` + `public_product_variants` — name/description/price/blend composition/images all DB-sourced | Dynamic |
 | Product images | `products.image_url` + `products.gallery`, managed via Admin Products → Media tab → Supabase Storage bucket `product-images` | Dynamic |
+
+`/products` and `/products/category/[slug]` share the UI-only taste-family taxonomy in `src/lib/catalog/product-taste-filters.ts`. It classifies the existing public product slugs into category-appropriate filter chips (for example original, fruit, nuts, chocolate, desserts) without adding a database field or changing product/pricing truth. The two builder routes remain intentionally excluded.
+
+`/products` server-renders the directly requested category for useful first HTML, then treats sidebar category changes as in-page client state. The URL is synchronized through the native History API (no repeat App Router server navigation); category reads share in-flight/session promises, prefetch on pointer/focus intent, reuse the already-rendered category list, and fetch the small public variant-price view in parallel once per browser session. Product-detail links disable viewport-wide automatic prefetch and prefetch only on pointer/focus intent. Catalog cards use `content-visibility: auto` and a layered translucent surface instead of one live backdrop filter per card; the larger sidebar/search panels retain real glass blur.
 
 ---
 

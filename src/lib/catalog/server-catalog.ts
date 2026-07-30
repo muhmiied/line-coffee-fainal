@@ -110,12 +110,8 @@ async function fetchServerPublicProductsPage(
   if (!client || !categorySlug) return { products: [], totalCount: 0 };
 
   try {
-    const [categoryRows, countResult, rowsResult] = await Promise.all([
-      client
-        .from("public_categories")
-        .select("id, slug, name_en, name_ar, description_en, description_ar, image_url, sort_order")
-        .order("sort_order", { ascending: true })
-        .order("name_en", { ascending: true }),
+    const [categories, countResult, rowsResult] = await Promise.all([
+      getServerPublicCategories(),
       client
         .from("public_products")
         .select("id", { count: "exact", head: true })
@@ -130,7 +126,6 @@ async function fetchServerPublicProductsPage(
 
     if (rowsResult.error || !Array.isArray(rowsResult.data)) return { products: [], totalCount: 0 };
 
-    const categories = ((categoryRows.data ?? []) as PublicCategoryRow[]).map(mapCategoryRow);
     const productRows = rowsResult.data as unknown as PublicProductRow[];
     const variants = await fetchVariantRows(client, productRows.map((p) => p.id));
 

@@ -59,12 +59,12 @@ export default function OrdersPage() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="h-16 animate-pulse rounded-xl bg-[#120D09]"
+              className="account-skeleton h-16 rounded-xl"
             />
           ))}
         </div>
       ) : loadError ? (
-        <div className="rounded-xl border border-red-900/30 bg-red-900/10 px-6 py-16 text-center">
+        <div className="account-card rounded-xl border-red-900/30 px-6 py-16 text-center">
           <p className="mb-4 text-sm text-red-400">
             {t({
               en: "We couldn't load your orders. Please try again.",
@@ -74,19 +74,19 @@ export default function OrdersPage() {
           <button
             type="button"
             onClick={load}
-            className="premium-button-outline inline-block px-8 py-2.5 text-sm"
+            className="premium-button-outline pub-btn-3d inline-block px-8 py-2.5 text-sm"
           >
             {t({ en: "Retry", ar: "إعادة المحاولة" })}
           </button>
         </div>
       ) : orders.length === 0 ? (
-        <div className="rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-6 py-16 text-center">
+        <div className="account-card rounded-xl px-6 py-16 text-center">
           <p className="mb-4 text-sm text-[#B79B85]/80">
             {t({ en: "No orders yet.", ar: "لا توجد طلبات بعد." })}
           </p>
           <Link
             href="/products"
-            className="premium-button inline-block px-8 py-2.5 text-sm"
+            className="premium-button pub-btn-3d inline-block px-8 py-2.5 text-sm"
           >
             {t({ en: "Start shopping", ar: "تسوق الآن" })}
           </Link>
@@ -102,7 +102,7 @@ export default function OrdersPage() {
               <Link
                 key={order.id}
                 href={`/account/orders/${order.code}`}
-                className="group flex items-center gap-4 rounded-xl border border-[#B6885E]/10 bg-[#120D09] px-5 py-4 transition-all hover:border-[#B6885E]/25 hover:bg-[#15100B]"
+                className="account-card account-card-interactive group flex items-center gap-4 rounded-xl px-5 py-4"
               >
                 {/* Order info */}
                 <div className="min-w-0 flex-1">

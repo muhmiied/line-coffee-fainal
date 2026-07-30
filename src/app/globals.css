@@ -952,7 +952,10 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
     inset 0 -7px 16px rgb(12 5 3 / 0.18);
 }
 
-/* Warm floating card — the glow belongs to the surface (radius: inherit) */
+/* Warm floating card — the glow belongs to the surface (radius: inherit).
+   Backdrop-blur gives the frosted-glass read; the opaque gradient/solid
+   layers underneath are the readability fallback for browsers/contexts
+   where backdrop-filter is unavailable or disabled. */
 .pub-card {
   position: relative;
   overflow: hidden;
@@ -962,6 +965,8 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
   background:
     linear-gradient(145deg, rgb(83 42 18 / 0.18), rgb(24 13 9 / 0.44) 46%, rgb(12 5 3 / 0.58)),
     rgb(24 13 9 / 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: var(--pub-shadow), var(--pub-inset), 0 0 16px var(--pub-glow-ambient);
   transition:
     transform var(--pub-dur) var(--pub-ease),
@@ -989,9 +994,271 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
 }
 .pub-card:hover::before { opacity: 0.62; }
 
+/* Same glass depth as .pub-card, without the hover-lift transform — for
+   static content panels (forms, info panels, the auth card) where a
+   whole-panel lift on incidental mouse movement would read as distracting
+   motion rather than a useful "this is clickable" affordance. The surface
+   still brightens subtly on hover so it doesn't feel inert. */
+.pub-card-static {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid var(--pub-border);
+  background:
+    linear-gradient(145deg, rgb(83 42 18 / 0.18), rgb(24 13 9 / 0.44) 46%, rgb(12 5 3 / 0.58)),
+    rgb(24 13 9 / 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--pub-shadow), var(--pub-inset), 0 0 16px var(--pub-glow-ambient);
+  transition:
+    box-shadow var(--pub-dur) var(--pub-ease),
+    border-color var(--pub-dur) var(--pub-ease);
+}
+.pub-card-static::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(78% 58% at 18% 0%, rgb(227 210 184 / 0.12), transparent 62%),
+    linear-gradient(135deg, rgb(227 210 184 / 0.06), transparent 34%);
+  opacity: 0.42;
+  transition: opacity var(--pub-dur) var(--pub-ease);
+}
+.pub-card-static > * { position: relative; z-index: 1; }
+.pub-card-static:hover {
+  border-color: var(--pub-border-strong);
+  box-shadow: var(--pub-shadow-lift), 0 0 22px var(--pub-glow);
+}
+.pub-card-static:hover::before { opacity: 0.58; }
+
+/* Tailwind's `sticky` utility is layered below this unlayered component CSS.
+   Restore the intended positioning when both classes are composed; otherwise
+   `position: relative` plus `top-*` visibly offsets the catalog controls. */
+.pub-card-static.sticky {
+  position: sticky;
+}
+
+.products-category-panel {
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .products-category-panel {
+    position: sticky;
+    top: 7rem;
+  }
+}
+
+/* Roasted-glass page atmosphere — deliberately warmer and one step lighter
+   than the legacy near-black page fill while keeping the dark luxury identity.
+   Scoped opt-in so the locked homepage and unrelated commerce routes do not
+   change. */
+.pub-page-surface {
+  background-color: #120a06;
+  background-image:
+    radial-gradient(circle at 12% 10%, rgb(198 153 116 / 0.12), transparent 28rem),
+    radial-gradient(circle at 88% 34%, rgb(83 42 18 / 0.18), transparent 34rem),
+    linear-gradient(180deg, #160d08 0%, #100805 52%, #140b07 100%);
+  background-attachment: fixed;
+}
+
+.pub-page-surface .cinematic-section {
+  background:
+    radial-gradient(circle at 50% 0%, rgb(198 153 116 / 0.11), transparent 34rem),
+    linear-gradient(180deg, #170e09, #100704);
+}
+
+/* Brighter catalog-only product surface. ProductCard opts into this explicitly
+   on /products, so the homepage's locked best-seller cards stay untouched. */
+.pub-product-card {
+  border-color: rgb(209 170 132 / 0.31);
+  background:
+    radial-gradient(90% 56% at 12% 0%, rgb(227 210 184 / 0.13), transparent 58%),
+    linear-gradient(145deg, rgb(96 51 24 / 0.44), rgb(35 20 13 / 0.78) 48%, rgb(17 8 5 / 0.86));
+  /* The layered translucent gradient keeps the roasted-glass appearance.
+     Avoid a live backdrop blur on every catalog card: a large flavor
+     category can mount 30 cards, and 30 compositor filters are costly on
+     mobile GPUs. The larger search/sidebar panels retain real backdrop blur. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    0 18px 46px rgb(12 5 3 / 0.34),
+    0 0 24px rgb(182 136 94 / 0.09),
+    inset 0 1px 0 rgb(227 210 184 / 0.10);
+}
+
+.pub-product-card:hover {
+  box-shadow:
+    0 28px 68px rgb(12 5 3 / 0.44),
+    0 0 34px rgb(214 163 115 / 0.20),
+    inset 0 1px 0 rgb(227 210 184 / 0.14);
+}
+
+.catalog-product-grid-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 28rem;
+}
+
+/* Search-adjacent category/taste filters. Their slightly irregular warm-glass
+   highlight is the signature interaction for the catalog refresh. */
+.taste-filter-chip {
+  display: inline-flex;
+  min-height: 2.35rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  white-space: nowrap;
+  border-radius: var(--pub-radius-pill);
+  border: 1px solid rgb(198 153 116 / 0.25);
+  background:
+    linear-gradient(180deg, rgb(227 210 184 / 0.06), transparent 48%),
+    rgb(24 13 9 / 0.58);
+  padding: 0.5rem 0.85rem;
+  color: var(--pub-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow:
+    0 8px 20px rgb(12 5 3 / 0.2),
+    inset 0 1px 0 rgb(227 210 184 / 0.07);
+  transition:
+    transform var(--pub-dur-fast) var(--pub-ease),
+    border-color var(--pub-dur-fast) var(--pub-ease),
+    color var(--pub-dur-fast) var(--pub-ease),
+    background var(--pub-dur-fast) var(--pub-ease),
+    box-shadow var(--pub-dur-fast) var(--pub-ease);
+}
+
+.taste-filter-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgb(209 170 132 / 0.46);
+  color: var(--pub-white-coffee);
+  box-shadow:
+    0 12px 26px rgb(12 5 3 / 0.26),
+    0 0 18px var(--pub-glow);
+}
+
+.taste-filter-chip.is-active {
+  border-color: rgb(227 210 184 / 0.58);
+  background:
+    linear-gradient(180deg, rgb(255 248 238 / 0.28), transparent 46%),
+    linear-gradient(135deg, var(--pub-vanilla), var(--pub-caramel));
+  color: var(--pub-ink-strong);
+  box-shadow:
+    0 12px 30px rgb(83 42 18 / 0.34),
+    0 0 22px rgb(214 163 115 / 0.22),
+    inset 0 1px 0 rgb(255 255 255 / 0.30);
+}
+
+.taste-filter-count {
+  display: inline-flex;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pub-radius-pill);
+  background: rgb(227 210 184 / 0.09);
+  padding-inline: 0.3rem;
+  color: inherit;
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.taste-filter-chip.is-active .taste-filter-count {
+  background: rgb(24 13 9 / 0.15);
+}
+
+.taste-filter-chip:focus-visible {
+  outline: 2px solid var(--pub-accent);
+  outline-offset: 2px;
+}
+
+/* Shared account surfaces — used explicitly by AccountShell and account pages
+   instead of globally restyling unrelated cards. */
+.account-card {
+  border: 1px solid var(--pub-border);
+  background:
+    radial-gradient(75% 70% at 12% 0%, rgb(227 210 184 / 0.09), transparent 60%),
+    linear-gradient(145deg, rgb(83 42 18 / 0.22), rgb(24 13 9 / 0.68));
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 18px 46px rgb(12 5 3 / 0.30),
+    inset 0 1px 0 rgb(227 210 184 / 0.07);
+}
+
+.account-card-interactive {
+  transition:
+    transform var(--pub-dur-fast) var(--pub-ease),
+    border-color var(--pub-dur-fast) var(--pub-ease),
+    box-shadow var(--pub-dur-fast) var(--pub-ease);
+}
+
+.account-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--pub-border-strong);
+  box-shadow:
+    0 24px 58px rgb(12 5 3 / 0.38),
+    0 0 22px var(--pub-glow);
+}
+
+.account-nav-link {
+  border: 1px solid transparent;
+}
+
+.account-nav-link:hover {
+  border-color: rgb(198 153 116 / 0.18);
+  background: rgb(182 136 94 / 0.08);
+}
+
+.account-nav-link.account-nav-active {
+  border-color: rgb(209 170 132 / 0.34);
+  background:
+    linear-gradient(180deg, rgb(227 210 184 / 0.08), transparent 52%),
+    rgb(182 136 94 / 0.14);
+  color: var(--pub-vanilla);
+  box-shadow:
+    inset 0 1px 0 rgb(227 210 184 / 0.08),
+    0 8px 20px rgb(12 5 3 / 0.2);
+}
+
+.account-secondary-button {
+  border: 1px solid rgb(209 170 132 / 0.30);
+  background: rgb(24 13 9 / 0.42);
+  color: var(--pub-muted);
+  box-shadow: inset 0 1px 0 rgb(227 210 184 / 0.05);
+}
+
+.account-secondary-button:hover {
+  border-color: var(--pub-border-strong);
+  background: rgb(83 42 18 / 0.22);
+  color: var(--pub-white-coffee);
+}
+
+.account-skeleton {
+  background:
+    linear-gradient(90deg, rgb(24 13 9 / 0.68), rgb(83 42 18 / 0.34), rgb(24 13 9 / 0.68));
+  background-size: 220% 100%;
+  animation: account-skeleton-sheen 1.6s ease-in-out infinite;
+}
+
+@keyframes account-skeleton-sheen {
+  to { background-position: -120% 0; }
+}
+
 /* Premium 3D badge/tag base — warm dark face + white-coffee text (matches
    Home). Applies to catalog/detail/blog tags off-home; the richer
    .line-home-coffee-palette rules still win on the homepage. */
+@media (max-width: 767px) {
+  .pub-page-surface {
+    background-attachment: scroll;
+  }
+}
+
 .line-product-badge,
 .line-journal-tag {
   background:
@@ -1015,6 +1282,14 @@ html[dir="rtl"] .line-home-coffee-palette .premium-button-outline:hover :where(s
   background:
     radial-gradient(circle at 22% 18%, rgb(227 210 184 / 0.16), transparent 32%),
     linear-gradient(145deg, rgb(83 42 18 / 0.86), rgb(144 96 58 / 0.72));
+}
+/* Muted warm-rust tint (never bright/off-brand red) for an unavailable item. */
+.line-product-badge[data-variant="unavailable"] {
+  background:
+    radial-gradient(circle at 22% 18%, rgb(227 210 184 / 0.09), transparent 32%),
+    linear-gradient(145deg, rgb(43 20 14 / 0.94), rgb(74 32 20 / 0.74));
+  color: rgb(232 205 190 / 0.9);
+  border-color: rgb(196 120 96 / 0.4);
 }
 
 /* Price chip base depth (off-home) */
@@ -1637,6 +1912,55 @@ html[lang="ar"] .premium-heading-shimmer {
     inset 0 1px 0 rgba(255, 195, 145, 0.18);
 }
 
+/* ── Pub 3D button polish (UI/UX polish pass) ─────────────────────────
+   Additive tactile depth for premium-button / premium-button-outline /
+   studio-*-btn — an opt-in extra class, never redeclares background,
+   color, or radius, so it composes with any base button face instead of
+   duplicating a whole button style. Adds the two things every base button
+   above is missing: a real pressed state and a real disabled state.
+   Scoped + ordered (after .line-public .premium-button:hover above) so its
+   box-shadow enhancement wins the same-specificity tie on hover instead of
+   fighting it — the sheen-sweep and lift transform from that rule still
+   apply untouched since box-shadow is the only property this overrides. */
+.line-public .pub-btn-3d {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 -9px 16px rgb(12 5 3 / 0.18),
+    0 12px 34px rgb(182 136 94 / 0.28);
+}
+.line-public .pub-btn-3d:hover {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.26),
+    inset 0 -9px 16px rgb(12 5 3 / 0.16),
+    0 18px 44px rgb(83 42 18 / 0.36),
+    0 0 30px var(--pub-glow-strong);
+}
+.line-public .pub-btn-3d:active {
+  transform: translateY(1px) scale(0.99);
+  filter: brightness(0.97);
+  box-shadow:
+    inset 0 2px 7px rgb(12 5 3 / 0.34),
+    0 4px 14px rgb(12 5 3 / 0.26);
+}
+.line-public .pub-btn-3d:disabled,
+.line-public .pub-btn-3d[aria-disabled="true"] {
+  filter: grayscale(0.4) brightness(0.82);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+.line-public .pub-btn-3d:focus-visible {
+  outline: 2px solid var(--pub-accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .line-public .pub-btn-3d,
+  .line-public .pub-btn-3d:hover,
+  .line-public .pub-btn-3d:active {
+    transition: none;
+  }
+}
+
 /* ── Image cards ──────────────────────────────────────────────────── */
 
 .premium-image-card {
@@ -1991,6 +2315,11 @@ html[dir="rtl"] .line-select {
 
 .line-input-search {
   padding-left: 2.5rem;
+}
+
+html[dir="rtl"] .line-input-search {
+  padding-right: 2.5rem;
+  padding-left: 1rem;
 }
 
 /* Placeholders — slightly more visible while still clearly secondary */

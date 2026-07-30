@@ -16,6 +16,7 @@ import {
   mapProductRows,
   mapVariantRows,
   uniqueValues,
+  type PublicCatalogCategory,
   type PublicCategoryRow,
   type PublicProductRow,
   type PublicVariantRow,
@@ -113,6 +114,27 @@ async function fetchVariantRows(productIds?: string[]) {
   return (data ?? []) as PublicVariantRow[];
 }
 
+let sharedVariantRowsPromise: Promise<PublicVariantRow[]> | null = null;
+
+/**
+ * The products experience already owns the complete, tiny category list and
+ * repeatedly switches between category tabs. Cache the public variant view
+ * once per browser session so product rows and their three price sizes can be
+ * requested in parallel; later category switches reuse the same 372-row
+ * public dataset instead of starting a second network phase.
+ */
+function fetchSharedVariantRows() {
+  if (sharedVariantRowsPromise) return sharedVariantRowsPromise;
+
+  const request = fetchVariantRows();
+  const cachedRequest = request.catch((error: unknown) => {
+    if (sharedVariantRowsPromise === cachedRequest) sharedVariantRowsPromise = null;
+    throw error;
+  });
+  sharedVariantRowsPromise = cachedRequest;
+  return cachedRequest;
+}
+
 async function fetchVariantRowsByProductId(productId: string) {
   const { data, error } = await supabase
     .from("public_product_variants")
@@ -197,20 +219,23 @@ export async function getPublicProductsByCategorySlug(slug: string) {
 export async function getPublicProductsByCategorySlugPage(
   slug: string,
   range: { from: number; to: number },
+  knownCategories?: PublicCatalogCategory[],
 ) {
   try {
-    const [categoryRows, countResult] = await Promise.all([
-      fetchCategoryRows(),
+    const [categoryRows, countResult, productRows, sharedVariants] = await Promise.all([
+      knownCategories ? Promise.resolve(null) : fetchCategoryRows(),
       supabase
         .from("public_products")
         .select("id", { count: "exact", head: true })
         .eq("category_slug", slug),
+      fetchProductRowsByCategorySlug(slug, range),
+      knownCategories ? fetchSharedVariantRows() : Promise.resolve(null),
     ]);
     if (countResult.error) throw new PublicCatalogReadError(undefined, countResult.error);
 
-    const productRows = await fetchProductRowsByCategorySlug(slug, range);
-    const categories = categoryRows.map(mapCategoryRow);
-    const variants = await fetchVariantRows(productRows.map((product) => product.id));
+    const categories = knownCategories ?? (categoryRows ?? []).map(mapCategoryRow);
+    const variants =
+      sharedVariants ?? await fetchVariantRows(productRows.map((product) => product.id));
     return {
       products: mapProductRows(productRows, variants, categories),
       totalCount: countResult.count ?? productRows.length,
@@ -230,15 +255,16 @@ export async function searchPublicProductsByCategorySlug(
   slug: string,
   query: string,
   range: { from: number; to: number },
+  knownCategories?: PublicCatalogCategory[],
 ) {
   try {
     const trimmed = query.trim();
-    if (!trimmed) return getPublicProductsByCategorySlugPage(slug, range);
+    if (!trimmed) return getPublicProductsByCategorySlugPage(slug, range, knownCategories);
 
-    const categoryRows = await fetchCategoryRows();
     const filterExpr = `name_en.ilike.%${trimmed}%,name_ar.ilike.%${trimmed}%`;
 
-    const [countResult, rowsResult] = await Promise.all([
+    const [categoryRows, countResult, rowsResult, sharedVariants] = await Promise.all([
+      knownCategories ? Promise.resolve(null) : fetchCategoryRows(),
       supabase
         .from("public_products")
         .select("id", { count: "exact", head: true })
@@ -251,13 +277,15 @@ export async function searchPublicProductsByCategorySlug(
         .or(filterExpr)
         .order("name_en", { ascending: true })
         .range(range.from, range.to),
+      knownCategories ? fetchSharedVariantRows() : Promise.resolve(null),
     ]);
     if (countResult.error) throw new PublicCatalogReadError(undefined, countResult.error);
     if (rowsResult.error) throw new PublicCatalogReadError(undefined, rowsResult.error);
 
     const productRows = (rowsResult.data ?? []) as unknown as PublicProductRow[];
-    const categories = categoryRows.map(mapCategoryRow);
-    const variants = await fetchVariantRows(productRows.map((product) => product.id));
+    const categories = knownCategories ?? (categoryRows ?? []).map(mapCategoryRow);
+    const variants =
+      sharedVariants ?? await fetchVariantRows(productRows.map((product) => product.id));
     return {
       products: mapProductRows(productRows, variants, categories),
       totalCount: countResult.count ?? productRows.length,
