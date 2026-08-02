@@ -187,6 +187,20 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-08-02] — Fix taste-filter category-name collision (Cappuccino, Coffee Mix, Hot Chocolate, Flavor Coffee) (code-only, no migration)
+
+**Goal:** Owner reported the taste filter (Fruits/Nuts/Chocolate/Desserts/Special) was broken on Hot Chocolate specifically — screenshot showed `Fruits 0 / Nuts 0 / Chocolate 24 / Desserts 0` out of 28 products.
+
+**Root cause:** `flavorGroup()` in `src/lib/catalog/product-taste-filters.ts` classified each product by running `slug.includes(token)` against the product's **full slug**, which always ends with the category's own slug (e.g. `strawberry-hot-chocolate`). Because the category slug `hot-chocolate` itself contains the literal substring `"chocolate"` — one of the Chocolate-family tokens — every product in that category matched the Chocolate check before ever reaching the Fruit/Nuts/Dessert checks, regardless of its real flavor.
+
+**Fix:** Added `stripCategorySuffix()`, which removes the category's own slug suffix from a product's slug before any taste-token match runs (with a documented override for `flavor-coffee`, whose products end in `-coffee`, not `-flavor-coffee`). `flavorGroup()` now takes `categorySlug` as a parameter and matches tokens only against the isolated flavor part. Also corrected two flavor-family assignments per the owner-supplied reference table: **Oreo** moved from Desserts to Chocolate; **Coconut** moved from Nuts to Desserts. Since all four flavored categories (Coffee Mix, Cappuccino, Hot Chocolate, Flavor Coffee) share the same `flavorGroup()`/`FLAVOR_FILTERS` definitions, this single fix corrects all four at once.
+
+**Verification:** Added 2 regression tests (`product-taste-filters.test.ts`) — one reproducing the exact Hot Chocolate category-name collision, one covering `flavor-coffee`'s shorter `-coffee` suffix — plus updated an existing assertion (`oreo-cappuccino` now expects `"chocolate"`, not `"dessert"`). All 10 tests pass; `npx tsc --noEmit` and `npx eslint` on both changed files are clean. Live dev-server check confirmed correct counts post-fix: Hot Chocolate `28 = 1 Original + 12 Fruits + 3 Nuts + 4 Chocolate + 5 Desserts + 3 Special`; Cappuccino identical breakdown; Flavor Coffee `30 = 1 + 12 + 4 + 5 + 5 + 3` (its 2 extra "chunk" variants add one each to Nuts/Chocolate). Zero console errors.
+
+**Files:** `src/lib/catalog/product-taste-filters.ts`, `src/lib/catalog/product-taste-filters.test.ts`, `CLAUDE.md`.
+
+**Confirm:** code-only, no migration, no visual/design change, no pricing/checkout/inventory change, no commit rewrite.
+
 ### [2026-07-30] — Products navigation and first-load performance pass (code-only, no migration)
 
 **Goal:** Remove the measured duplicate server/client work when switching `/products` categories and reduce the rendering/network pressure of 28–30 glass product cards without changing catalog truth, prices, filters, or the requested visual direction.

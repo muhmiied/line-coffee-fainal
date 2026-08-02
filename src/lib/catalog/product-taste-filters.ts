@@ -98,24 +98,45 @@ const FRUIT_TOKENS = [
   "orange",
 ];
 
-const NUT_TOKENS = ["hazelnut", "almond", "pistachio", "coconut"];
-const CHOCOLATE_TOKENS = ["chocolate", "nutella", "mocha"];
-const DESSERT_TOKENS = ["oreo", "lotus", "cinnamon-roll", "vanilla", "caramel"];
+const NUT_TOKENS = ["hazelnut", "almond", "pistachio"];
+const CHOCOLATE_TOKENS = ["chocolate", "nutella", "mocha", "oreo"];
+const DESSERT_TOKENS = ["lotus", "cinnamon-roll", "vanilla", "caramel", "coconut"];
 const SIGNATURE_TOKENS = ["shisha", "hot-cider"];
+
+// Product slugs are built as "<flavor>-<category>" (e.g. "strawberry-hot-chocolate").
+// Some category names contain a taste-family word themselves (hot-chocolate contains
+// "chocolate"), so matching tokens against the full slug would misclassify every
+// product in that category. Stripping the category's own slug suffix first isolates
+// just the flavor part before any token check runs.
+const CATEGORY_SUFFIX_OVERRIDES: Record<string, string> = {
+  "flavor-coffee": "coffee",
+};
+
+function stripCategorySuffix(slug: string, categorySlug: string): string {
+  const suffix = CATEGORY_SUFFIX_OVERRIDES[categorySlug] ?? categorySlug;
+  const marker = `-${suffix}`;
+  return slug.endsWith(marker) ? slug.slice(0, -marker.length) : slug;
+}
 
 function includesToken(value: string, tokens: string[]) {
   return tokens.some((token) => value.includes(token));
 }
 
-function flavorGroup(product: TasteFilterProduct): ProductTasteFilterKey {
-  const slug = product.slug.toLowerCase();
+function flavorGroup(
+  categorySlug: string,
+  product: TasteFilterProduct,
+): ProductTasteFilterKey {
+  const rawSlug = product.slug.toLowerCase();
 
-  if (slug.includes("original") || slug === "french-coffee") return "original";
-  if (includesToken(slug, SIGNATURE_TOKENS)) return "signature";
-  if (includesToken(slug, CHOCOLATE_TOKENS)) return "chocolate";
-  if (includesToken(slug, NUT_TOKENS)) return "nuts";
-  if (includesToken(slug, FRUIT_TOKENS)) return "fruit";
-  if (includesToken(slug, DESSERT_TOKENS)) return "dessert";
+  if (rawSlug.includes("original") || rawSlug === "french-coffee") return "original";
+
+  const flavorCore = stripCategorySuffix(rawSlug, categorySlug);
+
+  if (includesToken(flavorCore, SIGNATURE_TOKENS)) return "signature";
+  if (includesToken(flavorCore, CHOCOLATE_TOKENS)) return "chocolate";
+  if (includesToken(flavorCore, NUT_TOKENS)) return "nuts";
+  if (includesToken(flavorCore, FRUIT_TOKENS)) return "fruit";
+  if (includesToken(flavorCore, DESSERT_TOKENS)) return "dessert";
   return "signature";
 }
 
@@ -142,7 +163,7 @@ export function getProductTasteGroup(
     return slug === "gold-line" ? "premium" : "classic";
   }
 
-  return flavorGroup(product);
+  return flavorGroup(categorySlug, product);
 }
 
 export function matchesProductTasteFilter(

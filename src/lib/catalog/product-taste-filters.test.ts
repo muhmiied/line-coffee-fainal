@@ -29,8 +29,29 @@ describe("product taste filters", () => {
     expect(getProductTasteGroup("cappuccino", product("strawberry-cappuccino"))).toBe("fruit");
     expect(getProductTasteGroup("cappuccino", product("hazelnut-cappuccino"))).toBe("nuts");
     expect(getProductTasteGroup("cappuccino", product("nutella-cappuccino"))).toBe("chocolate");
-    expect(getProductTasteGroup("cappuccino", product("oreo-cappuccino"))).toBe("dessert");
+    expect(getProductTasteGroup("cappuccino", product("oreo-cappuccino"))).toBe("chocolate");
     expect(getProductTasteGroup("cappuccino", product("apple-shisha-cappuccino"))).toBe("signature");
+  });
+
+  it("does not let the hot-chocolate category name collide with the chocolate family", () => {
+    // "hot-chocolate" is both the category slug AND a taste-family token, so every
+    // product slug in this category (e.g. "strawberry-hot-chocolate") literally
+    // contains the substring "chocolate". Classification must strip the category
+    // suffix first so only the real flavor is checked against the taste tokens.
+    expect(getProductTasteGroup("hot-chocolate", product("strawberry-hot-chocolate"))).toBe("fruit");
+    expect(getProductTasteGroup("hot-chocolate", product("hazelnut-hot-chocolate"))).toBe("nuts");
+    expect(getProductTasteGroup("hot-chocolate", product("lotus-hot-chocolate"))).toBe("dessert");
+    expect(getProductTasteGroup("hot-chocolate", product("coconut-hot-chocolate"))).toBe("dessert");
+    expect(getProductTasteGroup("hot-chocolate", product("chocolate-hot-chocolate"))).toBe("chocolate");
+    expect(getProductTasteGroup("hot-chocolate", product("oreo-hot-chocolate"))).toBe("chocolate");
+    expect(getProductTasteGroup("hot-chocolate", product("apple-shisha-hot-chocolate"))).toBe("signature");
+  });
+
+  it("strips the flavor-coffee category's shorter product suffix correctly", () => {
+    // flavor-coffee products end in "-coffee", not "-flavor-coffee".
+    expect(getProductTasteGroup("flavor-coffee", product("hazelnut-chunk-coffee"))).toBe("nuts");
+    expect(getProductTasteGroup("flavor-coffee", product("chocolate-chunk-coffee"))).toBe("chocolate");
+    expect(getProductTasteGroup("flavor-coffee", product("french-coffee"))).toBe("original");
   });
 
   it("uses category-specific families for classic coffee ranges", () => {
