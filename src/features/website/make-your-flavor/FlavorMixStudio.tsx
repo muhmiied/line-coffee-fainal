@@ -240,7 +240,7 @@ export function FlavorMixStudio({ embedded = false }: { embedded?: boolean }) {
         <section className="relative -mt-[6.4rem] min-h-[28rem] overflow-hidden border-b border-[#B6885E]/14 bg-[#0B0806] pb-12 pt-[calc(6.4rem+3rem)] sm:-mt-[7.2rem] sm:min-h-[30rem] sm:pb-14 sm:pt-[calc(7.2rem+3.5rem)] md:-mt-[7.9rem] md:min-h-[32rem] md:pb-16 md:pt-[calc(7.9rem+4rem)]">
           <div className="absolute inset-0 opacity-50" aria-hidden="true">
             <Image
-              src="/assets/categories/flavor.png"
+              src="/site-images/products/builders/flavor/background.png"
               alt=""
               fill
               priority

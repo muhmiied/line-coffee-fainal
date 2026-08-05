@@ -42,7 +42,7 @@ export default function WelcomeHero({ stats }: { stats: DashboardHeroStats | nul
       {/* Full-card background image */}
       <div className="absolute inset-0" aria-hidden="true">
         <Image
-          src="/assets/story/roastery.png"
+          src="/site-images/admin/dashboard/welcome-background.png"
           alt=""
           fill
           priority

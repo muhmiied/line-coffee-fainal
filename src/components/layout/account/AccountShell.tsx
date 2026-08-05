@@ -77,7 +77,7 @@ export function AccountShell({ children, title }: AccountShellProps) {
     >
       {/* Ambient background */}
       <Image
-        src="/assets/hero/dark-roast.png"
+        src="/site-images/shared/account/background.png"
         alt=""
         fill
         sizes="100vw"

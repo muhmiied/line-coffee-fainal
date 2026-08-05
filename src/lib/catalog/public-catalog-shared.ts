@@ -17,16 +17,16 @@ import {
 export const publicCatalogPackageSizes = ["250g", "500g", "1kg"] as const satisfies readonly PackageSize[];
 
 export const fallbackCategoryImages: Record<string, string> = {
-  "turkish-blends": "/assets/categories/turkish.png",
-  "espresso-blends": "/assets/categories/espresso.png",
-  "easy-coffee": "/assets/products/espresso-pouch.png",
-  "coffee-mix": "/assets/products/classic-pouch.png",
-  cappuccino: "/assets/products/cappuccino-sachets.png",
-  "hot-chocolate": "/assets/products/cappuccino-sachets.png",
-  "flavor-coffee": "/assets/products/flavor-pouch.png",
+  "turkish-blends": "/site-images/products/categories/turkish-blends/fallback.png",
+  "espresso-blends": "/site-images/products/categories/espresso-blends/fallback.png",
+  "easy-coffee": "/site-images/products/categories/easy-coffee/fallback.png",
+  "coffee-mix": "/site-images/products/categories/coffee-mix/fallback.png",
+  cappuccino: "/site-images/products/categories/cappuccino/fallback.png",
+  "hot-chocolate": "/site-images/products/categories/hot-chocolate/fallback.png",
+  "flavor-coffee": "/site-images/products/categories/flavor-coffee/fallback.png",
 };
 
-export const defaultProductImage = "/assets/products/classic-pouch.png";
+export const defaultProductImage = "/site-images/products/shared/default-product.png";
 
 // The public_products column projection, shared by every product fetch so
 // the list lives in one place instead of being copy-pasted per query.

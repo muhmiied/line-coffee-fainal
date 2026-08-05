@@ -110,8 +110,8 @@ function getGalleryImages(product: PublicCatalogProduct, category?: PublicCatalo
     product.image,
     ...product.gallery,
     category?.image,
-    "/assets/story/roastery.png",
-    "/assets/hero/dark-roast.png",
+    "/site-images/products/product-detail/gallery-fallbacks/02-roastery.png",
+    "/site-images/products/product-detail/gallery-fallbacks/03-dark-roast.png",
   ].filter(Boolean))) as string[];
 }
 
@@ -173,7 +173,7 @@ function ProductGallery({
   onActiveIndexChange: (index: number) => void;
 }) {
   const { t } = useLanguage();
-  const activeImage = images[activeIndex] ?? images[0] ?? "/assets/products/classic-pouch.png";
+  const activeImage = images[activeIndex] ?? images[0] ?? "/site-images/products/shared/default-product.png";
 
   return (
     <section className="luxury-panel overflow-hidden rounded-2xl">

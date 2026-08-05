@@ -14,23 +14,46 @@ import type {
 
 export const assets = {
   hero: {
-    darkRoast: "/assets/hero/dark-roast.png",
+    darkRoast: "/site-images/home/hero-section/01-dark-roast.png",
+    espressoStudio: "/site-images/home/hero-section/02-espresso-studio.png",
+    flavorStudio: "/site-images/home/hero-section/03-flavor-studio.png",
   },
   story: {
-    roastery: "/assets/story/roastery.png",
+    roastery: "/site-images/home/story-section/story-roastery.png",
   },
   categories: {
-    turkish: "/assets/categories/turkish.png",
-    espresso: "/assets/categories/espresso.png",
-    flavor: "/assets/categories/flavor.png",
-    cappuccino: "/assets/categories/cappuccino.png",
+    turkish: "/site-images/home/categories-section/turkish-blends.png",
+    espresso: "/site-images/home/categories-section/espresso-blends.png",
+    flavor: "/site-images/home/categories-section/flavor-coffee.png",
+    easyCoffee: "/site-images/home/categories-section/easy-coffee.png",
+    cappuccino: "/site-images/home/categories-section/cappuccino.png",
   },
   products: {
-    classicPouch: "/assets/products/classic-pouch.png",
-    espressoPouch: "/assets/products/espresso-pouch.png",
-    flavorPouch: "/assets/products/flavor-pouch.png",
-    cappuccinoSachets: "/assets/products/cappuccino-sachets.png",
+    classicPouch: "/site-images/home/categories-section/coffee-mix.png",
+    espressoPouch: "/site-images/home/categories-section/make-your-espresso.png",
+    flavorPouch: "/site-images/home/social-gallery-section/05-flavor-pouch.png",
+    cappuccinoSachets: "/site-images/products/categories/cappuccino/fallback.png",
   },
+  backgrounds: {
+    categories: "/site-images/home/background-decoration/categories-section.png",
+    features: "/site-images/home/background-decoration/features-section.png",
+    bestSellers: "/site-images/home/background-decoration/best-sellers-section.png",
+    testimonials: "/site-images/home/background-decoration/testimonials-section.png",
+    contact: "/site-images/home/background-decoration/contact-section.png",
+  },
+  journal: {
+    roastNotes: "/site-images/home/journal-section/01-roast-notes.png",
+    blendGuide: "/site-images/home/journal-section/02-blend-guide.png",
+    freshness: "/site-images/home/journal-section/03-keeping-it-fresh.png",
+  },
+  socialGallery: [
+    "/site-images/home/social-gallery-section/01-flavor.png",
+    "/site-images/home/social-gallery-section/02-espresso.png",
+    "/site-images/home/social-gallery-section/03-classic-pouch.png",
+    "/site-images/home/social-gallery-section/04-roastery.png",
+    "/site-images/home/social-gallery-section/05-flavor-pouch.png",
+    "/site-images/home/social-gallery-section/06-turkish.png",
+  ],
 } as const;
 
 // ─── Hero Slides ──────────────────────────────────────────────────────────────
@@ -54,7 +77,7 @@ export const heroSlides: HeroSlide[] = [
   },
   {
     id: "hero-espresso-studio",
-    image: assets.story.roastery,
+    image: assets.hero.espressoStudio,
     title: {
       en: "Craft Your Own Espresso Blend",
       ar: "اصنع خلطة الإسبريسو الخاصة بك",
@@ -70,7 +93,7 @@ export const heroSlides: HeroSlide[] = [
   },
   {
     id: "hero-flavor-studio",
-    image: assets.categories.flavor,
+    image: assets.hero.flavorStudio,
     title: {
       en: "Design Your Flavored Coffee",
       ar: "صمّم قهوتك بالنكهات",
@@ -120,7 +143,7 @@ export const visualCategories: VisualCategory[] = [
     slug: "easy-coffee",
     name: { en: "Easy Coffee", ar: "إيزي كوفي" },
     action: { en: "Explore", ar: "اكتشف" },
-    image: assets.categories.cappuccino,
+    image: assets.categories.easyCoffee,
   },
   {
     slug: "coffee-mix",
@@ -226,7 +249,7 @@ export const visualJournal: VisualJournalItem[] = [
       en: "Small coffee notes for a warmer daily cup.",
       ar: "ملاحظات قصيرة لكوب يومي أكثر دفئًا وعمقًا.",
     },
-    image: assets.story.roastery,
+    image: assets.journal.roastNotes,
     category: { en: "Craft", ar: "صناعة القهوة" },
   },
   {
@@ -236,7 +259,7 @@ export const visualJournal: VisualJournalItem[] = [
       en: "A quick guide to matching roast depth with your daily ritual.",
       ar: "دليل سريع لاختيار عمق التحميص المناسب لطقسك اليومي.",
     },
-    image: assets.categories.espresso,
+    image: assets.journal.blendGuide,
     category: { en: "Guide", ar: "أدلة" },
   },
   {
@@ -246,7 +269,7 @@ export const visualJournal: VisualJournalItem[] = [
       en: "How careful storage preserves aroma and body in every bag.",
       ar: "كيف يساعد التخزين الصحيح في الحفاظ على رائحة البن وقوامه.",
     },
-    image: assets.products.classicPouch,
+    image: assets.journal.freshness,
     category: { en: "Tips", ar: "نصائح" },
   },
 ];
@@ -276,11 +299,4 @@ export const contactItems: VisualContactItem[] = [
 // ─── Social Gallery ───────────────────────────────────────────────────────────
 // Images sourced from brand assets until real social API is connected.
 
-export const socialGalleryImages: string[] = [
-  assets.categories.flavor,
-  assets.categories.espresso,
-  assets.products.classicPouch,
-  assets.story.roastery,
-  assets.products.flavorPouch,
-  assets.categories.turkish,
-];
+export const socialGalleryImages: string[] = [...assets.socialGallery];

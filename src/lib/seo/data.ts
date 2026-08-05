@@ -278,7 +278,7 @@ type SeoBlogRow = {
   card_image: string | null;
 };
 
-const BLOG_FALLBACK_IMAGE = "/assets/story/roastery.png";
+const BLOG_FALLBACK_IMAGE = "/site-images/blog/article-fallbacks/default.png";
 
 function mapBlogRow(row: SeoBlogRow): SeoBlogPost {
   return {

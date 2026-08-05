@@ -107,7 +107,7 @@ export function PublicFooter() {
   return (
     <footer className="line-footer relative overflow-hidden bg-[#070504]" dir={dir}>
       <Image
-        src="/assets/hero/dark-roast.png"
+        src="/site-images/shared/footer/background.png"
         alt=""
         fill
         priority
@@ -127,7 +127,7 @@ export function PublicFooter() {
                 <span className="sr-only">{settings.brand.storeName}</span>
                 <span className="relative block h-20 w-64 md:h-24 md:w-72">
                   <Image
-                    src="/brand/logo-white.svg"
+                    src="/site-images/shared/logos/line-coffee-white.svg"
                     alt={settings.brand.storeName}
                     fill
                     sizes="18rem"

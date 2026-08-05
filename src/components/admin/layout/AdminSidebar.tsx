@@ -76,7 +76,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
         />
         {collapsed ? (
           <Image
-            src="/brand/logo-colored.svg"
+            src="/site-images/shared/logos/line-coffee-colored.svg"
             alt="Line Coffee"
             width={32}
             height={32}
@@ -86,7 +86,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
           <>
             <span className="relative block flex-1" style={{ height: 46 }}>
               <Image
-                src="/brand/logo-white.svg"
+                src="/site-images/shared/logos/line-coffee-white.svg"
                 alt="Line Coffee"
                 fill
                 sizes="176px"
@@ -154,7 +154,7 @@ function SidebarContent({ collapsed, onClose, orderCount }: SidebarContentProps)
               style={{ boxShadow: "var(--admin-inset), 0 4px 12px rgb(5 3 2 / 0.4)" }}
             >
               <Image
-                src="/assets/story/roastery.png"
+                src="/site-images/admin/sidebar/roastery-thumbnail.png"
                 alt=""
                 fill
                 sizes="56px"

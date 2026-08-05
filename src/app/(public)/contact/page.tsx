@@ -174,7 +174,7 @@ export default function ContactPage() {
       {/* ── 1. Hero ───────────────────────────────────────────────── */}
       <section className="products-hero relative overflow-hidden pb-14 pt-28 sm:pb-16 lg:pb-20 lg:pt-36">
         <Image
-          src="/assets/story/roastery.png"
+          src="/site-images/contact/hero-section/background.png"
           alt=""
           aria-hidden="true"
           fill

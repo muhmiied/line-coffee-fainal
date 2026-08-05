@@ -61,10 +61,10 @@ export const FOUNDING_YEAR = "2015";
 export const SITE_WHATSAPP_PHONE = (process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "").trim();
 
 /** Default social share / OG image — a real raster hero asset (good for OG rendering). */
-export const DEFAULT_OG_IMAGE = "/assets/hero/dark-roast.png";
+export const DEFAULT_OG_IMAGE = "/site-images/shared/metadata/default-og.png";
 
 /** Brand logo (used for Organization structured data). */
-export const BRAND_LOGO = "/brand/logo-colored.svg";
+export const BRAND_LOGO = "/site-images/shared/logos/line-coffee-colored.svg";
 
 export const DEFAULT_TITLE = "Line Coffee — Premium Egyptian Specialty Coffee";
 

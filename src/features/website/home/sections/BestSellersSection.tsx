@@ -90,7 +90,7 @@ export function BestSellersSection({
       <section className="arabic-body cinematic-section section-bg-rich relative overflow-hidden py-20 md:py-28">
       {/* Roastery image bleeds warmth from story section above */}
       <Image
-        src={assets.story.roastery}
+        src={assets.backgrounds.bestSellers}
         alt=""
         fill
         sizes="100vw"

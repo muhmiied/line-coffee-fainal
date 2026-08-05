@@ -75,7 +75,7 @@ export default function BlogPageClient({ initialPosts, initialTotalCount }: Blog
       {/* ── Hero ── */}
       <section className="products-hero relative overflow-hidden pb-16 pt-28 lg:pt-36">
         <Image
-          src="/assets/story/roastery.png"
+          src="/site-images/blog/hero-section/background.png"
           alt=""
           fill
           priority

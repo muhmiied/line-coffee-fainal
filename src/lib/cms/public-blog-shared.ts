@@ -123,7 +123,7 @@ function parseBody(contentEn: string, contentAr: string): PublicBlogBodyBlock[] 
   }).filter((block) => block.text.en || block.text.ar);
 }
 
-const FALLBACK_IMAGE = "/assets/story/roastery.png";
+const FALLBACK_IMAGE = "/site-images/blog/article-fallbacks/default.png";
 
 /** Maps a full row (with body content) — used by the detail page. */
 export function mapPost(row: BlogPostRow): PublicBlogPost {

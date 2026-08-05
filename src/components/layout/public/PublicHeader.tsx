@@ -512,7 +512,7 @@ function MobileMenu({
         {/* Top bar */}
         <div className="flex items-center justify-between border-b border-[#B6885E]/12 px-5 py-4">
           <span className="relative block h-8 w-28">
-            <Image src="/brand/logo-white.svg" alt="Line Coffee" fill sizes="7rem" className="object-contain object-left" />
+            <Image src="/site-images/shared/logos/line-coffee-white.svg" alt="Line Coffee" fill sizes="7rem" className="object-contain object-left" />
           </span>
           <button
             ref={closeButtonRef}
@@ -1354,7 +1354,7 @@ export function PublicHeader() {
               <span className="sr-only">Line Coffee</span>
               <span className="relative block h-10 w-28 sm:h-12 sm:w-36 md:h-16 md:w-[12rem]">
                 <Image
-                  src="/brand/logo-white.svg"
+                  src="/site-images/shared/logos/line-coffee-white.svg"
                   alt="Line Coffee"
                   fill
                   priority

@@ -37,7 +37,7 @@ export function TestimonialsSection() {
         className="arabic-body cinematic-section section-bg-black relative overflow-hidden py-20 md:py-28"
       >
       <Image
-        src={assets.hero.darkRoast}
+        src={assets.backgrounds.testimonials}
         alt=""
         fill
         sizes="100vw"

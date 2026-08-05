@@ -99,7 +99,7 @@ export default function AboutPage() {
       */}
       <section className="products-hero relative overflow-hidden pb-16 pt-28 sm:pb-20 lg:pb-24 lg:pt-32">
         <Image
-          src="/assets/hero/dark-roast.png"
+          src="/site-images/about/hero-section/background.png"
           alt=""
           aria-hidden="true"
           fill
@@ -126,7 +126,7 @@ export default function AboutPage() {
                 />
                 <div className="premium-image-card group relative aspect-[3/4] overflow-hidden rounded-2xl border border-[#D6A373]/14 bg-[#120D09]">
                   <Image
-                    src="/assets/story/roastery.png"
+                    src="/site-images/about/hero-section/roastery.png"
                     alt={t({ en: "Line Coffee roastery", ar: "محمصة لاين كوفي" })}
                     fill
                     priority
@@ -223,7 +223,7 @@ export default function AboutPage() {
                 />
                 <div className="premium-image-card group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[#B6885E]/14 bg-[#120D09]">
                   <Image
-                    src="/assets/hero/dark-roast.png"
+                    src="/site-images/about/sourcing-section/coffee-beans.png"
                     alt={t({ en: "Coffee beans close-up", ar: "تفاصيل حبوب القهوة" })}
                     fill
                     sizes="(max-width: 1024px) 80vw, 44vw"
@@ -296,7 +296,7 @@ export default function AboutPage() {
       {/* ── 4. Quote + CTA (merged) ───────────────────────────────── */}
       <section className="cinematic-section relative overflow-hidden py-28 md:py-36">
         <Image
-          src="/assets/story/roastery.png"
+          src="/site-images/about/quote-cta-section/background.png"
           alt=""
           aria-hidden="true"
           fill

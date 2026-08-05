@@ -24,7 +24,7 @@ import { getAdminOrders } from "@/lib/admin/admin-orders";
 import type { OrderStatus } from "@/lib/types/order";
 import { trendPct } from "@/lib/admin/admin-metrics";
 
-const DEFAULT_PRODUCT_IMAGE = "/assets/products/classic-pouch.png";
+const DEFAULT_PRODUCT_IMAGE = "/site-images/products/shared/default-product.png";
 
 export type DashboardPeriod = "today" | "week" | "month" | "all";
 

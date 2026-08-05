@@ -27,7 +27,7 @@ export function FeaturesSection({ features = visualFeatures }: FeaturesSectionPr
         className="arabic-body cinematic-section section-bg-black relative overflow-hidden pb-16 pt-14 md:pb-24 md:pt-20"
       >
       <Image
-        src={assets.story.roastery}
+        src={assets.backgrounds.features}
         alt=""
         fill
         sizes="100vw"

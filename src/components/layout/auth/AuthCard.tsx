@@ -32,7 +32,7 @@ export function AuthCard({ title, subtitle, children, variant = "default" }: Aut
     >
       {/* Background */}
       <Image
-        src="/assets/hero/dark-roast.png"
+        src="/site-images/shared/auth/background.png"
         alt=""
         fill
         sizes="100vw"
@@ -51,7 +51,7 @@ export function AuthCard({ title, subtitle, children, variant = "default" }: Aut
           <Link href="/">
             <span className="relative block h-16 w-48">
               <Image
-                src="/brand/logo-white.svg"
+                src="/site-images/shared/logos/line-coffee-white.svg"
                 alt="Line Coffee"
                 fill
                 sizes="12rem"

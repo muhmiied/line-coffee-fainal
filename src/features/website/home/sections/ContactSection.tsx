@@ -98,7 +98,7 @@ export function ContactSection({ items = contactItems }: ContactSectionProps) {
         className="arabic-body cinematic-section section-bg-black relative overflow-hidden py-16 md:py-24"
       >
       <Image
-        src={assets.hero.darkRoast}
+        src={assets.backgrounds.contact}
         alt=""
         fill
         sizes="100vw"

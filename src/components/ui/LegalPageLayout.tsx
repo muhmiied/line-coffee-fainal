@@ -53,7 +53,7 @@ export function LegalPageLayout({
       {/* ── Hero ── */}
       <section className="products-hero relative overflow-hidden pb-14 pt-28 text-center lg:pt-36">
         <Image
-          src="/assets/hero/dark-roast.png"
+          src="/site-images/shared/legal/background.png"
           alt=""
           fill
           priority

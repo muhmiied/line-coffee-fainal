@@ -101,7 +101,7 @@ function ProductsHero() {
   return (
     <div className="products-hero relative flex h-[45vh] min-h-[320px] items-center justify-center">
       <Image
-        src="/assets/story/roastery.png"
+        src="/site-images/products/hero-section/background.png"
         alt="Line Coffee Products"
         fill
         priority

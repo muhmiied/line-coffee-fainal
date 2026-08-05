@@ -26,7 +26,7 @@ export function CategoriesSection({
         className="arabic-body cinematic-section home-after-hero section-bg-warm relative overflow-hidden pb-20 pt-12 md:pb-28 md:pt-16"
       >
       <Image
-        src={assets.hero.darkRoast}
+        src={assets.backgrounds.categories}
         alt=""
         fill
         sizes="100vw"
