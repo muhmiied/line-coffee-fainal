@@ -187,6 +187,18 @@ ContactSection       ← cinematic-section, contact form + info
 
 ## Change Log
 
+### [2026-08-06] — Owner-requested production data wipe: only super admin account retained (live DB data-only, no schema/migration, no code change)
+
+**Goal:** Owner reported the Admin Customers page showed leftover test/QA registered emails, guests, and (per the owner's initial description) orders, and asked for everything wiped except their own super admin account (`midoseka8@gmail.com`). Confirmed via a direct question that the request meant literally only that one login/email should remain — including removing a customer profile row that was technically tied to the owner's own real Supabase Auth login but registered under a different contact email (`M.Sayed@abu-elhassan.com`).
+
+**Investigation (via `supabase db query --linked`, direct Postgres access, no service-role app code involved):** `orders` was already empty (0 rows) at the time of this task — the owner's "orders" observation did not correspond to live data. Found 3 `auth.users` rows (`midoseka8@gmail.com` — the real super admin login; `m.sayed@abu-elhassan.com` and `ms2552375@gmail.com` — two test logins) and 4 `public.customers` rows (1 registered customer tied to the owner's own real auth login but a different contact email + 1 saved address; 2 neutralized/inactive guest shells left over from prior Phase-2 guest→account merges; 1 separate registered customer, "احمد خالد", tied to the `ms2552375@gmail.com` test login). `customer_wishlist`, `contact_messages`, and `reviews` were already empty. Checked FK delete rules first (`customer_addresses.customer_id` → `customers.id` is `CASCADE`; `orders.customer_id` and `promo_redemptions.customer_id` → `customers.id` are `RESTRICT` but both tables were empty so no conflict; `customers.auth_user_id` → `auth.users.id` is `SET NULL`; `admin_users.auth_user_id` → `auth.users.id` is `CASCADE` — confirmed the two auth accounts being deleted had no `admin_users` row, so `admin_users` was never at risk; `auth.identities`/`sessions`/`mfa_factors`/`one_time_tokens`/`oauth_authorizations`/`oauth_consents`/`webauthn_*` all `CASCADE` from `auth.users`).
+
+**Action (one transaction, direct SQL via `supabase db query --linked`):** deleted all 4 `public.customers` rows (cascaded to the 1 `customer_addresses` row) and the 2 non-admin `auth.users` rows (cascaded their identities/sessions). Did **not** touch `public.admin_users`, the `midoseka8@gmail.com` `auth.users` row, or any product/category/inventory/CMS/settings data.
+
+**Result (verified after commit):** `auth.users` = 1 row (`midoseka8@gmail.com`) · `admin_users` = 1 row (same, `super_admin`, unchanged) · `customers` = 0 · `customer_addresses` = 0 · `orders` = 0 (already was).
+
+**Confirm:** live production data deletion only, explicitly requested and confirmed by the owner (Mohamed Sayed) in-conversation before execution · no schema change, no migration file, no RLS/grant change, no application code touched · no service-role code used (direct authenticated `supabase db query --linked`, same access class as prior live-DB verification queries in this log) · no commit/push (data-only, nothing to commit).
+
 ### [2026-08-02] — Fix taste-filter category-name collision (Cappuccino, Coffee Mix, Hot Chocolate, Flavor Coffee) (code-only, no migration)
 
 **Goal:** Owner reported the taste filter (Fruits/Nuts/Chocolate/Desserts/Special) was broken on Hot Chocolate specifically — screenshot showed `Fruits 0 / Nuts 0 / Chocolate 24 / Desserts 0` out of 28 products.
